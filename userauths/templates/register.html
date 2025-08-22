@@ -1,0 +1,65 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-screen bg-gray-50">
+    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        <h2 class="text-2xl font-bold text-center text-gray-900">Create your account</h2>
+
+        <!-- Display All Non-Field Errors -->
+        {% if form.non_field_errors %}
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" class="space-y-6" x-data="{ isSubmitting: false }" @submit="isSubmitting = true">
+            {% csrf_token %}
+
+            <!-- Loop through form fields -->
+            {% for field in form %}
+            <div>
+                <label for="{{ field.id_for_label }}"
+                    class="block text-sm font-medium text-gray-700">{{field.label}}</label>
+                <div class="mt-1">
+                    {{ field }}
+                </div>
+                <!-- Display Field-Specific Errors -->
+                {% if field.errors %}
+                <div class="mt-1 text-sm text-red-600">
+                    {% for error in field.errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div>
+                <button type="submit" :disabled="isSubmitting"
+                    class="flex items-center justify-center w-full px-4 py-2 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300 disabled:bg-indigo-400 disabled:cursor-not-allowed">
+                    <span x-show="!isSubmitting">Sign Up</span>
+
+                    <span x-show="isSubmitting">
+                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                    </span>
+                </button>
+            </div>
+        </form>
+        <p class="text-sm text-center text-gray-600">
+            Already have an account? <a href="{% url 'userauths:login' %}"
+                class="font-medium text-indigo-600 hover:text-indigo-500">Log in</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

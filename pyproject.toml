@@ -1,0 +1,3 @@
+[tool.djlint]
+line_length = 600
+ignore = "H006,T002" 

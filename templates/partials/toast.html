@@ -1,0 +1,65 @@
+{% load static %}
+<div x-data="toastHandler()" @dispatch-toast.window="addToast($event.detail)"
+    class="fixed bottom-3 right-0 p-4 space-y-2">
+    <template x-for="toast in toasts" :key="toast.id">
+        <div x-show="toast.visible" x-transition:enter="toast-enter-active" x-transition:enter-start="toast-enter-from"
+            x-transition:leave="toast-leave-active" x-transition:leave-end="toast-leave-to"
+            class="flex items-center justify-between max-w-xs p-4 text-white rounded-lg shadow-lg" :class="{
+                    'bg-green-500': toast.type === 'success',
+                    'bg-red-500': toast.type === 'error',
+                    'bg-indigo-500': toast.type === 'info',
+                    'bg-yellow-500': toast.type === 'warning'
+                }">
+            <span x-text="toast.message"></span>
+            <button @click="removeToast(toast.id)" class="ml-4 text-white hover:text-gray-200">X</button>
+        </div>
+    </template>
+</div>
+
+
+<script>
+    // Alpine.js component logic for handling toasts
+    function toastHandler() {
+        return {
+            toasts: [],
+            counter: 0,
+            addToast(detail) {
+                const id = this.counter++;
+                this.toasts.push({
+                    id: id,
+                    message: detail.message,
+                    type: detail.type || 'info',
+                    visible: true
+                });
+                setTimeout(() => {
+                    this.removeToast(id);
+                }, 5000); // Auto-remove after 5 seconds
+            },
+            removeToast(id) {
+                const toast = this.toasts.find(t => t.id === id);
+                if (toast) {
+                    toast.visible = false;
+                    // Optional: fully remove from array after transition
+                    setTimeout(() => {
+                        this.toasts = this.toasts.filter(t => t.id !== id);
+                    }, 400);
+                }
+            }
+        }
+    }
+
+    // This part connects Django messages to our Alpine component
+    document.addEventListener('DOMContentLoaded', () => {
+        {% if messages %}
+        {% for message in messages %}
+        window.dispatchEvent(new CustomEvent('dispatch-toast', {
+            detail: {
+                message: "{{ message|escapejs }}",
+                // Django's 'error' tag becomes 'error', 'success' becomes 'success', etc.
+                type: "{{ message.tags }}"
+            }
+        }));
+        {% endfor %}
+        {% endif %}
+    });
+</script>
