@@ -27,9 +27,11 @@ urlpatterns = [
     path("__reload__/", include("django_browser_reload.urls")),
 
     # Django CKEditor
+    path("ckeditor5/", include('django_ckeditor_5.urls')),
     
     path('', include('core.urls')),
     path('auth/', include('userauths.urls')),
+    path('store/', include('store.urls')),
 ]
 
 

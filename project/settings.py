@@ -43,9 +43,12 @@ INSTALLED_APPS = [
     # Custom Apps
     'userauths',
     'core',
+    'order',
+    'store',
 
     # Third party apps
     'whitenoise',
+    'django_ckeditor_5',
 ]
 
 MIDDLEWARE = [
@@ -146,6 +149,18 @@ JAZZMIN_SETTINGS = {
 }
 
 
-# JAZZMIN_UI_TWEAKS = {
-#     "theme": "cosmo", # try: cosmo, cyborg, flatly, lumen, minty, pulse, sandstone, simplex, slate, solar, spacelab, superhero, united, yeti
-# }
+DJANGO_CKEDITOR_5_CONFIGS = {
+    "default": {
+        "toolbar": [
+            "heading", "|", "bold", "italic", "underline", "link",
+            "bulletedList", "numberedList", "blockQuote",
+            "insertTable", "imageUpload", "mediaEmbed",
+            "undo", "redo",
+        ],
+        "language": "en",
+    },
+    "comment": {
+        "toolbar": ["bold", "italic", "link"],
+        "language": "en",
+    },
+}

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ product.name }}</title>
+</head>
+
+<body>
+    <h1>{{ product.name }}</h1>
+    <p>by {{ product.vendor.vendor_profile.business_name }}</p>
+
+    <p>Rating: {{ average_rating }} / 5.0 ({{ reviews.count }} reviews)</p>
+
+    <hr>
+
+    <div class="image-gallery">
+        <h3>Product Gallery</h3>
+        {% for image in product.general_images %}
+        <img src="{{ image.image.url }}" alt="General image for {{ product.name }}" style="width: 150px;" />
+        {% endfor %}
+    </div>
+
+    <hr>
+
+    <div>{{ product.description|safe }}</div>
+
+    <hr>
+
+    <h3>Choose Your Options</h3>
+    {% for category_name, values in variation_options.items %}
+    <div>
+        <label for="{{ category_name }}">{{ category_name }}:</label>
+        <select name="{{ category_name }}" id="{{ category_name }}">
+            {% for value in values %}
+            <option value="{{ value }}">{{ value }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endfor %}
+
+    <hr>
+
+    <h3>Available Variations</h3>
+    {% for variation in product.variations.all %}
+    <div class="variation-info" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
+        <h4>
+            Variation:
+            {% for val in variation.variations.all %}
+            {{ val.value }}
+            {% endfor %}
+        </h4>
+        <p><strong>Price:</strong> ${{ variation.price }}</p>
+        <p><strong>Stock:</strong> {{ variation.stock_quantity }}</p>
+        <p><strong>SKU:</strong> {{ variation.sku }}</p>
+
+        <div class="variation-images">
+            {% for image in variation.images.all %}
+            <img src="{{ image.image.url }}" alt="Image for variation" style="width: 100px;">
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <p>This product has no variations.</p>
+    {% endfor %}
+
+    <hr>
+
+    <h3>Customer Reviews</h3>
+    {% for review in reviews %}
+    <div>
+        <p><strong>{{ review.user.get_full_name }}</strong> - {{ review.rating }}/5</p>
+        <p>{{ review.comment }}</p>
+        <small>on {{ review.created_at|date:"F d, Y" }}</small>
+    </div>
+    {% empty %}
+    <p>No reviews yet.</p>
+    {% endfor %}
+
+</body>
+
+</html>
