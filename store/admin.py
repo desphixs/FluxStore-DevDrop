@@ -2,14 +2,33 @@ from django.contrib import admin
 from . import models
 from django.utils.html import format_html
 
+class ChildCategoryInline(admin.TabularInline):
+    model = models.Category
+    fk_name = "parent"
+    extra = 1
+    verbose_name = "Subcategory"
+    verbose_name_plural = "Subcategories"
+
 
 @admin.register(models.Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("name", "parent", "is_active")
+    list_display = ("name", "parent", "is_active",  "trending", "featured", "image_preview")
+    list_editable = ["featured", "trending", "is_active"]
     list_filter = ("is_active", "parent")
     search_fields = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
     ordering = ("name",)
+    inlines = [ChildCategoryInline]
+
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" width="60" height="60" style="object-fit:cover; border-radius:6px;" />', obj.image.url)
+        else:
+            return format_html(
+                '<a href="{}">Upload Image</a>',
+                f"/admin/store/category/{obj.id}/change/"
+            )
+    image_preview.short_description = "Image"
 
 
 class ProductImageInline(admin.StackedInline):
@@ -30,8 +49,7 @@ class ProductVariationInline(admin.StackedInline):
     model = models.ProductVariation
     extra = 1
     show_change_link = True
-    fields = ("product",  "price", "stock_quantity",  "sku", "is_active", "variations",)
-    filter_horizontal = ("variations",)  # nice multi-select UI
+    filter_horizontal = ("variations",)
 
 
 @admin.register(models.Product)
@@ -69,10 +87,10 @@ class ProductImageInlineForVariation(admin.StackedInline):
 
 @admin.register(models.ProductVariation)
 class ProductVariationAdmin(admin.ModelAdmin):
-    list_display = ("product", "price", "stock_quantity", "sku", "is_active")
+    list_display = ("product", "sale_price", "stock_quantity", "sku", "is_active")
     list_filter = ("is_active", "product")
     search_fields = ("product__name", "sku")
-    ordering = ("price",)
+    ordering = ("sale_price",)
     filter_horizontal = ("variations",)  # nice multi-select UI
     inlines = [ProductImageInlineForVariation]
     readonly_fields = ("uuid",)

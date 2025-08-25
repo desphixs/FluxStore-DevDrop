@@ -29,9 +29,8 @@ urlpatterns = [
     # Django CKEditor
     path("ckeditor5/", include('django_ckeditor_5.urls')),
     
-    path('', include('core.urls')),
+    path('', include('store.urls')),
     path('auth/', include('userauths.urls')),
-    path('store/', include('store.urls')),
 ]
 
 

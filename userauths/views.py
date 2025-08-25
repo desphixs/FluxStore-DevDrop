@@ -9,7 +9,7 @@ from .models import User
 
 def register_view(request):
     if request.user.is_authenticated:
-        return redirect('core:index')
+        return redirect('store:index')
         
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
@@ -31,7 +31,7 @@ def register_view(request):
 def login_view(request):
     
     if request.user.is_authenticated:
-        return redirect('core:index')
+        return redirect('store:index')
 
     if request.method == 'POST':
         form = LoginForm(request.POST)
@@ -42,7 +42,7 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 messages.success(request, 'Login successful')
-                return redirect('core:index')
+                return redirect('store:index')
             else:
                 messages.error(request, 'Invalid email or password.')
     else:

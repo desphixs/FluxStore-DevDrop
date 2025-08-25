@@ -32,8 +32,7 @@
     <!-- {% include 'partials/preloader.html' %} -->
     {% include 'partials/header.html' %}
     {% block content %} {% endblock %}
-    {% include 'partials/dealsModal.html' %}
-    {% include 'partials/footer.html' %}
+    {% include 'partials/footer.html' %}{% include 'partials/dealsModal.html' %}
     {% include 'partials/toast.html' %}
 
     <script src="https://cdn.jsdelivr.net/npm/@glidejs/glide"></script>
@@ -41,6 +40,7 @@
     <script src="{% static 'assets/js/tailwind.config.js' %}"></script>
     <script src="{% static 'assets/js/tailwind.css.js' %}"></script>
     <script src="{% static 'assets/js/functions.js' %}"></script>
+    <script src="{% static 'assets/js/dealCountdown.js' %}"></script>
 
 </body>
 

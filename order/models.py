@@ -76,3 +76,4 @@ class OrderAddress(models.Model):
 
     def __str__(self):
         return f"Shipping Address for Order {self.order.order_id}"
+    

@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
         modalOverlay.classList.add("modal-hidden");
     };
 
-    setTimeout(showModal, 3000);
+    // setTimeout(showModal, 3000);
     closeModalBtn.addEventListener("click", hideModal);
     modalOverlay.addEventListener("click", hideModal);
 
