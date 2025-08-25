@@ -165,9 +165,9 @@
                             <h3 class="font-semibold">Related Products</h3>
                             <div class="grid grid-cols-2 gap-4 mt-4">
                                 {% for rp in related_products %}
-                                <a href="{% url 'product_detail' rp.slug %}" class="block bg-gray-50 rounded p-3">
+                                <a href="{% url 'store:product_detail' rp.slug %}" class="block bg-gray-50 rounded p-3">
                                     <img src="{{ rp.primary_image.image.url }}"
-                                        class="w-full h-28 object-cover rounded mb-2">
+                                        class="w-48 h-28 object-contain rounded mb-2">
                                     <div class="text-sm font-semibold">{{ rp.name }}</div>
                                 </a>
                                 {% endfor %}
