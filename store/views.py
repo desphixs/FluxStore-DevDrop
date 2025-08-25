@@ -4,20 +4,8 @@ from django.shortcuts import render, get_object_or_404
 from django.db.models import Prefetch, Sum, Avg, Case, When, IntegerField
 from store import models as store_models
 from order import models as order_models
-# def index(request):
-    
-#     products = store_models.Product.objects.filter(status=store_models.Product.ProductStatus.PUBLISHED)
-#     categories = store_models.Category.objects.filter(is_active=True, featured=True)[:2]
-#     trending_categories = store_models.Category.objects.filter(is_active=True, trending=True)[:8]
-#     deals = store_models.ProductVariation.objects.filter(product__status=store_models.Product.ProductStatus.PUBLISHED, is_active=True, is_primary=True)
-    
-#     context = {
-#         'products': products,
-#         'categories': categories,
-#         'trending_categories': trending_categories,
-#         'deals': deals,
-#     }
-#     return render(request, 'index.html', context)
+
+import json
 
 def index(request):
     Product = store_models.Product
@@ -91,70 +79,83 @@ def index(request):
     return render(request, 'index.html', context)
 
 def product_detail_view(request, slug):
-    """
-    Displays the details of a single product.
+    Product = store_models.Product
+    ProductVariation = store_models.ProductVariation
+    ProductImage = store_models.ProductImage
 
-    This view retrieves a specific product by its slug and gathers all
-    related information:
-    - Variations (e.g., color, size) with their specific prices and images.
-    - General product images.
-    - Customer reviews and the average rating.
-    - A list of related products from the same category.
-    """
-    # Use get_object_or_404 to fetch the product or return a 404 error if not found.
-    # We extensively use prefetch_related to load all related data in an efficient manner.
     product = get_object_or_404(
-        store_models.Product.objects.prefetch_related(
-            # Prefetch active variations, their values (e.g., 'Red', 'Large'), and their specific images.
+        Product.objects.prefetch_related(
+            # Prefetch active variations and their images + variation values & categories
             Prefetch(
                 'variations',
-                queryset=store_models.ProductVariation.objects.filter(is_active=True).prefetch_related(
-                    'variations__category',  # Prefetches VariationValue and its parent VariationCategory
-                    'images'                 # Prefetches images linked to each ProductVariation
-                )
+                queryset=ProductVariation.objects.filter(is_active=True).prefetch_related('variations', 'images'),
+                to_attr='active_variations'   # -> product.active_variations (list)
             ),
-            # Prefetch general product images that are not tied to a specific variation.
+            # Prefetch general product images (not tied to a variation)
             Prefetch(
                 'images',
-                queryset=store_models.ProductImage.objects.filter(product_variation__isnull=True),
+                queryset=ProductImage.objects.filter(product_variation__isnull=True),
                 to_attr='general_images'
             ),
-            # Prefetch reviews along with the user who wrote them.
             'reviews__user'
-        ).select_related('category', 'vendor'),  # Use select_related for one-to-one/foreign key relationships.
+        ).select_related('category', 'vendor'),
         slug=slug,
-        status=store_models.Product.ProductStatus.PUBLISHED
+        status=Product.ProductStatus.PUBLISHED
     )
 
-    # --- Structure Variation Data for Selection Menus (e.g., dropdowns) ---
-    # This creates a dictionary like: {'Color': {'Red', 'Blue'}, 'Size': {'M', 'L'}}
+    # Build variation options grouped by VariationCategory to render selectors
     variation_options = {}
-    for variation in product.variations.all():
-        for value in variation.variations.all():
-            category_name = value.category.name
-            if category_name not in variation_options:
-                variation_options[category_name] = set()
-            variation_options[category_name].add(value.value)
+    for variation in getattr(product, 'active_variations', []):
+        for vval in variation.variations.all():
+            cat = vval.category.name
+            variation_options.setdefault(cat, set()).add(vval.value)
+    # convert sets -> sorted lists for deterministic UI
+    variation_options = {k: sorted(list(v)) for k, v in variation_options.items()}
 
-    # --- Calculate Average Rating ---
+    # Build a variation_map -> key is deterministic string: "Color:Red|Size:M" (sorted by category)
+    # value contains id, sale_price, regular_price, stock, is_primary, images (urls), deal info, label, etc.
+    variation_map = {}
+    for var in getattr(product, 'active_variations', []):
+        # collect (category, value) for each variation value
+        pairs = [(vv.category.name, vv.value) for vv in var.variations.all()]
+        # sort by category name to make key deterministic
+        pairs_sorted = sorted(pairs, key=lambda x: x[0].lower())
+        key = "|".join([f"{cat}:{val}" for cat, val in pairs_sorted])
+        images = [img.image.url for img in var.images.all()]  # variation-specific images
+        variation_map[key] = {
+            "id": var.id,
+            "sale_price": float(var.sale_price),
+            "regular_price": float(var.regular_price),
+            "discount_amount": float(var.discount_amount()),
+            "discount_percentage": float(var.discount_percentage()),
+            "stock_quantity": var.stock_quantity,
+            "is_primary": var.is_primary,
+            "label": var.label,
+            "label_color": var.label_color,
+            "images": images,
+            "deal_active": var.deal_active,
+            "deal_starts_at": var.deal_starts_at.isoformat() if var.deal_starts_at else None,
+            "deal_ends_at": var.deal_ends_at.isoformat() if var.deal_ends_at else None,
+        }
+
+    # Average rating & reviews
     reviews = product.reviews.all()
-    average_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+    average_rating = reviews.aggregate(avg=Avg('rating'))['avg'] or 0
 
-    # --- Get Related Products ---
-    # Fetches up to 4 other published products from the same category, excluding the current one.
+    # Related products (same category)
     related_products = []
     if product.category:
-        related_products = store_models.Product.objects.filter(
+        related_products = Product.objects.filter(
             category=product.category,
-            status=store_models.Product.ProductStatus.PUBLISHED
+            status=Product.ProductStatus.PUBLISHED
         ).exclude(pk=product.pk)[:4]
 
     context = {
         'product': product,
-        'variation_options': variation_options, # For building selection UI
+        'variation_options': variation_options,
+        'variation_map_json': json.dumps(variation_map),  # will be embedded via json_script
         'reviews': reviews,
         'average_rating': round(average_rating, 1),
         'related_products': related_products,
     }
-
     return render(request, 'product_detail.html', context)

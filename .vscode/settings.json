@@ -1,7 +1,16 @@
 {
-    "djlint.line_length": 600,
-    "[html][django-html][handlebars][hbs][mustache][jinja][jinja-html][nj][njk][nunjucks][twig]": {
+    "prettier.disableLanguages": ["django-html", "jinja-html", "html", "twig", "nunjucks", "handlebars", "mustache"],
+
+    "[django-html]": {
         "editor.defaultFormatter": "monosans.djlint",
-        "editor.formatOnSave": true
+        "editor.formatOnSave": false
+    },
+    "[jinja-html]": {
+        "editor.defaultFormatter": "monosans.djlint",
+        "editor.formatOnSave": false
+    },
+    "[html]": {
+        "editor.defaultFormatter": "monosans.djlint",
+        "editor.formatOnSave": false
     }
 }

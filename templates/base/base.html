@@ -23,12 +23,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/css/glide.theme.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/output.css' %}">
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
         rel="stylesheet">
 </head>
 
-<body class="bg-gray-100 font-[inter]">
+<body class=" font-[inter]">
     <!-- {% include 'partials/preloader.html' %} -->
     {% include 'partials/header.html' %}
     {% block content %} {% endblock %}
@@ -41,6 +42,7 @@
     <script src="{% static 'assets/js/tailwind.css.js' %}"></script>
     <script src="{% static 'assets/js/functions.js' %}"></script>
     <script src="{% static 'assets/js/dealCountdown.js' %}"></script>
+    <script src="{% static 'assets/js/flowbite.min.js' %}"></script>
 
 </body>
 

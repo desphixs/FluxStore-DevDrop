@@ -14,17 +14,18 @@
         {{p.primary_item.discount_amount|floatformat:0}}% OFF</span>
     {% endif %}
 
-    <img src="{{p.primary_image.image.url}}" alt="Off-White Art Silk Boys Kurta Pajama"
-        class="h-[16rem] w-full object-cover" />
+    <a href="{% url 'store:product_detail' p.slug %}">
+        <img src="{{p.primary_image.image.url}}" alt="Off-White Art Silk Boys Kurta Pajama"
+            class="h-[16rem] w-full object-cover" />
+    </a>
 
     <div class="p-4">
-        <p class="text-xs text-gray-500">{{p.category.name}}</p>
-        <h3 class="mb-2  text-sm font-semibold text-gray-800">{{p.name}}</h3>
+        <p class="text-xs text-gray-500"> <a href="">{{p.category.name}}</a></p>
+        <h3 class="mb-2  text-sm font-semibold text-gray-800"><a href="{% url 'store:product_detail' p.slug %}">{{p.name}}</a></h3>
         <div class="mb-2 flex items-center text-sm">
             <span class="text-yellow-600">
                 {% for i in "12345" %}
-                {% if forloop.counter <= p.average_rating_int %}★{% else %}☆{% endif %} {% endfor %} 
-            </span>
+                {% if forloop.counter <= p.average_rating_int %}★{% else %}☆{% endif %} {% endfor %} </span>
                     <span class="ml-1 text-gray-400">({{p.average_rating_int}})</span>
         </div>
         <p class="text-xs text-gray-500">By: {{p.vendor.vendor_profile.business_name}}</p>
