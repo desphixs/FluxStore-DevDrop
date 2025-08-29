@@ -1,7 +1,142 @@
 {% load static %}
-<!-- Footer Section -->
-<!-- <footer class="bg-white border-t border-gray-200">
-    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
-        <p class="text-sm text-gray-500">2025 BrandLogo. All rights reserved.</p>
-    </div>
-</footer> -->
+  <footer class="text-gray-600">
+            <div class="container px-5 py-24 mx-auto">
+                <div class="flex md:items-start md:flex-row md:flex-nowrap flex-wrap flex-col text-center md:text-left">
+                    <div class="w-full md:w-1/4 px-4">
+                        <img src="{{site_config.site_logo.url}}" alt="Logo" class="object-contain w-[10rem] lg:w-[15rem]">
+
+                        <p class="mt-2 text-sm text-gray-500">{{site_config.site_header}}</p>
+                        <p class="mt-4 text-sm"><i
+                                class="fas fa-map-marker-alt text-[#991b1b] mr-2"></i><strong>Address:</strong> {{site_config.address}}</p>
+                        <p class="mt-2 text-sm"><i class="fas fa-phone-alt text-[#991b1b] mr-2"></i><strong>Call
+                                Us:</strong>
+                            {{site_config.phone}}</p>
+                        <p class="mt-2 text-sm"><i
+                                class="fas fa-envelope text-[#991b1b] mr-2"></i><strong>Email:</strong>
+                            {{site_config.email}}</p>
+                        <p class="mt-2 text-sm"><i class="fas fa-clock text-[#991b1b] mr-2"></i><strong>Hours:</strong>
+                            {{site_config.working_hours}}</p>
+                    </div>
+
+                    <div class="flex-grow flex flex-wrap md:pl-20 -mb-10 mt-10 md:mt-0">
+                        <div class="lg:w-1/4 md:w-1/2 w-full px-4">
+                            <h2 class="title-font font-bold text-gray-900 tracking-widest text-lg mb-3">Company</h2>
+                            <nav class="list-none mb-10 space-y-2">
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">About Us</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Delivery
+                                        Information</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Privacy Policy</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Terms &
+                                        Conditions</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Contact Us</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Support Center</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Careers</a></li>
+                            </nav>
+                        </div>
+                        <div class="lg:w-1/4 md:w-1/2 w-full px-4">
+                            <h2 class="title-font font-bold text-gray-900 tracking-widest text-lg mb-3">Account</h2>
+                            <nav class="list-none mb-10 space-y-2">
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Sign In</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">View Cart</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">My Wishlist</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Track My Order</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Help Ticket</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Shipping Details</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Compare products</a>
+                                </li>
+                            </nav>
+                        </div>
+                        <div class="lg:w-1/4 md:w-1/2 w-full px-4">
+                            <h2 class="title-font font-bold text-gray-900 tracking-widest text-lg mb-3">Corporate</h2>
+                            <nav class="list-none mb-10 space-y-2">
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Become a Vendor</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Affiliate Program</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Farm Business</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Farm Careers</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Our Suppliers</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Accessibility</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Promotions</a></li>
+                            </nav>
+                        </div>
+                        <div class="lg:w-1/4 md:w-1/2 w-full px-4">
+                            <h2 class="title-font font-bold text-gray-900 tracking-widest text-lg mb-3">Popular</h2>
+                            <nav class="list-none mb-10 space-y-2">
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Milk & Flavoured
+                                        Milk</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Butter and
+                                        Margarine</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Eggs Substitutes</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Marmalades</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Sour Cream and
+                                        Dips</a></li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Tea & Kombucha</a>
+                                </li>
+                                <li><a class="text-gray-600 hover:text-[#991b1b] cursor-pointer">Cheese</a></li>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+
+
+
+            </div>
+
+            <div class="border-t border-gray-200">
+                <div class="container mx-auto py-6 px-5 flex flex-wrap flex-col sm:flex-row items-center">
+                    <p class="text-gray-500 text-sm text-center sm:text-left"><span class="text-[#991b1b]">{{site_config.site_name}}</span>
+                        <br>{{ site_config.footer_text }}</p>
+
+                    <div class="flex-grow flex justify-center sm:justify-center my-4 sm:my-0 space-x-8">
+                        <div class="flex items-center">
+                            <i class="fa-solid fa-phone text-3xl text-gray-400"></i>
+                            <div class="ml-3">
+                                <p class="text-[#991b1b] font-bold text-xl">{{site_config.phone}}</p>
+                                <p class="text-xs text-gray-400">{{site_config.working_hours}}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-headset text-3xl text-gray-400"></i>
+                            <div class="ml-3">
+                                <p class="text-[#991b1b] font-bold text-xl">{{site_config.email}}</p>
+                                <p class="text-xs text-gray-400">24/7 Support Center</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inline-flex sm:ml-auto sm:mt-0 mt-4 justify-center sm:justify-start items-center">
+                        <div>
+                            <h3 class="font-bold text-md">Follow Us</h3>
+                            <p class="text-xs text-gray-400">Up to 15% discount on your first subscribe</p>
+                        </div>
+                        <div class="flex ml-4 space-x-2">
+                            
+                            {% for s in social_links %}
+                                    <a href="{{s.url}}"
+                                    class="text-white bg-[#991b1b] hover:bg-red-900 w-8 h-8 rounded-full inline-flex items-center justify-center">
+                                    <i class="{{s.icon_class}}"></i>
+                                </a>
+                        {% endfor %}
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button
+                class="fixed bottom-5 right-5 bg-[#991b1b] hover:bg-red-900 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+                onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                <i class="fas fa-arrow-up"></i>
+            </button>
+
+        </footer>

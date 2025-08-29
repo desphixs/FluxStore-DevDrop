@@ -3,27 +3,32 @@
 {% block content %}
 
 
+<style>
+    .glide__arrows,
+.glide__bullets {
+  display: none !important;
+}
+</style>
+
+
+
     <div class="max-w-7xl mx-auto px-4 py-8 bg-white text-gray-800 mt-32">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
 
             <!-- LEFT: Gallery -->
             <div class="md:col-span-6">
-                <div class="bg-white rounded-xl shadow p-4">
+                <!-- <div class="bg-white rounded-xl shadow p-4">
                     <div id="gallery-main" class="relative">
-                        <!-- main image -->
                         <img id="main-image"
                             src="{% if product.primary_image %}{{ product.primary_image.image.url }}{% elif product.general_images %}{{ product.general_images.0.image.url }}{% else %}{% static 'img/placeholder.png' %}{% endif %}"
                             alt="{{ product.name }}" class="w-full h-[24rem] object-contain rounded-lg" />
 
-                        <!-- badge / countdown -->
                         <div id="deal-badge" class="absolute top-4 left-4">
                             {% comment %} default hidden, JS will show if active {% endcomment %}
                         </div>
                     </div>
 
-                    <!-- thumbnails -->
                     <div class="mt-4 flex gap-3 overflow-x-auto">
-                        <!-- variation images first -->
                         {% for v in product.active_variations %}
                         {% for img in v.images.all %}
                         <button class="thumb shrink-0 rounded-lg overflow-hidden border" data-src="{{ img.image.url }}">
@@ -32,14 +37,64 @@
                         {% endfor %}
                         {% endfor %}
 
-                        <!-- general images -->
                         {% for img in product.general_images %}
                         <button class="thumb shrink-0 rounded-lg overflow-hidden border" data-src="{{ img.image.url }}">
                             <img src="{{ img.image.url }}" class="w-20 h-20 object-cover">
                         </button>
                         {% endfor %}
                     </div>
-                </div>
+                </div> -->
+
+                <div class="bg-white  p-4">
+  <!-- MAIN IMAGE -->
+  <div id="gallery-main" class="relative">
+    <img id="main-image"
+      src="{% if product.primary_image %}{{ product.primary_image.image.url }}{% elif product.general_images %}{{ product.general_images.0.image.url }}{% else %}{% static 'img/placeholder.png' %}{% endif %}"
+      alt="{{ product.name }}"
+      class="w-full h-[24rem] object-contain rounded-lg"
+    />
+    <div id="deal-badge" class="absolute top-4 left-4"></div>
+  </div>
+
+  <!-- THUMBNAILS WITH GLIDE -->
+  <div class="mt-4 rounded-xl shadow py-3">
+    <div class="glide" id="thumbs-carousel">
+      <div class="glide__track" data-glide-el="track">
+        <ul class="glide__slides flex gap-3 ">
+          <!-- variation images first -->
+          {% for v in product.active_variations %}
+            {% for img in v.images.all %}
+              <li class="glide__slide">
+                <button class="thumb shrink-0 rounded-lg overflow-hidden border" data-src="{{ img.image.url }}">
+                  <img src="{{ img.image.url }}" class="w-20 h-20 object-cover">
+                </button>
+              </li>
+            {% endfor %}
+          {% endfor %}
+          <!-- general images -->
+          {% for img in product.general_images %}
+            <li class="glide__slide">
+              <button class="thumb shrink-0 rounded-lg overflow-hidden border" data-src="{{ img.image.url }}">
+                <img src="{{ img.image.url }}" class="w-20 h-20 object-cover">
+              </button>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="glide__arrows" data-glide-el="controls">
+        <button class="glide__arrow glide__arrow--left" data-glide-dir="<">‹</button>
+        <button class="glide__arrow glide__arrow--right" data-glide-dir=">">›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-80 hidden items-center justify-center z-50">
+  <span id="modalClose" class="absolute top-5 right-8 text-white text-3xl cursor-pointer">&times;</span>
+  <img id="modalImage" class="max-w-4xl max-h-[90vh] object-contain rounded-lg shadow-lg cursor-zoom-out" />
+</div>
+</div>
+
             </div>
 
             <!-- RIGHT: Details -->
@@ -49,8 +104,7 @@
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <h1 class="text-2xl font-bold">{{ product.name }}</h1>
-                            <p class="text-sm text-gray-500 mt-1">By <span class="text-yellow-500">{{
-                                    product.vendor.vendor_profile.business_name }}</span></p>
+                            <p class="text-sm text-gray-500 mt-1">By <span class="text-[#B01F00]">{{ product.vendor.vendor_profile.business_name }}</span></p>
                         </div>
                         <div class="text-right">
                             <!-- rating -->
@@ -78,7 +132,7 @@
             {% endif %}
         >
             {% if product.primary_item %}
-                ₦{{ product.primary_item.regular_price }}
+                ${{ product.primary_item.regular_price }}
             {% endif %}
         </div>
 
@@ -93,7 +147,6 @@
 </div>
 
 
-                        <!-- Variation selectors -->
                         <div class="mt-6 space-y-4">
                             {% for category, options in variation_options.items %}
                             <div>
@@ -101,14 +154,16 @@
                                 <div class="flex gap-2">
                                     {% for opt in options %}
                                     <button type="button" class="variation-option px-3 py-1 rounded-md border text-sm"
-                                        data-cat="{{ category }}" data-val="{{ opt }}">
-                                        {{ opt }}
+                                        data-cat="{{ category }}" data-val="{{ opt }}" data-value-id="{{ opt.id }}">
+                                        {{ opt.value }}
                                     </button>
                                     {% endfor %}
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
+
+                        
 
                         <!-- stock + add to cart -->
                         <div class="mt-6 flex items-center gap-4">
@@ -123,7 +178,9 @@
 
                         <div class="mt-6 flex gap-3">
                             <button id="add-to-cart"
-                                class="add-to-cart bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-3 rounded font-semibold">
+                                         data-variation-id="{{ product.primary_item.id }}"
+                                            data-product-id="{{ product.id }}"
+                                class="add-to-cart bg-[#B01F00] hover:bg-[#801700] text-white px-5 py-3 rounded font-semibold">
                                 Add to Cart
                             </button>
 
@@ -178,181 +235,80 @@
                 </div>
             </div>
 
-            <!-- embed variation map safely -->
-            <script id="variation-map" type="application/json">{{ variation_map_json|safe }}</script>
 
             <script>
-                /* ---------- Helpers ---------- */
-                const variationMap = JSON.parse(document.getElementById('variation-map').textContent || '{}');
+                document.addEventListener("DOMContentLoaded", () => {
+  const mainImage = document.getElementById("main-image");
+  const thumbs = document.querySelectorAll(".thumb");
 
-                function keyFromSelections(selections) {
-                    // selections -> { "Color": "Red", "Size": "M" }
-                    // create deterministic key sorted by category name
-                    const arr = Object.keys(selections).sort((a, b) => a.localeCompare(b)).map(k => `${k}:${selections[k]}`);
-                    return arr.join('|');
-                }
+  thumbs.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const newSrc = btn.getAttribute("data-src");
+      if (newSrc) {
+        mainImage.src = newSrc;
 
-                function formatCurrency(n) {
-                    // naive formatting - replace with Intl if you want
-                    return '₦' + Number(n).toLocaleString();
-                }
+        // remove active border
+        thumbs.forEach(b => b.classList.remove("ring-2", "ring-red-600"));
+        // add highlight to selected thumb
+        btn.classList.add("ring-2", "ring-red-600");
+      }
+    });
+  });
 
-                /* ---------- Gallery (click thumbnails to change main image) ---------- */
-                document.addEventListener('click', function (e) {
-                    const thumb = e.target.closest('.thumb');
-                    if (thumb) {
-                        const src = thumb.dataset.src;
-                        const main = document.getElementById('main-image');
-                        main.src = src;
-                    }
-                });
+  // Init Glide for thumbnails
+  new Glide("#thumbs-carousel", {
+    type: "carousel",
+    perView: 5,
+    focusAt: "center",
+    gap: 12,
+    breakpoints: {
+      1024: { perView: 4 },
+      768: { perView: 3 },
+      480: { perView: 2 },
+    }
+  }).mount();
+});
 
-                /* ---------- Variation selection ---------- */
-                const selections = {}; // current selected options
-
-                document.querySelectorAll('.variation-option').forEach(btn => {
-                    btn.addEventListener('click', function () {
-                        const cat = this.dataset.cat;
-                        const val = this.dataset.val;
-
-                        // toggle selection UX
-                        document.querySelectorAll(`.variation-option[data-cat="${cat}"]`).forEach(b => b.classList.remove('bg-gray-800', 'text-white'));
-                        this.classList.add('bg-gray-800', 'text-white');
-
-                        selections[cat] = val;
-                        onSelectionChange();
-                    });
-                });
-
-                function onSelectionChange() {
-                    const key = keyFromSelections(selections);
-                    const variant = variationMap[key];
-
-                    const priceEl = document.getElementById('display-sale-price');
-                    const regEl = document.getElementById('display-regular-price');
-                    const discountBadge = document.getElementById('discount-badge');
-                    const labelBadge = document.getElementById('variation-label-badge');
-                    const stockText = document.getElementById('stock-text');
-
-                    if (!variant) {
-                        // no matching variant: show OOS or message
-                        priceEl.textContent = 'Unavailable';
-                        regEl.style.display = 'none';
-                        discountBadge.classList.add('hidden');
-                        stockText.textContent = 'Variant unavailable';
-                        // disable add to cart
-                        document.getElementById('add-to-cart').disabled = true;
-                        return;
-                    }
-
-                    // update price
-                    priceEl.textContent = formatCurrency(variant.sale_price);
-                    if (variant.regular_price > variant.sale_price) {
-                        regEl.textContent = formatCurrency(variant.regular_price);
-                        regEl.style.display = 'block';
-                        discountBadge.textContent = `Save ${variant.discount_percentage}% (₦${variant.discount_amount})`;
-                        discountBadge.classList.remove('hidden');
-                    } else {
-                        regEl.style.display = 'none';
-                        discountBadge.classList.add('hidden');
-                    }
-
-                    // update label badge
-                    if (variant.label) {
-                        labelBadge.innerHTML = `<span class="px-2 py-1 rounded text-sm font-semibold ${variant.label_color}">${variant.label}</span>`;
-                    } else {
-                        labelBadge.innerHTML = '';
-                    }
-
-                    // update stock
-                    stockText.textContent = variant.stock_quantity > 0 ? `${variant.stock_quantity} in stock` : 'Out of stock';
-                    document.getElementById('add-to-cart').disabled = variant.stock_quantity <= 0;
-
-                    // update gallery images if variant has images
-                    if (variant.images && variant.images.length) {
-                        document.getElementById('main-image').src = variant.images[0];
-                        // optionally swap thumbnails - skipping for simplicity
-                    }
-
-                    // update countdown badge if deal exists
-                    const badgeWrap = document.getElementById('deal-badge');
-                    badgeWrap.innerHTML = '';
-                    if (variant.deal_active && variant.deal_ends_at) {
-                        // show countdown UI inside badgeWrap and set data attributes for the countdown function
-                        badgeWrap.innerHTML = `
-      <div class="bg-red-600 text-white px-3 py-1 rounded">
-        <div class="text-xs">Deal ends in</div>
-        <div class="text-sm font-bold" data-deal-end="${variant.deal_ends_at}"></div>
-      </div>`;
-                        // initCountdown will pick up and run
-                        initSingleCountdown(badgeWrap.querySelector('[data-deal-end]'));
-                    }
-                }
-
-                /* ---------- Basic single countdown for product page badge ---------- */
-                let countdownInterval = null;
-                function initSingleCountdown(el) {
-                    if (!el) return;
-                    // parse iso
-                    const end = new Date(el.dataset.dealEnd || el.getAttribute('data-deal-end'));
-                    if (isNaN(end)) return;
-                    if (countdownInterval) clearInterval(countdownInterval);
-
-                    function update() {
-                        const now = new Date();
-                        const diff = end - now;
-                        if (diff <= 0) {
-                            el.textContent = 'Expired';
-                            clearInterval(countdownInterval);
-                            return;
-                        }
-                        const s = Math.floor(diff / 1000);
-                        const days = Math.floor(s / (3600 * 24));
-                        const hours = Math.floor((s % (3600 * 24)) / 3600);
-                        const mins = Math.floor((s % 3600) / 60);
-                        const secs = Math.floor(s % 60);
-                        el.textContent = `${days}d ${hours}h ${mins}m`;
-                    }
-                    update();
-                    countdownInterval = setInterval(update, 1000);
-                }
-
-                /* ---------- Qty handlers ---------- */
-                document.getElementById('increase-qty').addEventListener('click', () => {
-                    const q = document.getElementById('qty'); q.value = Math.min(Number(q.value) + 1, 999);
-                });
-                document.getElementById('decrease-qty').addEventListener('click', () => {
-                    const q = document.getElementById('qty'); q.value = Math.max(Number(q.value) - 1, 1);
-                });
-
-                /* ---------- Add to Cart (AJAX example) ---------- */
-                document.getElementById('add-to-cart').addEventListener('click', async () => {
-                    const key = keyFromSelections(selections);
-                    const variant = variationMap[key];
-                    if (!variant) { alert('Select a valid variant'); return; }
-                    const qty = Number(document.getElementById('qty').value || 1);
-
-                    try {
-                        const res = await fetch("", {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token }}'
-                            },
-                            body: JSON.stringify({ variation_id: variant.id, quantity: qty })
-                        });
-                        const data = await res.json();
-                        if (res.ok) {
-                            // success: update cart UI
-                            alert('Added to cart');
-                        } else {
-                            alert(data.detail || 'Could not add to cart');
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert('Network error');
-                    }
-                });
             </script>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+  const mainImage = document.getElementById("main-image");
+  const thumbs = document.querySelectorAll(".thumb");
+  const modal = document.getElementById("imageModal");
+  const modalImage = document.getElementById("modalImage");
+  const modalClose = document.getElementById("modalClose");
+
+  // thumbnail click = swap main image
+  thumbs.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const newSrc = btn.getAttribute("data-src");
+      mainImage.src = newSrc;
+    });
+  });
+
+  // open modal on main image click
+  mainImage.addEventListener("click", () => {
+    modalImage.src = mainImage.src;
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  });
+
+  // close modal
+  modalClose.addEventListener("click", () => {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  });
+
+  // close modal if user clicks outside image
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+  });
+});
+</script>
 
 {% endblock content %}

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'userauths',
     'order',
     'store',
+    'addon',
 
     # Third party apps
     'whitenoise',
@@ -77,6 +78,10 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+
+                # Context processors
+                'order.context_processors.global_context',
+                'addon.context_processors.global_context',
             ],
         },
     },
@@ -144,10 +149,19 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = "userauths.User"
 
 JAZZMIN_SETTINGS = {
-    "site_title": "Project Admin",
-    "site_header": "Project Admin",
-    "site_brand": "Project",
-    "welcome_sign": "Welcome to Project Admin",
+    "site_title": "Efashionbazaar",
+    "site_header": "Efashionbazaar",
+    "site_brand": "Efashionbazaar",
+    "welcome_sign": "Welcome to Efashionbazaar",
+
+    # Favicon
+    "site_icon": "assets/img/favicon.png",        # path relative to static/
+
+    # Logos
+    "site_logo": "assets/img/favicon.png",           # login screen + navbar logo
+    "login_logo": "assets/img/favicon.png",          # login page logo (optional override)
+
+    "custom_css": "assets/css/jazzmin-custom-admin.css",
 }
 
 

@@ -39,8 +39,9 @@
                 {% endif %}
 
             </div>
-            <button
-                class="rounded-lg bg-[#991B1B] px-4 py-2 text-sm font-bold text-white transition-colors duration-300  hover:bg-[#b32727] hover:text-white">
+            <button data-product-id="{{ p.id }}"
+                data-variation-id="{{ p.primary_item.id }}"
+                class="add-to-cart rounded-lg bg-[#991B1B] px-4 py-2 text-sm font-bold text-white transition-colors duration-300  hover:bg-[#b32727] hover:text-white">
                 ＋ Add
             </button>
         </div>

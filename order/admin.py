@@ -5,7 +5,6 @@ from . import models
 class CartItemInline(admin.StackedInline):
     model = models.CartItem
     extra = 1
-    fields = ("product_variation", "quantity", "added_at")
     readonly_fields = ("added_at",)
     show_change_link = True
 
@@ -33,14 +32,12 @@ class CartItemAdmin(admin.ModelAdmin):
 class OrderItemInline(admin.StackedInline):
     model = models.OrderItem
     extra = 1
-    fields = ("product_variation", "vendor", "quantity", "price")
     show_change_link = True
 
 
 class OrderAddressInline(admin.StackedInline):
     model = models.OrderAddress
     extra = 0
-    fields = ("street_address", "city", "state", "postal_code", "country")
     show_change_link = True
 
 

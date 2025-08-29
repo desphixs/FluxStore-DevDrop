@@ -2,16 +2,26 @@
 {% load static %}
 {% block content %}
 
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+/>
+
 <section id="video-hero" class="sticky top-0 h-screen z-10">
-    <video autoplay loop muted playsinline class="absolute z-0 w-full h-full object-cover">
-        <source src="{% static 'assets/video/bgVideo.mp4' %}" type="video/mp4">
-        Your browser does not support the video tag.
-    </video>
+    
+    {% if hero_section.background_video %}
+        <video autoplay loop muted playsinline class="absolute z-0 w-full h-full object-cover">
+            <source src="{{hero_section.background_video.url}}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    {% endif %}
     <div class="relative z-10 h-full flex flex-col justify-end items-center bg-black bg-opacity-50">
-        <button id="start-shopping-btn"
+        
+        <!-- id="start-shopping-btn" add to element to make it scrol snap -->
+        <a  href="{{hero_section.cta_link}}"
             class="absolute bottom-24 border-2 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:bg-red-800 transition-transform hover:scale-105">
-            Start Shopping Now
-        </button>
+           {{hero_section.cta_text}}
+        </a>
     </div>
 </section>
 
@@ -149,41 +159,20 @@
                 </div>
             </div>
 
-            <div class="container  w-full px-4 min-w-0">
-                <div class="glide">
-                    <div class="glide__track" data-glide-el="track">
-                        <ul class="glide__slides">
+            <div class="swiper product-swiper container w-full px-4 min-w-0">
+    <div class="swiper-wrapper">
+        {% for p in products %}
+        <div class="swiper-slide p-2">
+            {% include 'partials/product.html' %}
+        </div>
+        {% endfor %}
+    </div>
 
-                            {% for p in products %}
-                            <li class="glide__slide p-2">
-                                {% include 'partials/product.html' %}
-                            </li>
-                            {% endfor %}
+    <div class="swiper-pagination"></div>
 
-
-                        </ul>
-                    </div>
-
-                    <div class="glide__arrows" data-glide-el="controls">
-                        <button
-                            class="glide__arrow glide__arrow--left absolute left-0 top-1/2 -translate-y-1/2 transform rounded-full bg-white/80 p-2 shadow-md hover:bg-white"
-                            data-glide-dir="<">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
-                                stroke="currentColor" class="h-6 w-6 text-gray-700">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                            </svg>
-                        </button>
-                        <button
-                            class="glide__arrow glide__arrow--right absolute right-0 top-1/2 -translate-y-1/2 transform rounded-full bg-white/80 p-2 shadow-md hover:bg-white"
-                            data-glide-dir=">">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
-                                stroke="currentColor" class="h-6 w-6 text-gray-700">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <div class="swiper-button-prev"></div>
+    <div class="swiper-button-next"></div>
+</div>
         </div>
 
     </section>
@@ -553,4 +542,48 @@
 
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script>
+    const swiper = new Swiper('.product-swiper', {
+    // Optional parameters
+    direction: 'horizontal',
+    loop: true,
+    spaceBetween: 20, // Space between slides in px
+    autoplay: {
+        delay: 2500,
+        disableOnInteraction: false,
+    },
+
+    // Responsive breakpoints
+    breakpoints: {
+        // when window width is >= 640px
+        640: {
+            slidesPerView: 2,
+            spaceBetween: 20
+        },
+        // when window width is >= 768px
+        768: {
+            slidesPerView: 3,
+            spaceBetween: 30
+        },
+        // when window width is >= 1024px
+        1024: {
+            slidesPerView: 4,
+            spaceBetween: 30
+        }
+    },
+
+    // If we need pagination
+    pagination: {
+        el: '.swiper-pagination',
+        clickable: true,
+    },
+
+    // Navigation arrows
+    navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+    },
+});
+</script>
 {% endblock content %}
