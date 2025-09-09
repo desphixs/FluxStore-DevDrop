@@ -20,6 +20,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     ordering = ("-created_at",)
 
 
+
 @admin.register(userauths_models.VendorProfile)
 class VendorProfileAdmin(admin.ModelAdmin):
     list_display = ("business_name", "user", "contact_email", "is_verified", "created_at")
@@ -44,3 +45,6 @@ class UserAdmin(admin.ModelAdmin):
         ("Permissions", {"fields": ("role", "is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
         ("Important Dates", {"fields": ("last_login", "date_joined")}),
     )
+
+
+admin.site.register(userauths_models.Address)

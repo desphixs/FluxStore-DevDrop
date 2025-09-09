@@ -1,5 +1,5 @@
 from django import forms
-from .models import User
+from .models import User, Address
 
 class RegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={
@@ -48,3 +48,4 @@ class LoginForm(forms.Form):
         'class': 'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
         'placeholder': 'Password'
     }))
+

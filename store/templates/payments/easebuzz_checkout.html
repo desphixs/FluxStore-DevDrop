@@ -1,0 +1,14 @@
+{% extends "base/base.html" %}
+{% block content %}
+<main class="max-w-md mx-auto px-4 py-10">
+  <h2 class="text-xl font-semibold mb-6">Complete Your Payment</h2>
+  <form action="https://pay.easebuzz.in/order/process" method="post" id="easebuzz_form">
+    {% for key, value in form_data.items %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
+    <button type="submit" class="w-full py-3 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition">
+      Pay ₹{{ form_data.amount }}
+    </button>
+  </form>
+</main>
+{% endblock %}

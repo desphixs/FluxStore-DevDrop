@@ -12,9 +12,21 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+import environ
+import os
+
+# Initialise environment variables
+env = environ.Env(
+    # set casting, default value
+    DEBUG=(bool, False)
+)
+
+# reading .env file
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -147,6 +159,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User
 AUTH_USER_MODEL = "userauths.User"
+
+SHIPROCKET_API_BASE = "https://apiv2.shiprocket.in/v1/external"
+SHIPROCKET_API_USER_EMAIL = env("SHIPROCKET_API_USER_EMAIL")
+SHIPROCKET_API_USER_PASSWORD = env("SHIPROCKET_API_USER_PASSWORD")
+SHIPROCKET_PICKUP_PINCODE = env("SHIPROCKET_PICKUP_PINCODE", default="110001")
+
+# settings.py
+SINGLE_COUPON_PER_ORDER = True 
+SINGLE_COUPON_PER_VENDOR = True 
+
 
 JAZZMIN_SETTINGS = {
     "site_title": "Efashionbazaar",

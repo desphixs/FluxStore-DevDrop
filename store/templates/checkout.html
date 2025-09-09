@@ -1,0 +1,293 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-6 py-10 mt-32">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- LEFT: address + items -->
+    <section class="lg:col-span-2 space-y-6">
+      <div class="bg-white rounded-2xl shadow p-6">
+        <h2 class="text-2xl font-semibold mb-3">Shipping to</h2>
+        {% if default_address %}
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-medium text-gray-900">{{ default_address.full_name|default:request.user.get_full_name }}</div>
+              <div class="text-sm text-gray-600 mt-1">{{ default_address.street_address }}</div>
+              <div class="text-sm text-gray-600">{{ default_address.city }}, {{ default_address.state }} {{ default_address.postal_code }}</div>
+              <div class="text-sm text-gray-600 mt-1">{{ default_address.country }} • {{ default_address.phone }}</div>
+              <div class="inline-block mt-3 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-semibold">Default</div>
+            </div>
+            <div class="text-sm">
+              <a href="{% url 'store:address_list_create' %}" class="text-indigo-600 hover:underline">Change</a>
+            </div>
+          </div>
+        {% else %}
+          <div class="text-sm text-gray-600">No default shipping address found. <a href="{% url 'store:address_list_create' %}" class="text-indigo-600 hover:underline">Add one</a></div>
+        {% endif %}
+      </div>
+
+      <div class="bg-white rounded-2xl shadow p-6">
+        <h2 class="text-2xl font-semibold mb-3">Order items</h2>
+        <ul class="divide-y">
+          {% for it in items %}
+            <li class="py-4 flex items-center justify-between">
+              <div>
+                <div class="text-sm font-medium text-gray-800">{{ it.product_name }}</div>
+                <div class="text-xs text-gray-500">{{ it.variation }}</div>
+                <div class="text-xs text-gray-400 mt-1">Qty: {{ it.quantity }}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-sm text-gray-700">₹{{ it.price }}</div>
+                <div class="text-sm text-gray-900 font-semibold">₹{{ it.subtotal }}</div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+
+    <div>
+
+      <aside class="bg-white rounded-2xl shadow p-6 sticky top-6 mb-5">
+        <h3 class="text-lg font-semibold mb-4">Shipping Details</h3>
+        <div class="space-y-3">
+          {% if courier_name %}
+            <div class="p-3 border rounded-lg">
+              <div class="flex justify-between items-center">
+                <div>
+                  <div class="font-medium text-sm">{{ courier_name }}</div>
+                  {% if etd_text %}<div class="text-xs text-gray-500">ETA: {{ etd_text }}</div>{% endif %}
+                </div>
+                <div class="text-right">
+                  <div class="text-sm font-medium">₹<span id="shipping-fee-top">{{ shipping_fee }}</span></div>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-sm text-gray-500">Shipping will be calculated soon.</div>
+          {% endif %}
+        </div>
+      </aside>
+
+      <aside class="bg-white rounded-2xl shadow p-6 sticky top-6 mb-5">
+  <div class="">
+    <label class="text-sm font-medium">Have a coupon?</label>
+    <div class="mt-2 flex gap-2">
+      <input id="coupon-code" class="flex-1 border rounded-lg px-3 py-2 text-sm" placeholder="Enter code">
+      <button id="apply-coupon" class="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm">Apply</button>
+    </div>
+
+    <!-- shows when a coupon is applied -->
+    <div id="coupon-active" class="hidden mt-3 flex items-center justify-between rounded-lg bg-green-50 px-3 py-2">
+      <div class="text-sm text-green-800">
+        Applied: <span id="coupon-active-code" class="font-medium"></span>
+      </div>
+      <button id="remove-coupon" class="text-sm text-green-800 underline">Remove</button>
+    </div>
+
+    <div id="coupon-msg" class="mt-2 text-sm"></div>
+  </div>
+</aside>
+
+
+      <aside class="bg-white rounded-2xl shadow p-6 sticky top-6">
+  <h3 class="text-lg font-semibold mb-4">Order summary</h3>
+
+  <div class="space-y-3 mt-4">
+    <div class="flex justify-between text-sm text-gray-600">
+      <span>Items</span>
+      <span>₹<span id="item-total">{{ item_total }}</span></span>
+    </div>
+
+    <!-- discount row: hidden until a coupon applies -->
+    <div id="discount-row" class="flex justify-between text-sm text-green-700 {% if not order.item_discount_total or order.item_discount_total == 0 %}hidden{% endif %}">
+      <span>Discounts</span>
+      <span>- ₹<span id="discount-amount">{{ order.item_discount_total|default:'0.00' }}</span></span>
+    </div>
+
+    <div class="flex justify-between text-sm text-gray-600">
+      <span>Shipping</span>
+      <span>₹<span id="shipping-fee">{{ shipping_fee }}</span></span>
+    </div>
+
+    <div class="flex justify-between pt-3 border-t">
+      <div class="text-sm font-medium">Total</div>
+      <div class="text-2xl font-bold">₹<span id="grand-total">{{ grand_total }}</span></div>
+    </div>
+  </div>
+
+  <form id="pay-form" method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" name="order_id" value="{{ order.order_id }}">
+    <button class="mt-4 w-full py-3 rounded-xl bg-[#8C001A] text-white font-semibold hover:bg-[#7a0016] transition">
+      Proceed to Payment
+    </button>
+  </form>
+</aside>
+    </div>
+  </div>
+</div>
+
+
+<script>
+(function(){
+  const msg = document.getElementById('coupon-msg');
+  const codeEl = document.getElementById('coupon-code');
+  const applyBtn = document.getElementById('apply-coupon');
+
+  function updateTotals(amts){
+    if(!amts) return;
+    // update your totals on page (IDs must exist)
+    const el = (id) => document.getElementById(id);
+    el('item-total').textContent = amts.items_subtotal_gross;
+    const shipEl = document.getElementById('shipping-fee'); if (shipEl) shipEl.textContent = amts.shipping_fee;
+    el('grand-total').textContent = amts.amount_payable;
+  }
+
+  applyBtn.addEventListener('click', async ()=>{
+    const code = codeEl.value.trim();
+    if(!code){ msg.textContent = "Enter a code."; msg.className="mt-2 text-sm text-red-600"; return; }
+    applyBtn.disabled = true;
+    msg.textContent = "Applying..."; msg.className="mt-2 text-sm text-gray-500";
+    const form = new FormData();
+    form.append('code', code);
+    form.append('order_id', "{{ order.order_id }}");
+    const res = await fetch("{% url 'store:apply_coupon' %}", {
+      method: 'POST',
+      body: form,
+      headers: {'X-CSRFToken': '{{ csrf_token }}'},
+      credentials: 'same-origin'
+    });
+    const data = await res.json();
+    applyBtn.disabled = false;
+    if(data.ok){
+      msg.textContent = data.message;
+      msg.className="mt-2 text-sm text-green-600";
+      updateTotals(data.amounts);
+      window.reload()
+    }else{
+      msg.textContent = data.message || 'Could not apply coupon';
+      msg.className="mt-2 text-sm text-red-600";
+    }
+  });
+})();
+</script>
+<script>
+(function(){
+  const msg = document.getElementById('coupon-msg');
+  const codeEl = document.getElementById('coupon-code');
+  const applyBtn = document.getElementById('apply-coupon');
+  const removeBtn = document.getElementById('remove-coupon');
+  const activeWrap = document.getElementById('coupon-active');
+  const activeCode = document.getElementById('coupon-active-code');
+
+  const el = (id) => document.getElementById(id);
+  const show = (n) => n && n.classList && n.classList.remove('hidden');
+  const hide = (n) => n && n.classList && n.classList.add('hidden');
+
+  function fmt(n){
+    const x = Number(n || 0);
+    return x.toFixed(2);
+  }
+
+  function updateTotals(amts){
+    // amts: { item_total, item_discount_total, item_total_net, shipping_fee, amount_payable }
+    if(!amts) return;
+
+    // Numbers
+    el('item-total').textContent = fmt(amts.item_total);
+    el('discount-amount').textContent = fmt(amts.item_discount_total);
+    el('shipping-fee').textContent = fmt(amts.shipping_fee);
+    const topShip = el('shipping-fee-top'); if (topShip) topShip.textContent = fmt(amts.shipping_fee);
+    el('grand-total').textContent = fmt(amts.amount_payable);
+
+    // Toggle discount row
+    const hasDiscount = Number(amts.item_discount_total) > 0;
+    const discountRow = el('discount-row');
+    if (hasDiscount) show(discountRow); else hide(discountRow);
+  }
+
+  async function postForm(url, payload){
+    const form = new FormData();
+    for (const [k,v] of Object.entries(payload)) form.append(k, v);
+    const res = await fetch(url, {
+      method: 'POST',
+      body: form,
+      headers: {'X-CSRFToken': getCookie('csrftoken')},
+      credentials: 'same-origin'
+    });
+    return res.json();
+  }
+
+  applyBtn.addEventListener('click', async ()=>{
+    const code = codeEl.value.trim();
+    if(!code){
+      msg.textContent = "Enter a code.";
+      msg.className = "mt-2 text-sm text-red-600";
+      return;
+    }
+    applyBtn.disabled = true;
+    msg.textContent = "Applying…";
+    msg.className = "mt-2 text-sm text-gray-500";
+
+    const data = await postForm("{% url 'store:apply_coupon' %}", {
+      code, order_id: "{{ order.order_id }}"
+    });
+
+    applyBtn.disabled = false;
+
+    if(data.ok){
+      msg.textContent = data.message || "Coupon applied.";
+      msg.className = "mt-2 text-sm text-green-600";
+
+      // reflect new totals
+      updateTotals(data.amounts);
+
+      // show active coupon UI
+      activeCode.textContent = code;
+      show(activeWrap);
+    } else {
+      msg.textContent = data.message || "Could not apply coupon.";
+      msg.className = "mt-2 text-sm text-red-600";
+    }
+  });
+
+  removeBtn.addEventListener('click', async ()=>{
+    const code = activeCode.textContent.trim();
+    if(!code) return;
+
+    removeBtn.disabled = true;
+    msg.textContent = "Removing…";
+    msg.className = "mt-2 text-sm text-gray-500";
+
+    const data = await postForm("{% url 'store:remove_coupon' %}", {
+      code, order_id: "{{ order.order_id }}"
+    });
+
+    removeBtn.disabled = false;
+
+    if(data.ok){
+      msg.textContent = data.message || "Coupon removed.";
+      msg.className = "mt-2 text-sm text-green-600";
+
+      // reflect new totals
+      updateTotals(data.amounts);
+
+      // clear active coupon UI
+      activeCode.textContent = "";
+      hide(activeWrap);
+      // keep the code in input so user can retry if they want
+    } else {
+      msg.textContent = data.message || "Could not remove coupon.";
+      msg.className = "mt-2 text-sm text-red-600";
+    }
+  });
+
+  function getCookie(name) {
+    const v = `; ${document.cookie}`.split(`; ${name}=`);
+    return v.length === 2 ? v.pop().split(';').shift() : null;
+  }
+})();
+</script>
+
+
+{% endblock %}

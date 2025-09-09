@@ -1,18 +1,40 @@
-from django.shortcuts import render, get_object_or_404
-from django.db.models import Prefetch, Sum, Avg, Case, When, IntegerField
-
-
-from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.db.models import Prefetch, Sum, Avg, Case, When, IntegerField, F
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.conf import settings
 
+from decimal import Decimal, getcontext, ROUND_HALF_UP
 import json
 import traceback
+import math
+import requests
+import uuid
+import logging
 
 from store import models as store_models
 from order import models as order_models
+from store.easebuzz import generate_easebuzz_form_data
+from userauths import models as userauths_model
+from store import forms as store_forms
+
+
+from django.urls import reverse
+from django.conf import settings
+from django.utils import timezone
+
+from .shiprocket import get_serviceability_and_rates, create_shiprocket_order, ShiprocketError
+from userauths.models import Address  # adjust import
+from store.models import ProductVariation
+
+getcontext().prec = 6
+
+
+logger = logging.getLogger(__name__)
 
 def index(request):
     Product = store_models.Product
@@ -442,3 +464,677 @@ def add_to_cart(request):
     }
     print("add_to_cart success, resp:", resp)
     return JsonResponse(resp)
+
+
+def cart_detail(request):
+    
+    cart = order_models.Cart.get_for_request(request)
+    # Prefetch related product / variation to avoid n+1
+    items = cart.items.select_related('product_variation', 'product_variation__product')\
+            .prefetch_related('variation_values').all()
+    
+    if request.user.is_authenticated:
+        addresses = userauths_model.Address.objects.filter(profile__user=request.user)
+    else:
+        addresses = None
+
+    # compute subtotal for each item (CartItem.subtotal handles Decimal math)
+    # and compute cart total
+    item_list = []
+    total = Decimal('0.00')
+    for it in items:
+        # ensure price on item reflects current variation sale_price (optional)
+        current_price = it.product_variation.sale_price
+        # if you want to keep cart_item.price as the historically locked price, omit setting it here
+        it.price = current_price
+        subtotal = (it.price or Decimal('0.00')) * it.quantity
+        total += subtotal
+        item_list.append({
+            'id': it.id,
+            'product_name': it.product_variation.product.name,
+            'product_image': it.product_variation.product.primary_image,
+            'variation_str': ", ".join([v.value for v in it.product_variation.variations.all()]) if hasattr(it.product_variation, 'variations') else "",
+            'price': it.price,
+            'quantity': it.quantity,
+            'subtotal': subtotal,
+            'sku': it.product_variation.sku,
+            'stock_quantity': it.product_variation.stock_quantity,
+            # if you have images, add thumbnail url here:
+            # 'image_url': it.product_variation.product.primary_image.url if it.product_variation.product.primary_image else None
+        })
+
+    context = {
+        'cart': cart,
+        'items': item_list,
+        'cart_total': total,
+        'addresses': addresses,
+    }
+    return render(request, 'cart.html', context)
+
+
+@require_POST
+def update_cart_item_qty(request):
+    import json
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return JsonResponse({'ok': False, 'message': 'Invalid payload'}, status=400)
+
+    cart_item_id = data.get('cart_item_id')
+    try:
+        qty = int(data.get('quantity', 0))
+    except (TypeError, ValueError):
+        return JsonResponse({'ok': False, 'message': 'Quantity must be an integer'}, status=400)
+
+    if qty < 0:
+        return JsonResponse({'ok': False, 'message': 'Quantity must be >= 0'}, status=400)
+
+    cart = order_models.Cart.get_for_request(request)
+
+    with transaction.atomic():
+        try:
+            cart_item = order_models.CartItem.objects.select_for_update().select_related('product_variation').get(pk=cart_item_id, cart=cart)
+        except order_models.CartItem.DoesNotExist:
+            return JsonResponse({'ok': False, 'message': 'Cart item not found'}, status=404)
+
+        variation = cart_item.product_variation
+
+        if qty == 0:
+            cart_item.delete()
+        else:
+            # check stock
+            if qty > variation.stock_quantity:
+                return JsonResponse({
+                    'ok': False,
+                    'message': f'Only {variation.stock_quantity} units available in stock'
+                }, status=400)
+
+            cart_item.quantity = qty
+            cart_item.price = variation.sale_price
+            cart_item.save()
+
+    agg = cart.items.aggregate(total=Sum(F('quantity') * F('price')))
+    cart_total = agg['total'] or Decimal('0.00')
+
+    # if item deleted, item_subtotal = 0
+    item_subtotal = Decimal('0.00')
+    if qty > 0:
+        item_subtotal = (cart_item.price or Decimal('0.00')) * qty
+
+    return JsonResponse({
+        'ok': True,
+        'cart_item_id': cart_item_id,
+        'quantity': qty,
+        'item_subtotal': str(item_subtotal),   # stringify decimals
+        'cart_total': str(cart_total),
+        "item_count": order_models.CartItem.objects.filter(cart=cart).count(),
+    })
+
+@login_required
+def address_list_create(request):
+    profile = request.user.profile  
+
+    # Handle form submit
+    if request.method == "POST":
+        form = store_forms.AddressForm(request.POST)
+        if form.is_valid():
+            address = form.save(commit=False)
+            address.profile = profile
+            address.save()
+            return redirect("store:address_list_create")
+    else:
+        form = store_forms.AddressForm()
+
+    addresses = profile.addresses.all()
+    return render(request, "address_list.html", {
+        "form": form,
+        "addresses": addresses,
+    })
+
+
+@login_required
+def set_default_address(request, uuid):
+    profile = request.user.profile
+    address = get_object_or_404(userauths_model.Address, uuid=uuid, profile=profile)
+
+    # reset others
+    profile.addresses.filter(address_type=address.address_type).update(is_default=False)
+
+    # set new default
+    address.is_default = True
+    address.save()
+
+    return JsonResponse({"success": True, "uuid": str(address.uuid)})
+
+
+def _normalize_resp(raw):
+    if hasattr(raw, "json") and callable(raw.json):
+        try:
+            return raw.json()
+        except Exception:
+            try:
+                return json.loads(getattr(raw, "text", "") or "")
+            except Exception:
+                return raw
+    if isinstance(raw, (dict, list)):
+        return raw
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except Exception:
+            return raw
+    return raw
+
+
+def _extract_rate_list(resp):
+    if isinstance(resp, dict):
+        # top-level lists
+        for k in ("available_couriers", "couriers", "result", "results"):
+            v = resp.get(k)
+            if isinstance(v, list):
+                return v
+        # nested under data
+        data = resp.get("data")
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            for k in ("available_courier_companies", "available_couriers", "couriers", "results"):
+                v = data.get(k)
+                if isinstance(v, list):
+                    return v
+    elif isinstance(resp, list):
+        return resp
+    return []
+
+
+def _choose_shiprocket_surface(opts):
+    if not opts: return None
+    # prefer both 'shiprocket' and 'surface'
+    for o in opts:
+        name = (o.get('courier_name') or o.get('name') or o.get('courier') or "").lower()
+        if "shiprocket" in name and "surface" in name:
+            return o
+    # else any 'surface'
+    for o in opts:
+        if "surface" in (o.get('courier_name') or o.get('name') or o.get('courier') or "").lower():
+            return o
+    # else fallback first
+    return opts[0]
+
+
+# @login_required
+# @transaction.atomic
+# def begin_checkout(request):
+#     profile = request.user.profile
+#     cart = order_models.Cart.get_for_request(request)
+#     if cart.items.count() == 0:
+#         return redirect('store:cart')  # or handle empty
+
+#     addr = profile.addresses.filter(address_type=Address.AddressType.SHIPPING, is_default=True).first()
+#     if not addr:
+#         return redirect('store:address_list_create')
+
+#     # Compute item_total
+#     item_total = Decimal('0.00')
+#     total_weight_kg = Decimal('0.00')
+#     for ci in cart.items.select_related('product_variation', 'product_variation__product'):
+#         unit_price = ci.price or ci.product_variation.sale_price
+#         item_total += (unit_price * ci.quantity)
+#         pv_w = ci.product_variation.weight or Decimal('0.0')
+#         total_weight_kg += (pv_w * ci.quantity)
+
+#     # Create order
+#     order = order_models.Order(
+#         buyer=request.user,
+#         address=addr,
+#         currency=getattr(settings, "DEFAULT_CURRENCY", "INR"),
+#         item_total=item_total,
+#         shipping_fee=Decimal('0.00'),
+#         total_amount=item_total,
+#         shipping_address_snapshot={
+#             "full_name": addr.full_name,
+#             "phone": addr.phone,
+#             "street_address": addr.street_address,
+#             "city": addr.city,
+#             "state": addr.state,
+#             "postal_code": addr.postal_code,
+#             "country": addr.country,
+#         },
+#     )
+#     order.set_order_id_if_missing()
+#     order.save()
+
+#     # Create OrderItems
+#     for ci in cart.items.select_related('product_variation', 'product_variation__product').all():
+#         unit_price = ci.price or ci.product_variation.sale_price
+#         try:
+#             vendor_user = getattr(ci.product_variation.product, "vendor", None) or request.user
+#         except Exception:
+#             vendor_user = request.user
+#         oi = order_models.OrderItem.objects.create(
+#             order=order,
+#             product_variation=ci.product_variation,
+#             vendor=vendor_user,
+#             quantity=ci.quantity,
+#             price=unit_price,
+#         )
+#         if ci.variation_values.exists():
+#             oi.variation_values.set(ci.variation_values.all())
+
+#     # Fetch & lock shipping NOW
+#     pickup_pincode = getattr(settings, "SHIPROCKET_PICKUP_PINCODE", "")
+#     ship_weight = float(total_weight_kg) if total_weight_kg > 0 else 0.5
+#     try:
+#         raw = get_serviceability_and_rates(pickup_pincode, addr.postal_code.strip(), ship_weight, cod=0)
+#         resp = _normalize_resp(raw)
+#         opts = _extract_rate_list(resp)
+#         chosen = _choose_shiprocket_surface(opts)
+#         if chosen:
+#             order.apply_shipping_selection(
+#                 rate_obj=chosen,
+#                 fallback_currency=order.currency,
+#                 chargeable_weight=ship_weight,
+#             )
+#             order.save()
+#         else:
+#             # Leave fee=0 but still allow checkout (or redirect back with message if you prefer)
+#             order.recalc_total()
+#             order.save()
+#     except ShiprocketError as e:
+#         # You may want to redirect back to cart with a flash message
+#         order.recalc_total()
+#         order.save()
+#     except Exception:
+#         order.recalc_total()
+#         order.save()
+
+#     # (optional) keep cart until payment succeeds; or clear now:
+#     # cart.items.all().delete()
+
+#     return redirect(reverse('store:checkout', kwargs={'order_id': order.order_id}))
+
+
+@login_required
+@transaction.atomic
+def begin_checkout(request):
+    profile = request.user.profile
+    cart = order_models.Cart.get_for_request(request)
+    if cart.items.count() == 0:
+        return redirect('store:cart')  # or handle empty
+
+    addr = profile.addresses.filter(address_type=Address.AddressType.SHIPPING, is_default=True).first()
+    if not addr:
+        return redirect('store:address_list_create')
+
+    # Compute item_total
+    item_total = Decimal('0.00')
+    total_weight_kg = Decimal('0.00')
+    for ci in cart.items.select_related('product_variation', 'product_variation__product'):
+        unit_price = ci.price or ci.product_variation.sale_price
+        item_total += (unit_price * ci.quantity)
+        pv_w = ci.product_variation.weight or Decimal('0.0')
+        total_weight_kg += (pv_w * ci.quantity)
+
+    # Create order (shipping_fee 0 for now; we'll update after fetching rates)
+    order = order_models.Order(
+        buyer=request.user,
+        address=addr,
+        currency=getattr(settings, "DEFAULT_CURRENCY", "INR"),
+        item_total=item_total,
+        shipping_fee=Decimal('0.00'),
+        total_amount=item_total,
+        shipping_address_snapshot={
+            "full_name": addr.full_name,
+            "phone": addr.phone,
+            "street_address": addr.street_address,
+            "city": addr.city,
+            "state": addr.state,
+            "postal_code": addr.postal_code,
+            "country": addr.country,
+        },
+    )
+    order.set_order_id_if_missing()
+    order.save()
+
+    # Create OrderItems
+    for ci in cart.items.select_related('product_variation', 'product_variation__product').all():
+        unit_price = ci.price or ci.product_variation.sale_price
+        try:
+            vendor_user = getattr(ci.product_variation.product, "vendor", None) or request.user
+        except Exception:
+            vendor_user = request.user
+        oi = order_models.OrderItem.objects.create(
+            order=order,
+            product_variation=ci.product_variation,
+            vendor=vendor_user,
+            quantity=ci.quantity,
+            price=unit_price,
+        )
+        if ci.variation_values.exists():
+            oi.variation_values.set(ci.variation_values.all())
+
+    # -------------------------
+    # IMPORTANT: recompute item totals now that OrderItems exist
+    # -------------------------
+    order.recompute_item_totals_from_items()
+    # ensure amount_payable & total_amount include current shipping_fee (0 for now)
+    order.recalc_total()
+    order.save()
+    print(f"DEBUG: after creating items -> item_total={order.item_total}, item_total_net={order.item_total_net}, shipping_fee={order.shipping_fee}, amount_payable={order.amount_payable}")
+
+    # Fetch & lock shipping NOW
+    pickup_pincode = getattr(settings, "SHIPROCKET_PICKUP_PINCODE", "")
+    ship_weight = float(total_weight_kg) if total_weight_kg > 0 else 0.5
+    try:
+        raw = get_serviceability_and_rates(pickup_pincode, addr.postal_code.strip(), ship_weight, cod=0)
+        resp = _normalize_resp(raw)
+        opts = _extract_rate_list(resp)
+        chosen = _choose_shiprocket_surface(opts)
+        if chosen:
+            order.apply_shipping_selection(
+                rate_obj=chosen,
+                fallback_currency=order.currency,
+                chargeable_weight=ship_weight,
+            )
+            # recompute totals now that shipping_fee has been set on the order
+            order.recompute_item_totals_from_items()
+            order.recalc_total()
+            order.save()
+            print(f"DEBUG: after applying shipping -> shipping_fee={order.shipping_fee}, amount_payable={order.amount_payable}")
+        else:
+            # No shipping chosen: ensure totals still correct (shipping_fee likely 0)
+            order.recompute_item_totals_from_items()
+            order.recalc_total()
+            order.save()
+            print("DEBUG: no shipping chosen; totals recomputed")
+
+    except ShiprocketError as e:
+        # You may want to redirect back to cart with a flash message
+        order.recompute_item_totals_from_items()
+        order.recalc_total()
+        order.save()
+        print("DEBUG: ShiprocketError; totals recomputed with shipping_fee fallback")
+    except Exception:
+        order.recompute_item_totals_from_items()
+        order.recalc_total()
+        order.save()
+        print("DEBUG: Unexpected exception; totals recomputed with shipping_fee fallback")
+
+    # (optional) keep cart until payment succeeds; or clear now:
+    # cart.items.all().delete()
+
+    return redirect(reverse('store:checkout', kwargs={'order_id': order.order_id}))
+
+
+@login_required
+def checkout_view(request, order_id: str):
+    order = get_object_or_404(order_models.Order, buyer=request.user, order_id=order_id)
+
+    # Build display items from OrderItems (already price-frozen)
+    items_qs = order.items.select_related('product_variation', 'product_variation__product').all()
+    display_items = []
+    for it in items_qs:
+        pv = it.product_variation
+        display_items.append({
+            "id": it.id,
+            "product_name": pv.product.name,
+            "variation": ", ".join([v.value for v in it.variation_values.all()]),
+            "price": it.price,
+            "quantity": it.quantity,
+            "subtotal": it.price * it.quantity,
+        })
+
+    # Ensure totals are up-to-date (safe-guard)
+    order.recompute_item_totals_from_items()
+    order.recalc_total()
+    # optionally save to persist any changes
+    order.save()
+
+    context = {
+        "order": order,
+        "items": display_items,
+        "item_total": order.item_total,            # gross items total
+        "shipping_fee": order.shipping_fee,       # shipping
+        "grand_total": order.amount_payable or order.total_amount,  # item_total_net + shipping_fee
+        "default_address": order.address,
+        "courier_name": order.courier_name,
+        "etd_text": order.etd_text,
+        "courier_code": order.courier_code,
+    }
+    return render(request, "checkout.html", context)
+
+
+# @login_required
+# def checkout_view(request, order_id: str):
+#     order = get_object_or_404(order_models.Order, buyer=request.user, order_id=order_id)
+
+#     # Build display items from OrderItems (already price-frozen)
+#     items_qs = order.items.select_related('product_variation', 'product_variation__product').all()
+#     display_items = []
+#     for it in items_qs:
+#         pv = it.product_variation
+#         display_items.append({
+#             "id": it.id,
+#             "product_name": pv.product.name,
+#             "variation": ", ".join([v.value for v in it.variation_values.all()]),
+#             "price": it.price,
+#             "quantity": it.quantity,
+#             "subtotal": it.price * it.quantity,
+#         })
+
+#     context = {
+#         "order": order,
+#         "items": display_items,
+#         "item_total": order.item_total,
+#         "default_address": order.address,
+#         "shipping_fee": order.shipping_fee,
+#         "grand_total": order.total_amount,
+#         "courier_name": order.courier_name,
+#         "etd_text": order.etd_text,
+#         "courier_code": order.courier_code,
+#     }
+#     return render(request, "checkout.html", context)
+
+
+
+def _q(x: Decimal) -> Decimal:
+    return (x or Decimal('0')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+def _vendor_gross(order, vendor_id) -> Decimal:
+    total = Decimal('0.00')
+    for it in order.items.select_related('product_variation', 'product_variation__product'):
+        if it.vendor_id == vendor_id:
+            total += it.subtotal
+    return total
+
+def _prorate_fixed(items, target_amount: Decimal):
+    target = _q(target_amount)
+    parts = [(it.id, it.subtotal) for it in items]
+    gross = sum((g for _, g in parts), Decimal('0.00'))
+    if gross <= 0 or target <= 0:
+        return {it.id: Decimal('0.00') for it in items}
+    alloc, running = {}, Decimal('0.00')
+    for idx, (iid, g) in enumerate(parts):
+        if idx < len(parts) - 1:
+            share = _q(target * (g / gross))
+            alloc[iid], running = share, running + share
+        else:
+            alloc[iid] = _q(target - running)
+    return alloc
+
+def _apply_coupon_to_order(order, coupon: order_models.Coupon, user):
+    if not coupon.is_live():
+        return False, "Coupon is not active."
+    vendor_id = coupon.vendor_id
+    vendor_items = list(order.items.filter(vendor_id=vendor_id))
+    if not vendor_items:
+        return False, "Coupon vendor has no items in this order."
+
+    if coupon.usage_limit_total is not None:
+        if coupon.redemptions.count() >= coupon.usage_limit_total:
+            return False, "Coupon usage limit reached."
+    if coupon.usage_limit_per_user is not None:
+        if coupon.redemptions.filter(user=user).count() >= coupon.usage_limit_per_user:
+            return False, "You have already used this coupon the maximum number of times."
+
+    vendor_gross = _vendor_gross(order, vendor_id)
+    if coupon.min_order_amount and vendor_gross < coupon.min_order_amount:
+        return False, f"Vendor subtotal must be at least {coupon.min_order_amount}."
+
+    discount = Decimal('0.00')
+    if coupon.discount_type == order_models.Coupon.DiscountType.PERCENT:
+        pct = Decimal(str(coupon.percent_off or 0)) / Decimal('100')
+        discount = vendor_gross * pct
+        if coupon.max_discount_amount:
+            discount = min(discount, coupon.max_discount_amount)
+    else:  # FIXED
+        discount = min(Decimal(str(coupon.amount_off or 0)), vendor_gross)
+
+    discount = _q(discount)
+    if discount <= 0:
+        return False, "Coupon yields no discount for this order."
+
+    if coupon.discount_type == order_models.Coupon.DiscountType.FIXED:
+        allocation = _prorate_fixed(vendor_items, discount)
+    else:
+        allocation, running = {}, Decimal('0.00')
+        for idx, it in enumerate(vendor_items):
+            if idx < len(vendor_items) - 1:
+                share = _q(it.subtotal * (Decimal(str(coupon.percent_off)) / Decimal('100')))
+                allocation[it.id], running = share, running + share
+            else:
+                allocation[it.id] = _q(discount - running)
+
+    with transaction.atomic():
+        # remove any old allocations for this coupon
+        order_models.OrderItemDiscount.objects.filter(
+            order_item__in=[it.id for it in vendor_items],
+            coupon=coupon
+        ).delete()
+        # upsert redemption
+        red, _ = order_models.CouponRedemption.objects.update_or_create(
+            coupon=coupon, order=order, user=user, vendor_id=vendor_id,
+            defaults={"discount_amount": discount}
+        )
+        # apply item allocations
+        for it in vendor_items:
+            add_amt = allocation.get(it.id, Decimal('0.00'))
+            if add_amt > 0:
+                order_models.OrderItemDiscount.objects.create(
+                    order_item=it, coupon=coupon, vendor_id=vendor_id, amount=add_amt
+                )
+                it.line_discount_total = _q((it.line_discount_total or 0) + add_amt)
+                it.recompute_line_totals()
+                it.save(update_fields=["line_discount_total", "line_subtotal_net"])
+
+        # recompute order totals
+        order.recompute_item_totals_from_items()
+        order.recalc_total()
+        order.save(update_fields=[
+            "item_total", "item_discount_total", "item_total_net",
+            "amount_payable", "total_amount"
+        ])
+
+    return True, f"Applied {coupon.code}."
+
+@login_required
+@transaction.atomic
+def apply_coupon(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+    code = (request.POST.get("code") or "").strip()
+    order_id = request.POST.get("order_id")
+    if not code or not order_id:
+        return HttpResponseBadRequest("Missing code or order_id")
+
+    order = get_object_or_404(order_models.Order, buyer=request.user, order_id=order_id)
+    coupon = order_models.Coupon.objects.filter(code__iexact=code).select_related("vendor").first()
+    if not coupon:
+        return JsonResponse({"ok": False, "message": "Invalid coupon code."})
+    
+    # >>> NEW: global one-coupon-per-order rule
+    if getattr(settings, "SINGLE_COUPON_PER_ORDER", False):
+        if order.has_any_coupon_applied():
+            return JsonResponse({"ok": False, "message": "You’ve already applied a coupon to this order."})
+
+    # >>> NEW: one-coupon-per-vendor rule (if enabled)
+    if getattr(settings, "SINGLE_COUPON_PER_VENDOR", False):
+        if order.has_coupon_for_vendor(coupon.vendor_id):
+            return JsonResponse({"ok": False, "message": "A coupon is already applied for this vendor."})
+
+
+    ok, msg = _apply_coupon_to_order(order, coupon, request.user)
+    if not ok:
+        return JsonResponse({"ok": False, "message": msg})
+
+    return JsonResponse({
+        "ok": True,
+        "message": msg,
+        "amounts": {
+            "item_total":          str(order.item_total),
+            "item_discount_total": str(order.item_discount_total),
+            "item_total_net":      str(order.item_total_net),
+            "shipping_fee":        str(order.shipping_fee),
+            "amount_payable":      str(order.amount_payable),
+        }
+    })
+
+@login_required
+@transaction.atomic
+def remove_coupon(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+    code = (request.POST.get("code") or "").strip()
+    order_id = request.POST.get("order_id")
+    if not code or not order_id:
+        return HttpResponseBadRequest("Missing code or order_id")
+
+    order = get_object_or_404(order_models.Order, buyer=request.user, order_id=order_id)
+    coupon = order_models.Coupon.objects.filter(code__iexact=code).first()
+    if not coupon:
+        return JsonResponse({"ok": False, "message": "Coupon not found."})
+
+    vendor_id = coupon.vendor_id
+    vendor_items = list(order.items.filter(vendor_id=vendor_id))
+
+    with transaction.atomic():
+        # sum allocations to undo
+        allocs = list(order_models.OrderItemDiscount.objects.filter(
+            order_item__in=[it.id for it in vendor_items], coupon=coupon
+        ))
+        by_item = {}
+        for a in allocs:
+            by_item[a.order_item_id] = by_item.get(a.order_item_id, Decimal('0.00')) + a.amount
+
+        order_models.OrderItemDiscount.objects.filter(
+            order_item__in=[it.id for it in vendor_items], coupon=coupon
+        ).delete()
+        order_models.CouponRedemption.objects.filter(
+            coupon=coupon, order=order, vendor_id=vendor_id
+        ).delete()
+
+        for it in vendor_items:
+            undo = _q(by_item.get(it.id, Decimal('0.00')))
+            if undo > 0:
+                it.line_discount_total = _q(max((it.line_discount_total or 0) - undo, Decimal('0.00')))
+                it.recompute_line_totals()
+                it.save(update_fields=["line_discount_total", "line_subtotal_net"])
+
+        order.recompute_item_totals_from_items()
+        order.recalc_total()
+        order.save(update_fields=[
+            "item_total", "item_discount_total", "item_total_net",
+            "amount_payable", "total_amount"
+        ])
+
+    return JsonResponse({
+        "ok": True,
+        "message": f"Removed {coupon.code}",
+        "amounts": {
+            "item_total":          str(order.item_total),
+            "item_discount_total": str(order.item_discount_total),
+            "item_total_net":      str(order.item_total_net),
+            "shipping_fee":        str(order.shipping_fee),
+            "amount_payable":      str(order.amount_payable),
+        }
+    })

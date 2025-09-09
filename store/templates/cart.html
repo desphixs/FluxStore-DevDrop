@@ -1,0 +1,264 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block content %}
+
+<body class="bg-gray-50 text-gray-900">
+  <main class="max-w-6xl mx-auto px-4 py-10 mt-32">
+    
+        {% if addresses.count < 1 %}
+        <div class="mb-6 rounded-xl border border-yellow-300 bg-yellow-50 p-4 text-yellow-800 shadow-sm flex justify-between lg:flex-row flex-col flex-wrap">
+        <div class="flex items-center gap-2">
+            <!-- Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" 
+                class="h-5 w-5 text-yellow-500" 
+                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M12 9v2m0 4h.01m-.01-10a9 9 0 110 18 9 9 0 010-18z" />
+            </svg>
+
+            <strong class="font-medium">Create a new shipping address</strong>
+        </div>
+
+        <!-- Button -->
+        <div class="mt-3">
+            <a href="{% url 'store:address_list_create' %}" 
+            class="inline-flex items-center rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white shadow hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+            + Create Address
+            </a>
+        </div>
+        </div>
+        {% endif %}
+
+        
+    <h1 class="text-3xl font-semibold mb-6">Your Cart</h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Items column -->
+      <section class="lg:col-span-2 bg-white rounded-2xl shadow p-6">
+        <div class="space-y-6">
+          {% if items %}
+            {% for it in items %}
+              <article data-cart-item-id="{{ it.id }}" class="flex items-center gap-4 p-4 rounded-xl border border-gray-100">
+                <!-- optional image area -->
+                <div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
+                  <img src="{{ it.product_image.image.url }}">
+                </div>
+
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <div class="text-sm font-medium truncate">{{ it.product_name }}</div>
+                      <div class="text-xs text-gray-500 truncate mt-1">{{ it.variation_str }}</div>
+                      <div class="text-xs text-gray-400 mt-1">SKU: {{ it.sku }}</div>
+                    </div>
+
+                    <div class="text-right">
+                      <div class="text-sm font-semibold">$<span class="item-price">{{ it.price }}</span></div>
+                      <div class="text-xs text-gray-500">each</div>
+                    </div>
+                  </div>
+
+                  <!-- quantity, subtotal -->
+                  <div class="mt-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="inline-flex items-center rounded-full bg-gray-100 px-1">
+                        <button class="qty-btn px-3 py-1 text-lg font-bold" data-action="decrement">−</button>
+                        <input class="w-12 text-center bg-transparent outline-none quantity-input" value="{{ it.quantity }}" type="number" min="0" step="1" />
+                        <button class="qty-btn px-3 py-1 text-lg font-bold" data-action="increment">+</button>
+                      </div>
+                      <div class="text-xs text-gray-500">Stock: <span class="stock-count">{{ it.stock_quantity }}</span></div>
+                    </div>
+
+                    <div class="text-right">
+                      <div class="text-sm text-gray-500">Subtotal</div>
+                      <div class="text-lg font-semibold">$<span class="item-subtotal">{{ it.subtotal }}</span></div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            {% endfor %}
+          {% else %}
+            <div class="p-8 text-center text-gray-600">Your cart is empty.</div>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- Summary column -->
+      <aside class="bg-white rounded-2xl shadow p-6">
+        <div class="mb-6">
+          <div class="text-sm text-gray-500">Order summary</div>
+          <div class="mt-3 text-3xl font-bold">$<span id="cart-total">{{ cart_total }}</span></div>
+        </div>
+
+        <div class="space-y-3">
+  {# If user logged in -> go to checkout. If not -> go to login and redirect back #}
+  {% if user.is_authenticated %}
+    <a
+      id="checkout-btn"
+      href="{% url 'store:checkout_start' %}"
+      class="w-full block text-center py-3 rounded-xl bg-[#8C001A] text-white font-semibold hover:bg-[#7a0016] transition"
+      role="button"
+    >
+      Checkout
+    </a>
+  {% else %}
+    <a
+      id="checkout-btn"
+      href="{% url 'userauths:login' %}?next={% url 'store:checkout' %}"
+      class="w-full block text-center py-3 rounded-xl bg-[#8C001A] text-white font-semibold hover:bg-[#7a0016] transition"
+    >
+      Checkout
+    </a>
+  {% endif %}
+
+  <a href="/" class="block text-center text-sm text-gray-600">Continue shopping</a>
+</div>
+
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    // === helpers ===
+    function getCookie(name) {
+      // simple cookie reader for CSRF
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    function formatNumber(n) {
+      // keep decimals
+      if (typeof n === 'string') n = parseFloat(n);
+      return Number.isFinite(n) ? n.toFixed(2) : '0.00';
+    }
+
+    // find elements
+    const cartTotalEl = document.getElementById('cart-total');
+
+    // attach handlers
+    document.querySelectorAll('[data-cart-item-id]').forEach(function(container){
+      const cartItemId = container.dataset.cartItemId;
+      const priceEl = container.querySelector('.item-price');
+      const qtyInput = container.querySelector('.quantity-input');
+      const subtotalEl = container.querySelector('.item-subtotal');
+      const stockEl = container.querySelector('.stock-count');
+
+      // parse initial numbers
+      const unitPrice = parseFloat(priceEl.textContent) || 0;
+      let stock = parseInt(stockEl.textContent) || 0;
+
+      // update subtotal on client
+      function recalcLocal(qty) {
+        const subtotal = unitPrice * qty;
+        subtotalEl.textContent = formatNumber(subtotal);
+        // recompute cart total by summing all subtotals
+        let total = 0;
+        document.querySelectorAll('.item-subtotal').forEach(el => {
+          total += parseFloat(el.textContent) || 0;
+        });
+        cartTotalEl.textContent = formatNumber(total);
+      }
+
+      // click + / -
+      container.querySelectorAll('.qty-btn').forEach(btn => {
+        btn.addEventListener('click', function(e){
+          const action = btn.dataset.action;
+          let current = parseInt(qtyInput.value) || 0;
+          if (action === 'increment') current += 1;
+          else current = Math.max(0, current - 1);
+          // enforce stock limit on client
+          if (current > stock) {
+            // show quick user feedback
+            btn.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-4px)' }, { transform: 'translateX(0)' }], { duration: 120 });
+            return;
+          }
+          qtyInput.value = current;
+          recalcLocal(current);
+          // send server update
+          updateServerQuantity(cartItemId, current, container);
+        });
+      });
+
+      // manual change (typing)
+      let typingTimer = null;
+      qtyInput.addEventListener('input', function(){
+        clearTimeout(typingTimer);
+        let val = parseInt(qtyInput.value) || 0;
+        if (val < 0) val = 0;
+        if (val > stock) val = stock;
+        qtyInput.value = val;
+        recalcLocal(val);
+        // debounce server updates while user types
+        typingTimer = setTimeout(() => {
+          updateServerQuantity(cartItemId, val, container);
+        }, 400);
+      });
+    });
+
+    // === server update ===
+    async function updateServerQuantity(cart_item_id, quantity, container) {
+      const url = "{% url 'store:update_cart_item_qty' %}";
+      const csrftoken = getCookie('csrftoken');
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+            'Accept': 'application/json'
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({ cart_item_id: cart_item_id, quantity: quantity })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+          // server rejected update: show a small inline error + revert to server quantity if provided
+          console.warn('Server update failed', data);
+          showInlineError(container, data.message || 'Could not update quantity');
+
+          // optional: fetch latest cart totals from server to reconcile.
+          // for now, revert local UI if server responds with available stock count
+          if (data.cart_total !== undefined) {
+            document.getElementById('cart-total').textContent = parseFloat(data.cart_total).toFixed(2);
+          }
+          return;
+        }
+
+        // success: update DOM with authoritative numbers
+        const subtotalEl = container.querySelector('.item-subtotal');
+        subtotalEl.textContent = parseFloat(data.item_subtotal).toFixed(2);
+        document.getElementById('cart-total').textContent = parseFloat(data.cart_total).toFixed(2);
+
+        // if user set quantity to 0, remove the item DOM
+        if (parseInt(data.quantity) === 0) {
+          container.remove();
+        }
+
+        const counter = document.querySelector(".cart_item_count");
+        counter.textContent = data.item_count;
+      } catch (err) {
+        console.error('Network error', err);
+        showInlineError(container, 'Network error while updating cart');
+      }
+    }
+
+    function showInlineError(container, message) {
+      // simple gently animated toast inside the item
+      let el = container.querySelector('.inline-error');
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'inline-error mt-2 text-sm text-red-600';
+        container.appendChild(el);
+      }
+      el.textContent = message;
+      setTimeout(()=> {
+        el.textContent = '';
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
+{% endblock content %}

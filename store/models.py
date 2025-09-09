@@ -147,6 +147,11 @@ class ProductVariation(models.Model):
     uuid = ShortUUIDField(length=12, max_length=50, alphabet="1234567890")
     variations = models.ManyToManyField("VariationValue")
 
+    weight = models.DecimalField(max_digits=6, decimal_places=2, help_text="Weight in KG")
+    length = models.DecimalField(max_digits=6, decimal_places=2, help_text="Length in CM")
+    height = models.DecimalField(max_digits=6, decimal_places=2, help_text="Height in CM")
+    width = models.DecimalField(max_digits=6, decimal_places=2, help_text="Width in CM")
+
     # NEW: product label (Hot, New, Sale, etc.)
     label = models.CharField(
         max_length=50,
@@ -186,6 +191,8 @@ class ProductVariation(models.Model):
         if self.deal_starts_at:
             return self.deal_starts_at <= now <= self.deal_ends_at
         return now <= self.deal_ends_at
+
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')

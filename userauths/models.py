@@ -58,6 +58,8 @@ class Address(models.Model):
 
     profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='addresses')
     address_type = models.CharField(max_length=10, choices=AddressType.choices)
+    full_name = models.CharField(max_length=150, blank=True)   # optional
+    phone = models.CharField(max_length=30, blank=True)        # optional
     street_address = models.CharField(max_length=255)
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)
@@ -66,5 +68,20 @@ class Address(models.Model):
     is_default = models.BooleanField(default=False)
     uuid = ShortUUIDField(length=12, max_length=50, alphabet="1234567890")
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['profile', 'address_type']),
+        ]
+
     def __str__(self):
         return f"{self.profile.user.email} - {self.get_address_type_display()} Address"
+
+    def save(self, *args, **kwargs):
+        # if marking this address default, clear other defaults for this profile+type
+        if self.is_default:
+            # NOTE: using update avoids signals and prevents recursion
+            Address.objects.filter(profile=self.profile, address_type=self.address_type).update(is_default=False)
+        super().save(*args, **kwargs)
+
+
+        

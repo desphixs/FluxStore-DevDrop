@@ -12,5 +12,6 @@
     "[html]": {
         "editor.defaultFormatter": "monosans.djlint",
         "editor.formatOnSave": false
-    }
+    },
+    "postman.settings.dotenv-detection-notification-visibility": false
 }
