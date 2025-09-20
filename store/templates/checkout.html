@@ -115,13 +115,13 @@
     </div>
   </div>
 
-  <form id="pay-form" method="post" action="">
+  <form id="pay-form" method="post" action="{% url 'payments:easebuzz_start' order.order_id %}">
     {% csrf_token %}
-    <input type="hidden" name="order_id" value="{{ order.order_id }}">
     <button class="mt-4 w-full py-3 rounded-xl bg-[#8C001A] text-white font-semibold hover:bg-[#7a0016] transition">
       Proceed to Payment
     </button>
   </form>
+
 </aside>
     </div>
   </div>

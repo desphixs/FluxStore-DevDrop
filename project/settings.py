@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     'order',
     'store',
     'addon',
+    'payments',
+    'customer',
 
     # Third party apps
     'whitenoise',
@@ -202,3 +204,12 @@ DJANGO_CKEDITOR_5_CONFIGS = {
         "language": "en",
     },
 }
+
+
+
+EASEBUZZ_KEY = env("EASEBUZZ_API_KEY")
+EASEBUZZ_SALT = env("EASEBUZZ_SALT_KEY")
+EASEBUZZ_ENV = env("EASEBUZZ_ENV").lower().strip()
+
+def EASEBUZZ_BASE():
+    return "https://pay.easebuzz.in" if EASEBUZZ_ENV == "prod" else "https://testpay.easebuzz.in"

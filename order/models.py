@@ -177,6 +177,10 @@ class Order(models.Model):
     payment_status = models.CharField(max_length=20, default="UNPAID")
     shipping_address_snapshot = models.JSONField(null=True, blank=True)
 
+    easebuzz_txnid = models.CharField(max_length=120, blank=True, null=True)
+    easebuzz_payment_id = models.CharField(max_length=120, blank=True, null=True)  # a.k.a. easebuzz_id in responses
+    payment_meta = models.JSONField(null=True, blank=True)  # stash raw gateway payloads
+
     status = models.CharField(max_length=20, choices=OrderStatus.choices, default=OrderStatus.PENDING)
     uuid = ShortUUIDField(length=12, max_length=50, alphabet="1234567890")
     created_at = models.DateTimeField(auto_now_add=True)

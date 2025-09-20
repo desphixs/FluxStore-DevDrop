@@ -31,6 +31,9 @@ urlpatterns = [
     
     path('', include('store.urls')),
     path('auth/', include('userauths.urls')),
+    path('payments/', include('payments.urls', namespace='payments')),
+    path("account/", include("customer.urls", namespace="customer")),
+
 ]
 
 

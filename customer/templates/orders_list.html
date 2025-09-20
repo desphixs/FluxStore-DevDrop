@@ -1,0 +1,149 @@
+{# templates/orders_list.html #}
+{% extends "partials/customer/customer_navigation.html" %}
+
+{% block customer_content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold tracking-tight">Your orders</h1>
+  <p class="text-sm text-gray-500">Track, review, and manage your purchases.</p>
+</div>
+
+{# Tabs #}
+<div class="mb-6">
+  <div class="inline-flex rounded-xl border border-gray-200 bg-white p-1">
+    {# helper to mark active #}
+    {% with current=show|default:'paid' %}
+      <a href="{% url 'customer:orders' %}?show=paid"
+         class="px-4 py-2 text-sm rounded-lg font-medium {% if current == 'paid' %}bg-gray-900 text-white{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+        Paid
+      </a>
+      <a href="{% url 'customer:orders' %}?show=unpaid"
+         class="px-4 py-2 text-sm rounded-lg font-medium {% if current == 'unpaid' %}bg-gray-900 text-white{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+        Unpaid
+      </a>
+      <a href="{% url 'customer:orders' %}?show=all"
+         class="px-4 py-2 text-sm rounded-lg font-medium {% if current == 'all' %}bg-gray-900 text-white{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+        All
+      </a>
+    {% endwith %}
+  </div>
+</div>
+
+{# Table card #}
+<section class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+  <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+    <div class="text-sm font-semibold tracking-wide">
+      {% if show == 'unpaid' %}Unpaid orders{% elif show == 'all' %}All orders{% else %}Paid orders{% endif %}
+    </div>
+
+    {# optional search UI placeholder; wire up later in view if you like #}
+    <form method="get" action="" class="hidden md:block">
+      {# preserve the show tab #}
+      <input type="hidden" name="show" value="{{ show|default:'paid' }}">
+      <div class="relative">
+        <input name="q" placeholder="Search by Order ID"
+               class="w-64 rounded-xl border border-gray-300 pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400" />
+        <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/>
+        </svg>
+      </div>
+    </form>
+  </div>
+
+  {% if orders_page and orders_page.object_list %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50 text-left">
+        <tr class="text-gray-600">
+          <th class="px-5 py-3 font-medium">Order</th>
+          <th class="px-5 py-3 font-medium">Date</th>
+          <th class="px-5 py-3 font-medium">Items</th>
+          <th class="px-5 py-3 font-medium">Total</th>
+          <th class="px-5 py-3 font-medium">Order Status</th>
+          <th class="px-5 py-3 font-medium">Payment</th>
+          <th class="px-5 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for o in orders_page.object_list %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-5 py-3">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold">#{{ o.order_id }}</span>
+              <button type="button" class="text-xs text-gray-400 hover:text-gray-600"
+                      onclick="navigator.clipboard.writeText('{{ o.order_id }}')">Copy</button>
+            </div>
+          </td>
+          <td class="px-5 py-3 text-gray-600">{{ o.created_at|date:"M j, Y" }}</td>
+          <td class="px-5 py-3 text-gray-600">{{ o.items.count }} item{{ o.items.count|pluralize }}</td>
+          <td class="px-5 py-3 font-semibold">₹{{ o.amount_payable|floatformat:2 }}</td>
+
+          {# order status pill #}
+          <td class="px-5 py-3">
+            {% if o.status == "DELIVERED" %}
+              <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">Delivered</span>
+            {% elif o.status == "PROCESSING" %}
+              <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">Processing</span>
+            {% elif o.status == "SHIPPED" %}
+              <span class="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">Shipped</span>
+            {% elif o.status == "PENDING" %}
+              <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">Pending</span>
+            {% elif o.status == "CANCELED" %}
+              <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">Canceled</span>
+            {% elif o.status == "REFUNDED" %}
+              <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">Refunded</span>
+            {% else %}
+              <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">{{ o.status|title }}</span>
+            {% endif %}
+          </td>
+
+          {# payment status pill #}
+          <td class="px-5 py-3">
+            {% if o.payment_status in 'PAID,SUCCESS,CAPTURED' %}
+              <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">Paid</span>
+            {% elif o.payment_status == "UNPAID" %}
+              <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">Unpaid</span>
+            {% else %}
+              <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">{{ o.payment_status|title }}</span>
+            {% endif %}
+          </td>
+
+          <td class="px-5 py-3">
+            <div class="flex items-center gap-2">
+              <a href="{% url 'customer:order_detail' o.order_id %}"
+                 class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium hover:bg-gray-50">
+                View
+                <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20"><path d="M7 4l6 6-6 6"/></svg>
+              </a>
+
+              {% if o.payment_status != 'PAID' and o.payment_status != 'SUCCESS' and o.payment_status != 'CAPTURED' %}
+                <a href="{% url 'store:checkout' o.order_id %}"
+                   class="inline-flex items-center gap-1 rounded-lg bg-gray-900 text-white px-3 py-1.5 text-xs font-semibold hover:bg-black">
+                  Pay now
+                </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+ 
+
+
+  {% else %}
+    <div class="p-8 text-center">
+      <div class="mx-auto mb-3 h-12 w-12 rounded-full bg-gray-100 grid place-items-center">
+        <svg class="h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M7 4h10l1 2h4v2h-1l-2 10H5L3 8H2V6h4l1-2z"/></svg>
+      </div>
+      <p class="text-sm text-gray-600">No orders found for this filter.</p>
+      <div class="mt-4">
+        <a href="{% url 'customer:orders' %}?show=all" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50">
+          View all orders
+        </a>
+      </div>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

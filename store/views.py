@@ -662,98 +662,6 @@ def _choose_shiprocket_surface(opts):
     return opts[0]
 
 
-# @login_required
-# @transaction.atomic
-# def begin_checkout(request):
-#     profile = request.user.profile
-#     cart = order_models.Cart.get_for_request(request)
-#     if cart.items.count() == 0:
-#         return redirect('store:cart')  # or handle empty
-
-#     addr = profile.addresses.filter(address_type=Address.AddressType.SHIPPING, is_default=True).first()
-#     if not addr:
-#         return redirect('store:address_list_create')
-
-#     # Compute item_total
-#     item_total = Decimal('0.00')
-#     total_weight_kg = Decimal('0.00')
-#     for ci in cart.items.select_related('product_variation', 'product_variation__product'):
-#         unit_price = ci.price or ci.product_variation.sale_price
-#         item_total += (unit_price * ci.quantity)
-#         pv_w = ci.product_variation.weight or Decimal('0.0')
-#         total_weight_kg += (pv_w * ci.quantity)
-
-#     # Create order
-#     order = order_models.Order(
-#         buyer=request.user,
-#         address=addr,
-#         currency=getattr(settings, "DEFAULT_CURRENCY", "INR"),
-#         item_total=item_total,
-#         shipping_fee=Decimal('0.00'),
-#         total_amount=item_total,
-#         shipping_address_snapshot={
-#             "full_name": addr.full_name,
-#             "phone": addr.phone,
-#             "street_address": addr.street_address,
-#             "city": addr.city,
-#             "state": addr.state,
-#             "postal_code": addr.postal_code,
-#             "country": addr.country,
-#         },
-#     )
-#     order.set_order_id_if_missing()
-#     order.save()
-
-#     # Create OrderItems
-#     for ci in cart.items.select_related('product_variation', 'product_variation__product').all():
-#         unit_price = ci.price or ci.product_variation.sale_price
-#         try:
-#             vendor_user = getattr(ci.product_variation.product, "vendor", None) or request.user
-#         except Exception:
-#             vendor_user = request.user
-#         oi = order_models.OrderItem.objects.create(
-#             order=order,
-#             product_variation=ci.product_variation,
-#             vendor=vendor_user,
-#             quantity=ci.quantity,
-#             price=unit_price,
-#         )
-#         if ci.variation_values.exists():
-#             oi.variation_values.set(ci.variation_values.all())
-
-#     # Fetch & lock shipping NOW
-#     pickup_pincode = getattr(settings, "SHIPROCKET_PICKUP_PINCODE", "")
-#     ship_weight = float(total_weight_kg) if total_weight_kg > 0 else 0.5
-#     try:
-#         raw = get_serviceability_and_rates(pickup_pincode, addr.postal_code.strip(), ship_weight, cod=0)
-#         resp = _normalize_resp(raw)
-#         opts = _extract_rate_list(resp)
-#         chosen = _choose_shiprocket_surface(opts)
-#         if chosen:
-#             order.apply_shipping_selection(
-#                 rate_obj=chosen,
-#                 fallback_currency=order.currency,
-#                 chargeable_weight=ship_weight,
-#             )
-#             order.save()
-#         else:
-#             # Leave fee=0 but still allow checkout (or redirect back with message if you prefer)
-#             order.recalc_total()
-#             order.save()
-#     except ShiprocketError as e:
-#         # You may want to redirect back to cart with a flash message
-#         order.recalc_total()
-#         order.save()
-#     except Exception:
-#         order.recalc_total()
-#         order.save()
-
-#     # (optional) keep cart until payment succeeds; or clear now:
-#     # cart.items.all().delete()
-
-#     return redirect(reverse('store:checkout', kwargs={'order_id': order.order_id}))
-
-
 @login_required
 @transaction.atomic
 def begin_checkout(request):
@@ -902,38 +810,6 @@ def checkout_view(request, order_id: str):
         "courier_code": order.courier_code,
     }
     return render(request, "checkout.html", context)
-
-
-# @login_required
-# def checkout_view(request, order_id: str):
-#     order = get_object_or_404(order_models.Order, buyer=request.user, order_id=order_id)
-
-#     # Build display items from OrderItems (already price-frozen)
-#     items_qs = order.items.select_related('product_variation', 'product_variation__product').all()
-#     display_items = []
-#     for it in items_qs:
-#         pv = it.product_variation
-#         display_items.append({
-#             "id": it.id,
-#             "product_name": pv.product.name,
-#             "variation": ", ".join([v.value for v in it.variation_values.all()]),
-#             "price": it.price,
-#             "quantity": it.quantity,
-#             "subtotal": it.price * it.quantity,
-#         })
-
-#     context = {
-#         "order": order,
-#         "items": display_items,
-#         "item_total": order.item_total,
-#         "default_address": order.address,
-#         "shipping_fee": order.shipping_fee,
-#         "grand_total": order.total_amount,
-#         "courier_name": order.courier_name,
-#         "etd_text": order.etd_text,
-#         "courier_code": order.courier_code,
-#     }
-#     return render(request, "checkout.html", context)
 
 
 

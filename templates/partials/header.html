@@ -7,7 +7,7 @@
         class="hidden md:flex justify-between items-center px-6 py-2 text-sm border-b border-transparent transition-all duration-300">
         <div class="flex space-x-4">
             <a href="#" class="hover:underline">About Us </a>
-            <a href="#" class="hover:underline">My Account</a>
+            <a href="{% url 'customer:dashboard' %}" class="hover:underline">My Account</a>
             <a href="#" class="hover:underline">Wishlist</a>
             <a href="#" class="hover:underline">Order Tracking</a>
         </div>
@@ -42,7 +42,7 @@
                 <i class="fa fa-heart mr-1"></i> <span class="hidden md:inline">Wishlist</span>
                 <span class="absolute -top-2 -right-3 bg-[#B01F00] text-xs rounded-full px-2">6</span>
             </a>
-            <a href="#" class="relative flex items-center">
+            <a href="{% url 'store:cart' %}" class="relative flex items-center">
                 <i class="fa fa-shopping-cart mr-1"></i> <span class="hidden md:inline">Cart</span>
                 <span class="absolute -top-2 -right-3 bg-[#B01F00] text-xs rounded-full px-2">
                     <span class="cart_item_count">
@@ -52,7 +52,7 @@
             </a>
             
             {% if request.user.is_authenticated %}
-                <a href="#" class="hidden md:flex items-center">
+                <a href="{% url 'customer:dashboard' %}" class="hidden md:flex items-center">
                     <i class="fa fa-user me-2"></i> Account
                 </a>
                 <a href="{% url 'userauths:logout' %}" class="hidden md:flex items-center">
@@ -207,13 +207,13 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // Nav links behaviour: scroll to main content (if present)
-    const handleNavLinkClick = (e) => {
-        // if link is external or has target, don't override
-        if (e.currentTarget.target && e.currentTarget.target !== "") return;
-        e.preventDefault();
-        if (mainContent) fastScrollTo(mainContent, 500);
-        closeSidebar();
-    };
+    // const handleNavLinkClick = (e) => {
+    //     // if link is external or has target, don't override
+    //     if (e.currentTarget.target && e.currentTarget.target !== "") return;
+    //     e.preventDefault();
+    //     if (mainContent) fastScrollTo(mainContent, 500);
+    //     closeSidebar();
+    // };
     // allNavLinks.forEach((link) => link.addEventListener("click", handleNavLinkClick));
     // if (sidebarLinksContainer) {
     //     sidebarLinksContainer.querySelectorAll("a").forEach((link) => link.addEventListener("click", handleNavLinkClick));

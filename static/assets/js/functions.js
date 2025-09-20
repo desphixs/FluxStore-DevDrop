@@ -115,10 +115,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (mainContent) fastScrollTo(mainContent, 500);
         closeSidebar();
     };
-    allNavLinks.forEach((link) => link.addEventListener("click", handleNavLinkClick));
-    if (sidebarLinksContainer) {
-        sidebarLinksContainer.querySelectorAll("a").forEach((link) => link.addEventListener("click", handleNavLinkClick));
-    }
+    // allNavLinks.forEach((link) => link.addEventListener("click", handleNavLinkClick));
+    // if (sidebarLinksContainer) {
+    //     sidebarLinksContainer.querySelectorAll("a").forEach((link) => link.addEventListener("click", handleNavLinkClick));
+    // }
     if (startShoppingBtn) startShoppingBtn.addEventListener("click", () => fastScrollTo(mainContent, 500));
 
     // If this page is NOT homepage -> set minimized header by default and skip scroll-snap logic

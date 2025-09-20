@@ -1,0 +1,168 @@
+{# templates/settings.html #}
+{% extends "partials/customer/customer_navigation.html" %}
+
+{% block customer_content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold tracking-tight">Settings</h1>
+  <p class="text-sm text-gray-500">Update your profile info. Changes apply across your account.</p>
+</div>
+
+<div id="alerts" class="space-y-2"></div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Profile card -->
+  <section class="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-5">
+    <form id="profileForm" enctype="multipart/form-data" class="space-y-5">
+      {% csrf_token %}
+
+      <!-- Name + Phone -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm font-medium">Full name</label>
+          <input id="full_name" name="full_name" value="{{ profile.full_name|default:'' }}"
+                 class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400">
+        </div>
+        <div>
+          <label class="text-sm font-medium">Phone number</label>
+          <input id="phone_number" name="phone_number" value="{{ profile.phone_number|default:'' }}"
+                 class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400">
+        </div>
+      </div>
+
+      <!-- Email (read-only, from User) -->
+      <div>
+        <label class="text-sm font-medium">Email</label>
+        <input value="{{ request.user.email }}" disabled
+               class="mt-1 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+        <p class="mt-1 text-xs text-gray-500">Email is your login. Manage change via account support flow.</p>
+      </div>
+
+      <!-- Avatar -->
+      <div class="grid grid-cols-1 sm:grid-cols-[auto,1fr] gap-4 items-start">
+        <div class="flex items-center gap-3">
+          <img id="avatarPreview"
+               src="{% if profile.image %}{{ profile.image.url }}{% else %}https://api.iconify.design/mdi:account-circle.svg?color=%23c7c7c7&width=96{% endif %}"
+               class="h-20 w-20 rounded-full object-cover bg-gray-100 border border-gray-200" alt="Avatar">
+        </div>
+        <div>
+          <label class="text-sm font-medium">Profile photo</label>
+          <div class="mt-2 flex items-center gap-2">
+            <input id="image" name="image" type="file" accept="image/*"
+                   class="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-gray-900 file:px-4 file:py-2 file:text-white hover:file:bg-black">
+            <label class="inline-flex items-center gap-2 text-sm">
+              <input type="checkbox" id="remove_image" name="remove_image" class="h-4 w-4 rounded border-gray-300">
+              Remove current
+            </label>
+          </div>
+          <p class="mt-1 text-xs text-gray-500">JPG/PNG. A square image looks best.</p>
+        </div>
+      </div>
+
+      <div class="pt-2 flex items-center justify-end gap-2">
+        <a href="{% url 'customer:password_change' %}" class="rounded-lg px-3 py-2 text-sm hover:bg-gray-50 border border-gray-200">Change password</a>
+        <button id="saveBtn" type="submit"
+                class="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-black">
+          Save changes
+        </button>
+      </div>
+
+      <div id="formMsg" class="text-sm mt-1"></div>
+    </form>
+  </section>
+
+  <!-- About / Help -->
+  <aside class="rounded-2xl border border-gray-200 bg-white p-5">
+    <div class="text-sm">
+      <div class="font-semibold">Tips</div>
+      <ul class="mt-2 list-disc pl-5 space-y-1 text-gray-600">
+        <li>Your default shipping/billing addresses are used at checkout.</li>
+        <li>Use a clear photo so sellers can recognize your account.</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  const endpoint = "{% url 'customer:profile_update_api' %}";
+  const form = document.getElementById('profileForm');
+  const saveBtn = document.getElementById('saveBtn');
+  const msg = document.getElementById('formMsg');
+  const alerts = document.getElementById('alerts');
+  const imgInput = document.getElementById('image');
+  const imgPreview = document.getElementById('avatarPreview');
+  const removeCheckbox = document.getElementById('remove_image');
+
+  function toast(ok, text){
+    const el = document.createElement('div');
+    el.className = `rounded-xl px-3 py-2 text-sm ${ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`;
+    el.textContent = text;
+    alerts.prepend(el);
+    setTimeout(()=>el.remove(), 2500);
+  }
+
+  // live preview
+  imgInput.addEventListener('change', () => {
+    const f = imgInput.files?.[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    imgPreview.src = url;
+    removeCheckbox.checked = false; // new file overrides removal
+  });
+
+  function getCSRF(){
+    const name='csrftoken=';
+    for (let p of document.cookie.split(';')) {
+      p=p.trim();
+      if (p.startsWith(name)) return decodeURIComponent(p.slice(name.length));
+    }
+    return '';
+  }
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    msg.textContent=''; msg.className='text-sm mt-1';
+    saveBtn.disabled = true;
+
+    const fd = new FormData(form);
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-CSRFToken': getCSRF() },
+        credentials: 'same-origin'
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        msg.textContent = txt || 'Failed to save profile.';
+        msg.className = 'text-sm mt-1 text-rose-600';
+      } else {
+        const data = await res.json();
+        if (data.ok) {
+          msg.textContent = data.message || 'Saved.';
+          msg.className = 'text-sm mt-1 text-emerald-600';
+          // if server removed image, clear preview
+          if (fd.get('remove_image')) {
+            imgPreview.src = 'https://api.iconify.design/mdi:account-circle.svg?color=%23c7c7c7&width=96';
+            imgInput.value = '';
+            removeCheckbox.checked = false;
+          }
+          toast(true, 'Profile updated');
+        } else {
+          msg.textContent = data.message || 'Could not save.';
+          msg.className = 'text-sm mt-1 text-rose-600';
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      msg.textContent = 'Network error.';
+      msg.className = 'text-sm mt-1 text-rose-600';
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+})();
+</script>
+{% endblock %}

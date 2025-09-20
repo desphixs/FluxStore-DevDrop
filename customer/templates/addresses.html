@@ -1,0 +1,330 @@
+{# templates/addresses.html #}
+{% extends "partials/customer/customer_navigation.html" %}
+
+{% block customer_content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="text-2xl font-bold tracking-tight">Your addresses</h1>
+    <p class="text-sm text-gray-500">Manage shipping and billing addresses. Set your defaults for faster checkout.</p>
+  </div>
+  <button id="btnNew"
+          class="inline-flex items-center gap-2 rounded-xl bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-black">
+    <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/></svg>
+    Add address
+  </button>
+</div>
+
+<div id="alerts" class="space-y-2"></div>
+
+<section id="addrGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+  {# filled by JS #}
+</section>
+
+{# ==================== CREATE/EDIT MODAL ==================== #}
+<div id="addrModal" class="fixed inset-0 hidden z-[10000]">
+  <div class="absolute inset-0 bg-black/50" data-dismiss></div>
+  <div class="relative z-10 mx-auto mt-16 w-full max-w-2xl px-4">
+    <div class="rounded-2xl bg-white shadow-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <div class="text-xs uppercase tracking-wide text-gray-500" id="modalSubtitle">Create</div>
+          <div class="text-sm font-semibold" id="modalTitle">New address</div>
+        </div>
+        <button class="rounded-lg p-2 hover:bg-gray-50" data-dismiss aria-label="Close">
+          <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <form id="addrForm" class="p-5 space-y-4">
+        {% csrf_token %}
+        <input type="hidden" id="addr_uuid" name="uuid">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium">Address type</label>
+            <select name="address_type" id="address_type"
+                    class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400" required>
+              <option value="SHIPPING">Shipping</option>
+              <option value="BILLING">Billing</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm font-medium">Full name</label>
+            <input name="full_name" id="full_name" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="Optional">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium">Phone</label>
+            <input name="phone" id="phone" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="Optional">
+          </div>
+          <div class="flex items-center gap-2 mt-6 sm:mt-7">
+            <input type="checkbox" name="is_default" id="is_default" class="h-4 w-4 rounded border-gray-300">
+            <label for="is_default" class="text-sm text-gray-700">Set as default for this type</label>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">Street address</label>
+          <input name="street_address" id="street_address" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" required>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium">City</label>
+            <input name="city" id="city" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" required>
+          </div>
+          <div>
+            <label class="text-sm font-medium">State</label>
+            <input name="state" id="state" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" required>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium">Postal code</label>
+            <input name="postal_code" id="postal_code" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" required>
+          </div>
+          <div>
+            <label class="text-sm font-medium">Country</label>
+            <input name="country" id="country" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" required>
+          </div>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2">
+          <button type="button" class="rounded-lg px-3 py-2 text-sm hover:bg-gray-50" data-dismiss>Cancel</button>
+          <button id="submitBtn" type="submit" class="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-black">Save</button>
+        </div>
+
+        <div id="formMsg" class="text-sm mt-2"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ==================== DELETE CONFIRM ==================== #}
+<div id="confirmModal" class="fixed inset-0 hidden z-[10000]">
+  <div class="absolute inset-0 bg-black/50" data-cancel></div>
+  <div class="relative z-10 mx-auto mt-32 w-full max-w-md px-4">
+    <div class="rounded-2xl bg-white shadow-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 font-semibold">Delete address?</div>
+      <div class="p-5 text-sm text-gray-600">This can’t be undone.</div>
+      <div class="px-5 py-4 flex items-center justify-end gap-2 border-t border-gray-100">
+        <button class="rounded-lg px-3 py-2 text-sm hover:bg-gray-50" data-cancel>Cancel</button>
+        <button class="rounded-lg bg-rose-600 text-white px-4 py-2 text-sm font-semibold hover:bg-rose-700" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const listURL = "{% url 'customer:address_list_api' %}";
+  const createURL = "{% url 'customer:address_create_api' %}";
+  const updateURL = (uuid) => `{% url 'customer:address_update_api' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', uuid);
+  const deleteURL = (uuid) => `{% url 'customer:address_delete_api' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', uuid);
+  const defaultURL = (uuid) => `{% url 'customer:address_set_default_api' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', uuid);
+
+  const grid = document.getElementById('addrGrid');
+  const alerts = document.getElementById('alerts');
+
+  // modal refs
+  const addrModal = document.getElementById('addrModal');
+  const confirmModal = document.getElementById('confirmModal');
+  const form = document.getElementById('addrForm');
+  const formMsg = document.getElementById('formMsg');
+  const submitBtn = document.getElementById('submitBtn');
+  const modalSubtitle = document.getElementById('modalSubtitle');
+  const modalTitle = document.getElementById('modalTitle');
+
+  const uuidField = document.getElementById('addr_uuid');
+  const isDefaultField = document.getElementById('is_default');
+
+  function toast(ok, text) {
+    const el = document.createElement('div');
+    el.className = `rounded-xl px-3 py-2 text-sm ${ok ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'} border ${ok ? 'border-emerald-200' : 'border-rose-200'}`;
+    el.textContent = text;
+    alerts.prepend(el);
+    setTimeout(()=>el.remove(), 2500);
+  }
+
+  function getCSRF() {
+    const name='csrftoken=';
+    for (let c of document.cookie.split(';')) {
+      c=c.trim();
+      if (c.startsWith(name)) return decodeURIComponent(c.slice(name.length));
+    }
+    return '';
+  }
+
+  function openAddrModal(mode, data) {
+    form.reset();
+    formMsg.textContent = ''; formMsg.className = 'text-sm mt-2';
+    uuidField.value = data?.uuid || '';
+    document.getElementById('address_type').value = data?.address_type || 'SHIPPING';
+    document.getElementById('full_name').value = data?.full_name || '';
+    document.getElementById('phone').value = data?.phone || '';
+    document.getElementById('street_address').value = data?.street_address || '';
+    document.getElementById('city').value = data?.city || '';
+    document.getElementById('state').value = data?.state || '';
+    document.getElementById('postal_code').value = data?.postal_code || '';
+    document.getElementById('country').value = data?.country || '';
+    isDefaultField.checked = !!data?.is_default;
+
+    modalSubtitle.textContent = mode === 'edit' ? 'Edit' : 'Create';
+    modalTitle.textContent = mode === 'edit' ? 'Update address' : 'New address';
+
+    addrModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  }
+  function closeAddrModal(){ addrModal.classList.add('hidden'); document.body.classList.remove('overflow-hidden'); }
+
+  function openConfirm(uuid){ confirmModal.dataset.uuid = uuid; confirmModal.classList.remove('hidden'); document.body.classList.add('overflow-hidden'); }
+  function closeConfirm(){ confirmModal.classList.add('hidden'); delete confirmModal.dataset.uuid; document.body.classList.remove('overflow-hidden'); }
+
+  async function fetchList(){
+    const res = await fetch(listURL, {credentials:'same-origin'});
+    const data = await res.json();
+    if (!data.ok) return;
+    renderGrid(data.items || []);
+  }
+
+  function pill(a){
+    return a.is_default
+      ? `<span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Default</span>`
+      : `<span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700">${a.address_type_label}</span>`;
+  }
+
+  function card(a){
+    return `
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 flex flex-col gap-3" id="addr-${a.uuid}">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-semibold">${a.full_name || '—'}</div>
+          ${pill(a)}
+        </div>
+        <div class="text-sm text-gray-700">
+          <div>${a.street_address}</div>
+          <div>${a.city}, ${a.state} ${a.postal_code}</div>
+          <div>${a.country}</div>
+          <div class="text-gray-500 mt-1">${a.phone || ''}</div>
+        </div>
+        <div class="mt-2 flex items-center gap-2">
+          <button data-edit="${a.uuid}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50">Edit</button>
+          <button data-delete="${a.uuid}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50">Delete</button>
+          ${a.is_default ? '' : `<button data-default="${a.uuid}" class="ml-auto inline-flex items-center gap-1 rounded-lg bg-gray-900 text-white px-3 py-1.5 text-xs font-semibold hover:bg-black">Set default</button>`}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderGrid(items){
+    if (!items.length) {
+      grid.innerHTML = `
+        <div class="col-span-full rounded-2xl border border-gray-200 bg-white p-10 text-center">
+          <div class="mx-auto mb-3 h-12 w-12 rounded-full bg-gray-100 grid place-items-center">
+            <svg class="h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 4h18v12H3V8zm5 3h8v2H8v-2z"/></svg>
+          </div>
+          <p class="text-sm text-gray-600">No addresses yet. Add one to speed up checkout.</p>
+        </div>`;
+      return;
+    }
+    grid.innerHTML = items.map(card).join("");
+  }
+
+  // submit create/update
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    formMsg.textContent=''; submitBtn.disabled=true;
+
+    const fd = new FormData(form);
+    const uuid = fd.get('uuid');
+    const url = uuid ? updateURL(uuid) : createURL;
+
+    try {
+      const res = await fetch(url, {
+        method:'POST',
+        body: fd,
+        headers: {'X-CSRFToken': getCSRF()},
+        credentials: 'same-origin'
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        formMsg.textContent = txt || 'Validation failed';
+        formMsg.className = 'text-sm mt-2 text-rose-600';
+      } else {
+        const data = await res.json();
+        closeAddrModal();
+        toast(true, 'Saved.');
+        await fetchList();
+      }
+    } catch (err) {
+      formMsg.textContent = 'Network error';
+      formMsg.className = 'text-sm mt-2 text-rose-600';
+    } finally { submitBtn.disabled=false; }
+  });
+
+  // click handlers
+  document.getElementById('btnNew').addEventListener('click', ()=>openAddrModal('create', null));
+  document.addEventListener('click', (e)=>{
+    if (e.target.matches('[data-dismiss]')) { e.preventDefault(); closeAddrModal(); }
+    if (e.target.matches('[data-cancel]')) { e.preventDefault(); closeConfirm(); }
+
+    const editBtn = e.target.closest('[data-edit]');
+    if (editBtn) {
+      const uuid = editBtn.getAttribute('data-edit');
+      // read from DOM (or refetch list then find item — simpler: refetch)
+      fetch(listURL, {credentials:'same-origin'}).then(r=>r.json()).then(data=>{
+        const item = (data.items||[]).find(x=>x.uuid===uuid);
+        openAddrModal('edit', item);
+      });
+    }
+
+    const delBtn = e.target.closest('[data-delete]');
+    if (delBtn) {
+      openConfirm(delBtn.getAttribute('data-delete'));
+    }
+
+    const defBtn = e.target.closest('[data-default]');
+    if (defBtn) {
+      const uuid = defBtn.getAttribute('data-default');
+      fetch(defaultURL(uuid), {
+        method:'POST',
+        headers:{'X-CSRFToken': getCSRF()},
+        credentials:'same-origin'
+      }).then(r=>r.json()).then(async (data)=>{
+        if (data.ok) { toast(true,'Default set.'); await fetchList(); }
+        else { toast(false, 'Could not set default'); }
+      }).catch(()=>toast(false,'Network error'));
+    }
+  });
+
+  // confirm delete
+  document.getElementById('confirmDeleteBtn').addEventListener('click', async ()=>{
+    const uuid = confirmModal.dataset.uuid;
+    if (!uuid) return;
+    try{
+      const r = await fetch(deleteURL(uuid), {
+        method:'POST',
+        headers:{'X-CSRFToken': getCSRF()},
+        credentials:'same-origin'
+      });
+      const data = await r.json();
+      if (data.ok) { toast(true,'Deleted.'); await fetchList(); }
+      else { toast(false,'Delete failed'); }
+    }catch(_){ toast(false,'Network error'); }
+    closeConfirm();
+  });
+
+  // close on ESC
+  window.addEventListener('keydown', (e)=>{
+    if (e.key==='Escape') { closeAddrModal(); closeConfirm(); }
+  });
+
+  // initial load
+  fetchList();
+})();
+</script>
+{% endblock %}
