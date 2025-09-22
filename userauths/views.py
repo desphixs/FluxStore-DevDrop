@@ -8,6 +8,26 @@ from .models import User
 from store import models as store_models
 from order import models as order_models
 
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.views.decorators.http import require_POST
+from django.utils.text import slugify
+
+from .models import UserProfile, VendorProfile, User
+
+# vendor/views.py
+import json
+from decimal import Decimal
+
+
+from django.db import transaction
+from django.utils.text import slugify
+
+from userauths.models import VendorProfile, User
+from .forms import UserProfileForm, VendorProfileForm
+
+
+
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('store:index')
@@ -28,40 +48,6 @@ def register_view(request):
         form = RegistrationForm()
         
     return render(request, 'register.html', {'form': form})
-
-# def login_view(request):
-    
-#     if request.user.is_authenticated:
-#         return redirect('store:index')
-
-#     if request.method == 'POST':
-#         form = LoginForm(request.POST)
-#         if form.is_valid():
-#             email = form.cleaned_data.get('email')
-#             password = form.cleaned_data.get('password')
-#             user = authenticate(request, email=email, password=password)
-#             if user is not None:
-#                 login(request, user)
-#                 messages.success(request, 'Login successful')
-
-#                 # merge guest cart into user cart on login
-#                 guest_session_key = request.session.get('guest_cart_session_key')
-#                 if guest_session_key:
-#                     try:
-#                         guest_cart = order_models.Cart.objects.get(session_key=guest_session_key, user__isnull=True)
-#                         user_cart = order_models.Cart.get_for_request(request)
-#                         user_cart.merge_from(guest_cart)
-#                     except order_models.Cart.DoesNotExist:
-#                         pass
-                
-#                 return redirect('store:index')
-#             else:
-#                 messages.error(request, 'Invalid email or password.')
-#     else:
-#         form = LoginForm()
-        
-#     return render(request, 'login.html', {'form': form})
-
 
 def login_view(request):
     

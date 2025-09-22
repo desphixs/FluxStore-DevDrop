@@ -1,0 +1,309 @@
+{% extends "partials/vendor/vendor_navigation.html" %}
+
+{% block vendor_content %}
+<div class="space-y-6">
+
+  <!-- Header / Actions -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Products</h1>
+      <p class="text-sm text-gray-500">Manage listings, track stock, and see performance at a glance.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="{% url 'vendor:product_create' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50">
+      <i class="fas fa-plus"></i>      
+      Create New Product
+    </a>
+      <!-- Toggle view -->
+      {% with base_q=''%}
+        {% if q %}{% firstof base_q '' %}{% endif %}
+      {% endwith %}
+      {% if mode == 'grid' %}
+        <a href="?view=list{% if q %}&q={{ q|urlencode }}{% endif %}{% if status %}&status={{ status|urlencode }}{% endif %}"
+           class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50"
+           title="Switch to list view">
+          <!-- lucide:list -->
+          <svg class="h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M3 6h7M3 12h7M3 18h7M14 6h7M14 12h7M14 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          List
+        </a>
+      {% else %}
+        <a href="?view=grid{% if q %}&q={{ q|urlencode }}{% endif %}{% if status %}&status={{ status|urlencode }}{% endif %}"
+           class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50"
+           title="Switch to grid view">
+          <!-- lucide:layout-grid -->
+          <svg class="h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/></svg>
+          Grid
+        </a>
+      {% endif %}
+
+      <!-- Refresh -->
+      <a href="{% url 'vendor:products' %}{% if q or status %}?{% endif %}{% if q %}q={{ q|urlencode }}{% endif %}{% if q and status %}&{% endif %}{% if status %}status={{ status|urlencode }}{% endif %}"
+         class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50">
+        <!-- lucide:refresh-ccw -->
+        <svg class="h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M3 2v6h6M21 22v-6h-6M3.51 15a9 9 0 0 0 14.85 3M2 12a9 9 0 0 1 15-6.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Refresh
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="sm:col-span-2">
+      <div class="relative">
+        <input
+          type="search"
+          name="q"
+          value="{{ q }}"
+          placeholder="Search products by name, slug, description…"
+          class="w-full rounded-xl border border-gray-300 pl-10 pr-3 py-2 focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 bg-white"
+        />
+        <!-- lucide:search -->
+        <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <select name="status" class="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 bg-white">
+        <option value="">All statuses</option>
+        {% for code,label in status_choices %}
+          <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <input type="hidden" name="view" value="{{ mode }}">
+      <button class="rounded-xl bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-black">Filter</button>
+    </div>
+  </form>
+
+  {% if page.object_list %}
+    {% if mode == 'list' %}
+      <!-- LIST (table) -->
+      <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 text-left text-gray-600">
+              <tr>
+                <th class="px-4 py-3 font-medium">Product</th>
+                <th class="px-4 py-3 font-medium">Status</th>
+                <th class="px-4 py-3 font-medium">Category</th>
+                <th class="px-4 py-3 font-medium text-right">Variants</th>
+                <th class="px-4 py-3 font-medium text-right">Stock</th>
+                <th class="px-4 py-3 font-medium text-right">Sold</th>
+                <th class="px-4 py-3 font-medium text-right">Revenue</th>
+                <th class="px-4 py-3 font-medium text-right">Rating</th>
+                <th class="px-4 py-3 font-medium">Created</th>
+                <th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for p in page.object_list %}
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="h-10 w-10 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center shrink-0">
+                      {% if p.primary_image and p.primary_image.image %}
+                        <img src="{{ p.primary_image.image.url }}" alt="{{ p.name }}" class="h-full w-full object-cover">
+                      {% else %}
+                        <!-- lucide:box -->
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="m21 16-9 5-9-5M12 3v18M3.3 7.3 12 12l8.7-4.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      {% endif %}
+                    </div>
+                    <div class="min-w-0">
+                      <div class="font-medium truncate">{{ p.name }}</div>
+                      <div class="text-xs text-gray-500 truncate">{{ p.slug }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-4 py-3">
+                  {% if p.status == "PUBLISHED" %}
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Published</span>
+                  {% elif p.status == "DRAFT" %}
+                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">Draft</span>
+                  {% elif p.status == "ARCHIVED" %}
+                    <span class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700">Archived</span>
+                  {% else %}
+                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">{{ p.status|title }}</span>
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3 text-gray-600">
+                    {% if p.category %}{{ p.category.name }}{% else %}-{% endif %}
+                </td>
+                <td class="px-4 py-3 text-right">{{ p.variant_count|default:0 }}</td>
+                <td class="px-4 py-3 text-right">{{ p.stock_total|default:0 }}</td>
+                <td class="px-4 py-3 text-right">{{ p.sold_qty|default:0 }}</td>
+                <td class="px-4 py-3 text-right">₹{{ p.sold_revenue|floatformat:2 }}</td>
+                <td class="px-4 py-3 text-right">
+                  <div class="inline-flex items-center gap-1">
+                    <!-- lucide:star -->
+                    <svg class="h-4 w-4 text-amber-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 16.5 13.5 18.5 21 12 16.8 5.5 21 7.5 13.5 2 9 9 9 12 2"/></svg>
+                    <span>{{ p.average_rating|default:0 }}</span>
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-gray-600">{{ p.created_at|date:"M j, Y" }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center justify-end gap-2">
+                    <a href="#" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs hover:bg-gray-50">
+                      <!-- lucide:eye -->
+                      <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
+                      View
+                    </a>
+                    <a href="{% url 'vendor:product_edit' p.id %}" class="inline-flex items-center gap-1 rounded-lg bg-gray-900 text-white px-2.5 py-1.5 text-xs font-semibold hover:bg-black">
+                      <!-- lucide:pencil -->
+                      <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      Edit
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <!-- GRID (cards) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        {% for p in page.object_list %}
+          <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+            <!-- Top: image + status -->
+            <div class="flex items-start gap-3 p-4 border-b border-gray-100">
+              <div class="h-14 w-14 rounded-xl bg-gray-100 overflow-hidden flex items-center justify-center shrink-0">
+                {% if p.primary_image and p.primary_image.image %}
+                  <img src="{{ p.primary_image.image.url }}" alt="{{ p.name }}" class="h-full w-full object-cover">
+                {% else %}
+                  <!-- lucide:box -->
+                  <svg class="h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="m21 16-9 5-9-5M12 3v18M3.3 7.3 12 12l8.7-4.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                {% endif %}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <a href="#" class="font-semibold truncate hover:underline">{{ p.name }}</a>
+                  {% if p.status == "PUBLISHED" %}
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Published</span>
+                  {% elif p.status == "DRAFT" %}
+                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">Draft</span>
+                  {% elif p.status == "ARCHIVED" %}
+                    <span class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700">Archived</span>
+                  {% else %}
+                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">{{ p.status|title }}</span>
+                  {% endif %}
+                </div>
+                <div class="text-xs text-gray-500 mt-0.5">
+                  {% if p.category %}{{ p.category.name }} • {% endif %} Added {{ p.created_at|date:"M j, Y" }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle: metrics -->
+            <div class="grid grid-cols-2 gap-3 p-4">
+              <div class="rounded-xl border border-gray-100 p-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-500">Variations</span>
+                  <!-- lucide:layers -->
+                  <svg class="h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="m12 2 9 4.5L12 11 3 6.5 12 2Zm0 9 9-4.5M3 6.5 12 11M3 13l9 4 9-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="mt-1 text-lg font-semibold">{{ p.variant_count|default:0 }}</div>
+              </div>
+
+              <div class="rounded-xl border border-gray-100 p-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-500">Stock</span>
+                  <!-- lucide:boxes -->
+                  <svg class="h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M7 7h10v10H7z" stroke="currentColor" stroke-width="2"/><path d="M3 3h6v6H3zM15 15h6v6h-6z" stroke="currentColor" stroke-width="2"/></svg>
+                </div>
+                <div class="mt-1 text-lg font-semibold">{{ p.stock_total|default:0 }}</div>
+              </div>
+
+              <div class="rounded-xl border border-gray-100 p-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-500">Sold</span>
+                  <!-- lucide:shopping-cart -->
+                  <svg class="h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="21" r="1" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="21" r="1" stroke="currentColor" stroke-width="2"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.6a2 2 0 0 0 2-1.6L23 6H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="mt-1 text-lg font-semibold">{{ p.sold_qty|default:0 }}</div>
+              </div>
+
+              <div class="rounded-xl border border-gray-100 p-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-500">Revenue</span>
+                  <!-- lucide:banknote -->
+                  <svg class="h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
+                </div>
+                <div class="mt-1 text-lg font-semibold">₹{{ p.sold_revenue|floatformat:2 }}</div>
+              </div>
+
+              <div class="rounded-xl border border-gray-100 p-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-500">Rating</span>
+                  <!-- lucide:star -->
+                  <svg class="h-4 w-4 text-amber-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 16.5 13.5 18.5 21 12 16.8 5.5 21 7.5 13.5 2 9 9 9 12 2"/></svg>
+                </div>
+                <div class="mt-1 text-lg font-semibold">{{ p.average_rating|default:0 }}</div>
+                <div class="text-xs text-gray-500">{{ p.total_reviews }} review{{ p.total_reviews|pluralize }}</div>
+              </div>
+
+              <div class="rounded-xl border border-gray-100 p-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-500">Slug</span>
+                  <!-- lucide:link -->
+                  <svg class="h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 0 0 7.07 0l3.54-3.54a5 5 0 0 0-7.07-7.07L12 4M14 11a5 5 0 0 0-7.07 0L3.39 14.54a5 5 0 0 0 7.07 7.07L12 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="mt-1 text-xs truncate text-gray-600">{{ p.slug }}</div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-between gap-2 p-4 border-t border-gray-100">
+              <div class="text-xs text-gray-500 truncate">
+                ID: {{ p.uuid }}
+              </div>
+              <div class="flex items-center gap-2">
+                <a href="#" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium hover:bg-gray-50">
+                  <!-- lucide:eye -->
+                  <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
+                  View
+                </a>
+                <a href="{% url 'vendor:product_edit' p.id %}" class="inline-flex items-center gap-1 rounded-lg bg-gray-900 text-white px-3 py-1.5 text-xs font-semibold hover:bg-black">
+                  <!-- lucide:pencil -->
+                  <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Edit
+                </a>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="rounded-2xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-500">
+      No products yet. Start by adding one.
+    </div>
+  {% endif %}
+
+  <!-- Pagination -->
+  {% if page.paginator.num_pages > 1 %}
+    <div class="flex items-center justify-between">
+      <div class="text-xs text-gray-500">
+        Page {{ page.number }} of {{ page.paginator.num_pages }} • {{ page.paginator.count }} total
+      </div>
+      <div class="flex items-center gap-2">
+        {% if page.has_previous %}
+          <a href="?page={{ page.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if status %}&status={{ status|urlencode }}{% endif %}&view={{ mode }}"
+             class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50">
+            <!-- lucide:chevron-left -->
+            <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Prev
+          </a>
+        {% endif %}
+        {% if page.has_next %}
+          <a href="?page={{ page.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if status %}&status={{ status|urlencode }}{% endif %}&view={{ mode }}"
+             class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50">
+            Next
+            <!-- lucide:chevron-right -->
+            <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

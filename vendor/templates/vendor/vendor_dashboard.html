@@ -1,0 +1,186 @@
+{% extends "partials/vendor/vendor_navigation.html" %}
+
+{% block vendor_content %}
+<!-- Page header -->
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold tracking-tight">Welcome back, {{ request.user.first_name|default:request.user.username }}</h1>
+    <p class="text-sm text-gray-500">Here’s a quick snapshot of your store.</p>
+  </div>
+  <div class="flex items-center gap-2">
+     <a href="{% url 'vendor:product_create' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50">
+      <i class="fas fa-plus"></i>      
+      Create New Product
+    </a>
+    <a href="{% url 'vendor:products' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50">
+      <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM6 4h12v2H6z"/></svg>
+      Manage products
+    </a>
+    <a href="{% url 'vendor:orders' %}" class="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-3 py-2 text-sm font-semibold hover:bg-black">
+      <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M7 4h10l1 2h4v2h-1l-2 10H5L3 8H2V6h4l1-2zm2.1 4l-.5 2h6.8l-.5-2H9.1zM7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>
+      View orders
+    </a>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <!-- Total Products -->
+  <div class="rounded-2xl border border-gray-200 bg-white p-5">
+    <div class="flex items-center justify-between">
+      <p class="text-sm text-gray-500">Total Products</p>
+      <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
+        <svg class="h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM6 4h12v2H6z"/></svg>
+      </span>
+    </div>
+    <div class="mt-3 text-3xl font-bold">{{ stats.total_products|default:0 }}</div>
+    <p class="mt-1 text-xs text-gray-500">Active & archived</p>
+  </div>
+
+  <!-- Total Orders -->
+  <div class="rounded-2xl border border-gray-200 bg-white p-5">
+    <div class="flex items-center justify-between">
+      <p class="text-sm text-gray-500">Total Orders</p>
+      <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
+        <svg class="h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M3 3h18v2H3zM3 7h18v2H3zM3 11h18v2H3zM3 15h18v2H3zM3 19h18v2H3z"/></svg>
+      </span>
+    </div>
+    <div class="mt-3 text-3xl font-bold">{{ stats.total_orders|default:0 }}</div>
+    <p class="mt-1 text-xs text-gray-500">All-time</p>
+  </div>
+
+  <!-- Revenue (Net) -->
+  <div class="rounded-2xl border border-gray-200 bg-white p-5">
+    <div class="flex items-center justify-between">
+      <p class="text-sm text-gray-500">Revenue (Net)</p>
+      <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
+        <svg class="h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1a11 11 0 1 0 11 11A11.013 11.013 0 0 0 12 1zm1 16v2h-2v-2a4 4 0 1 1 0-8h1a2 2 0 1 0 0-4h-3V3h2v1.06A6 6 0 0 1 13 15h-1a2 2 0 1 0 0 4h3z"/></svg>
+      </span>
+    </div>
+    <div class="mt-3 text-3xl font-bold">₹{{ stats.revenue_net|default:"0.00" }}</div>
+    <p class="mt-1 text-xs text-gray-500">Paid − discounts (excl. shipping fees to you)</p>
+  </div>
+
+  <!-- Unpaid Orders -->
+  <div class="rounded-2xl border border-gray-200 bg-white p-5">
+    <div class="flex items-center justify-between">
+      <p class="text-sm text-gray-500">Unpaid Orders</p>
+      <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
+        <svg class="h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      </span>
+    </div>
+    <div class="mt-3 text-3xl font-bold">{{ stats.unpaid_orders|default:0 }}</div>
+    <p class="mt-1 text-xs text-gray-500">Awaiting payment</p>
+  </div>
+</div>
+
+<!-- Grid: Latest Orders + Notifications preview -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Latest Paid Orders -->
+  <section class="lg:col-span-2 rounded-2xl border border-gray-200 bg-white">
+    <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
+      <h2 class="text-sm font-semibold tracking-wide">Recent paid orders</h2>
+      <a href="{% url 'vendor:orders' %}?show=paid" class="text-sm text-gray-600 hover:text-gray-900">See all</a>
+    </div>
+
+    {% if paid_orders %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="text-left bg-gray-50">
+            <tr class="text-gray-600">
+              <th class="px-5 py-3 font-medium">Order</th>
+              <th class="px-5 py-3 font-medium">Date</th>
+              <th class="px-5 py-3 font-medium text-right">Items</th>
+              <th class="px-5 py-3 font-medium text-right">Gross</th>
+              <th class="px-5 py-3 font-medium text-right">Discount</th>
+              <th class="px-5 py-3 font-medium text-right">Net</th>
+              <th class="px-5 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for o in paid_orders %}
+              {% with gross=o.v_gross disc=o.v_disc net=o.v_net %}
+              <tr class="hover:bg-gray-50">
+                <td class="px-5 py-3">
+                  <div class="flex items-center gap-2">
+                    <a href="{% url 'vendor:order_detail' o.order_id %}" class="font-semibold hover:underline">#{{ o.order_id }}</a>
+                    <button type="button" class="text-xs text-gray-400 hover:text-gray-600" onclick="navigator.clipboard.writeText('{{ o.order_id }}')">Copy</button>
+                  </div>
+                  <div class="text-xs text-gray-500">{{ o.buyer.email }}</div>
+                </td>
+                <td class="px-5 py-3 text-gray-600">{{ o.created_at|date:"M j, Y" }}</td>
+                <td class="px-5 py-3 text-right text-gray-600">{{ o.v_item_count|default:0 }}</td>
+                <td class="px-5 py-3 text-right font-medium">₹{{ gross|floatformat:2 }}</td>
+                <td class="px-5 py-3 text-right">₹{{ disc|floatformat:2 }}</td>
+                <td class="px-5 py-3 text-right font-semibold">₹{{ net|floatformat:2 }}</td>
+                <td class="px-5 py-3">
+                  <a href="{% url 'vendor:order_detail' o.order_id %}"
+                     class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium hover:bg-gray-50">
+                    View
+                    <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20"><path d="M7 4l6 6-6 6"/></svg>
+                  </a>
+                </td>
+              </tr>
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="p-6 text-center text-sm text-gray-500">No paid orders yet.</div>
+    {% endif %}
+  </section>
+
+  <!-- Notifications preview -->
+  <section class="rounded-2xl border border-gray-200 bg-white">
+    <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100">
+      <h2 class="text-sm font-semibold tracking-wide">Notifications</h2>
+      <a href="{% url 'vendor:notifications' %}" class="text-sm text-gray-600 hover:text-gray-900">View all</a>
+    </div>
+
+    {% if stats.unread_notifications %}
+      <div class="p-5">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-medium">Unread</div>
+          <span class="inline-flex items-center rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+            {{ stats.unread_notifications }}
+          </span>
+        </div>
+        <p class="mt-2 text-xs text-gray-500">You have pending updates—check orders, reviews, or stock alerts.</p>
+      </div>
+    {% else %}
+      <div class="p-6 text-center text-sm text-gray-500">All caught up 👌</div>
+    {% endif %}
+  </section>
+</div>
+
+<!-- Helpful quick links -->
+<div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+  <a href="{% url 'vendor:products' %}" class="rounded-2xl border border-dashed border-gray-300 bg-white p-5 hover:border-gray-400">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-semibold">Add a product</p>
+      <span class="text-xs text-gray-500">Catalog</span>
+    </div>
+    <p class="mt-1 text-2xl font-bold">Grow sales</p>
+    <p class="mt-1 text-xs text-gray-500">Images, variants, pricing</p>
+  </a>
+
+  <a href="{% url 'vendor:coupons' %}" class="rounded-2xl border border-dashed border-gray-300 bg-white p-5 hover:border-gray-400">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-semibold">Create a coupon</p>
+      <span class="text-xs text-gray-500">Promotions</span>
+    </div>
+    <p class="mt-1 text-2xl font-bold">Boost conversion</p>
+    <p class="mt-1 text-xs text-gray-500">Percent or fixed discounts</p>
+  </a>
+
+  <a href="{% url 'vendor:reviews' %}" class="rounded-2xl border border-dashed border-gray-300 bg-white p-5 hover:border-gray-400">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-semibold">Review feedback</p>
+      <span class="text-xs text-gray-500">Quality</span>
+    </div>
+    <p class="mt-1 text-2xl font-bold">Keep ratings high</p>
+    <p class="mt-1 text-xs text-gray-500">Reply & improve listings</p>
+  </a>
+</div>
+{% endblock %}

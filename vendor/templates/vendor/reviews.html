@@ -1,0 +1,384 @@
+{% extends "partials/vendor/vendor_navigation.html" %}
+
+{% block vendor_content %}
+<div id="reviews-app"
+     class="space-y-6"
+     data-reply-url="{% url 'vendor:review_reply_ajax' 0 %}">
+
+  <!-- Header / Filters -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Product Reviews</h1>
+      <p class="text-sm text-gray-500">See feedback on your products and reply to customers.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="{{ request.get_full_path }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50">
+        <!-- lucide:refresh-ccw -->
+        <svg class="h-4 w-4 text-gray-700" viewBox="0 0 24 24" fill="none"><path d="M3 2v6h6M21 22v-6h-6M3.51 15a9 9 0 0 0 14.85 3M2 12a9 9 0 0 1 15-6.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Refresh
+      </a>
+    </div>
+  </div>
+
+  <form method="get" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="sm:col-span-2">
+      <div class="relative">
+        <input type="search" name="q" value="{{ filters.q }}"
+               placeholder="Search product, buyer, comment…"
+               class="w-full rounded-xl border border-gray-300 pl-10 pr-3 py-2 focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 bg-white">
+        <!-- lucide:search -->
+        <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <select name="rating" class="rounded-xl border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 bg-white">
+        <option value="">All ratings</option>
+        <option value="5" {% if filters.rating == '5' %}selected{% endif %}>5</option>
+        <option value="4" {% if filters.rating == '4' %}selected{% endif %}>4</option>
+        <option value="3" {% if filters.rating == '3' %}selected{% endif %}>3</option>
+        <option value="2" {% if filters.rating == '2' %}selected{% endif %}>2</option>
+        <option value="1" {% if filters.rating == '1' %}selected{% endif %}>1</option>
+      </select>
+      <select name="status" class="rounded-xl border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 bg-white">
+        <option value="" {% if not filters.status %}selected{% endif %}>All</option>
+        <option value="unreplied" {% if filters.status == 'unreplied' %}selected{% endif %}>Unreplied</option>
+        <option value="replied" {% if filters.status == 'replied' %}selected{% endif %}>Replied</option>
+      </select>
+      <button class="rounded-xl bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-black">Filter</button>
+    </div>
+  </form>
+
+  {% if page.object_list %}
+  <!-- Toggle list/grid -->
+  <div class="flex items-center justify-end">
+    <div class="inline-flex rounded-lg border border-gray-200 overflow-hidden">
+      <button type="button" id="btnGrid" class="px-3 py-1.5 text-xs font-medium bg-gray-900 text-white">Grid</button>
+      <button type="button" id="btnList" class="px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">List</button>
+    </div>
+  </div>
+
+  <!-- GRID view -->
+  <div id="gridWrap" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% for r in page.object_list %}
+    <div class="rounded-2xl border border-gray-200 bg-white p-4" data-id="{{ r.id }}">
+      <div class="flex items-start gap-3">
+        <div class="h-12 w-12 rounded-xl bg-gray-100 overflow-hidden flex items-center justify-center shrink-0">
+          {% if r.product.primary_image and r.product.primary_image.image %}
+            <img src="{{ r.product.primary_image.image.url }}" alt="{{ r.product.name }}" class="h-full w-full object-cover">
+          {% else %}
+            <!-- lucide:box -->
+            <svg class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none"><path d="m21 16-9 5-9-5M12 3v18M3.3 7.3 12 12l8.7-4.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {% endif %}
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            <div class="font-semibold truncate">{{ r.product.name }}</div>
+            <span class="text-xs text-gray-500">• {{ r.created_at|date:"M j, Y" }}</span>
+          </div>
+          <div class="mt-1 flex items-center gap-1">
+            {% for _ in "12345" %}
+              {% if forloop.counter <= r.rating %}
+                <svg class="h-4 w-4 text-amber-500" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 16.5 13.5 18.5 21 12 16.8 5.5 21 7.5 13.5 2 9 9 9 12 2"/></svg>
+              {% else %}
+                <svg class="h-4 w-4 text-gray-300" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 16.5 13.5 18.5 21 12 16.8 5.5 21 7.5 13.5 2 9 9 9 12 2"/></svg>
+              {% endif %}
+            {% endfor %}
+            <span class="ml-1 text-xs text-gray-500">{{ r.rating }}/5</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3 rounded-xl border border-gray-100 p-3 text-sm text-gray-800">
+        {{ r.comment|default:"(No comment)" }}
+      </div>
+
+      <div class="mt-2 text-xs text-gray-500">
+        By {{ r.user.get_full_name|default:r.user.username|default:r.user.email }} • {{ r.user.email }}
+      </div>
+
+      {% if r.reply %}
+        <div class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm">
+          <div class="text-xs font-medium text-emerald-700 mb-1">Your reply</div>
+          <div class="text-gray-800">{{ r.reply }}</div>
+        </div>
+      {% endif %}
+
+      <div class="mt-3 flex items-center justify-end gap-2">
+        <a href="#" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50" data-action="reply">
+          <!-- lucide:message-square -->
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V5a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {% if r.reply %}Edit reply{% else %}Reply{% endif %}
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- LIST view -->
+  <div id="listWrap" class="hidden rounded-2xl border border-gray-200 overflow-x-auto bg-white">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50 text-gray-600">
+        <tr>
+          <th class="px-5 py-3 text-left font-medium">Product</th>
+          <th class="px-5 py-3 text-left font-medium">Buyer</th>
+          <th class="px-5 py-3 text-left font-medium">Rating</th>
+          <th class="px-5 py-3 text-left font-medium">Comment</th>
+          <th class="px-5 py-3 text-left font-medium">Reply</th>
+          <th class="px-5 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for r in page.object_list %}
+        <tr data-id="{{ r.id }}" class="align-top">
+          <td class="px-5 py-3">
+            <div class="font-medium">{{ r.product.name }}</div>
+            <div class="text-xs text-gray-500">{{ r.created_at|date:"M j, Y" }}</div>
+          </td>
+          <td class="px-5 py-3 text-gray-700">
+            {{ r.user.get_full_name|default:r.user.username|default:r.user.email }}<br>
+            <span class="text-xs text-gray-500">{{ r.user.email }}</span>
+          </td>
+          <td class="px-5 py-3 text-gray-700">{{ r.rating }}/5</td>
+          <td class="px-5 py-3 text-gray-700">{{ r.comment|default:"(No comment)" }}</td>
+          <td class="px-5 py-3">
+            {% if r.reply %}
+              <div class="text-gray-800">{{ r.reply }}</div>
+            {% else %}
+              <span class="text-xs text-gray-400">No reply</span>
+            {% endif %}
+          </td>
+          <td class="px-5 py-3 text-right">
+            <a href="#" data-action="reply" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50">
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V5a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              {% if r.reply %}Edit reply{% else %}Reply{% endif %}
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <!-- Empty state -->
+    <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center">
+      <div class="mx-auto h-12 w-12 rounded-xl bg-gray-100 flex items-center justify-center">
+        <!-- lucide:message-square -->
+        <svg class="h-6 w-6 text-gray-600" viewBox="0 0 24 24" fill="none"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V5a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h3 class="mt-3 text-lg font-semibold">No reviews yet</h3>
+      <p class="text-sm text-gray-500 mt-1">You’ll see customer feedback here once your products get reviews.</p>
+    </div>
+  {% endif %}
+
+  <!-- Pagination -->
+  {% if page.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between">
+    <div class="text-xs text-gray-500">
+      Page {{ page.number }} of {{ page.paginator.num_pages }} • {{ page.paginator.count }} total
+    </div>
+    <div class="flex items-center gap-2">
+      {% if page.has_previous %}
+        <a href="?page={{ page.previous_page_number }}{% if filters.q %}&q={{ filters.q|urlencode }}{% endif %}{% if filters.rating %}&rating={{ filters.rating|urlencode }}{% endif %}{% if filters.status %}&status={{ filters.status|urlencode }}{% endif %}"
+           class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Prev
+        </a>
+      {% endif %}
+      {% if page.has_next %}
+        <a href="?page={{ page.next_page_number }}{% if filters.q %}&q={{ filters.q|urlencode }}{% endif %}{% if filters.rating %}&rating={{ filters.rating|urlencode }}{% endif %}{% if filters.status %}&status={{ filters.status|urlencode }}{% endif %}"
+           class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50">
+          Next
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Reply Modal -->
+  <div id="replyModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="relative mx-auto mt-24 w-full max-w-xl">
+      <div class="rounded-2xl bg-white shadow-xl">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+          <div>
+            <h3 id="replyTitle" class="text-lg font-semibold">Reply to review</h3>
+            <p id="replySubtitle" class="text-xs text-gray-500"></p>
+          </div>
+          <button type="button" id="replyClose" class="rounded-lg p-2 hover:bg-gray-100">
+            <!-- lucide:x -->
+            <svg class="h-5 w-5 text-gray-600" viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <form id="replyForm" class="px-5 py-4 space-y-4">
+          <input type="hidden" name="id">
+          <div>
+            <label class="text-sm font-medium">Reply</label>
+            <textarea name="reply" rows="4" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="Write your reply…"></textarea>
+            <p class="mt-1 text-xs text-gray-500">Leave empty to clear your reply.</p>
+          </div>
+          <div id="replyErrors" class="hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"></div>
+          <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+            <button type="button" id="replyCancel" class="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">Cancel</button>
+            <button type="submit" class="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-black">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast stack -->
+  <div id="toastWrap" class="fixed bottom-6 right-6 space-y-2 z-50"></div>
+
+</div>
+
+<script>
+(function(){
+  const root = document.getElementById('reviews-app');
+  const replyURLTpl = root.dataset.replyUrl; // '/vendor/reviews/0/reply/'
+
+  // view toggles
+  const btnGrid = document.getElementById('btnGrid');
+  const btnList = document.getElementById('btnList');
+  const gridWrap = document.getElementById('gridWrap');
+  const listWrap = document.getElementById('listWrap');
+  if (btnGrid && btnList) {
+    btnGrid.addEventListener('click', ()=>{ gridWrap.classList.remove('hidden'); listWrap.classList.add('hidden'); btnGrid.classList.add('bg-gray-900','text-white'); btnList.classList.remove('bg-gray-900','text-white'); });
+    btnList.addEventListener('click', ()=>{ listWrap.classList.remove('hidden'); gridWrap.classList.add('hidden'); btnList.classList.add('bg-gray-900','text-white'); btnGrid.classList.remove('bg-gray-900','text-white'); });
+  }
+
+  // delegate Reply clicks (both grid and list)
+  document.addEventListener('click', (e)=>{
+    const act = e.target.closest('[data-action="reply"]');
+    if (!act) return;
+    e.preventDefault();
+    const row = e.target.closest('[data-id]');
+    if (!row) return;
+    openReply(row.dataset.id, row);
+  });
+
+  // modal
+  const modal = document.getElementById('replyModal');
+  const replyClose = document.getElementById('replyClose');
+  const replyCancel = document.getElementById('replyCancel');
+  const replyForm = document.getElementById('replyForm');
+  const replyErrors = document.getElementById('replyErrors');
+  const replyTitle = document.getElementById('replyTitle');
+  const replySubtitle = document.getElementById('replySubtitle');
+
+  replyClose.addEventListener('click', closeModal);
+  replyCancel.addEventListener('click', closeModal);
+  replyForm.addEventListener('submit', onReplySubmit);
+
+  let editingId = null;
+  let editingRow = null;
+
+  function openReply(id, row){
+    editingId = id;
+    editingRow = row;
+    replyErrors.classList.add('hidden');
+    replyErrors.textContent = '';
+
+    const product = row.querySelector('.font-semibold, td .font-medium')?.textContent?.trim() || 'Review';
+    const replyTextEl = row.querySelector('.bg-emerald-50 .text-gray-800, td:nth-child(5) .text-gray-800');
+    const existingReply = replyTextEl ? replyTextEl.textContent.trim() : '';
+
+    replyForm.elements['id'].value = id;
+    replyForm.elements['reply'].value = existingReply;
+
+    replyTitle.textContent = existingReply ? 'Edit reply' : 'Reply to review';
+    replySubtitle.textContent = product;
+
+    showModal(true);
+  }
+
+  function closeModal(){ showModal(false); }
+  function showModal(flag){
+    modal.classList.toggle('hidden', !flag);
+    document.body.classList.toggle('overflow-hidden', flag);
+  }
+
+  async function onReplySubmit(e){
+    e.preventDefault();
+    replyErrors.classList.add('hidden');
+    const id = editingId;
+    const text = replyForm.elements['reply'].value || "";
+
+    const res = await postJSON(urlWithPk(replyURLTpl, id), { reply: text });
+    if (res?.ok && res.review) {
+      patchReviewDOM(editingRow, res.review);
+      toast('Reply saved.');
+      closeModal();
+    } else {
+      replyErrors.textContent = (res && res.message) ? res.message : 'Failed to save reply.';
+      replyErrors.classList.remove('hidden');
+    }
+  }
+
+  function patchReviewDOM(row, r){
+    // GRID card
+    if (row.classList.contains('rounded-2xl')) {
+      let replyBox = row.querySelector('.bg-emerald-50');
+      if (r.reply) {
+        const html = `
+          <div class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm">
+            <div class="text-xs font-medium text-emerald-700 mb-1">Your reply</div>
+            <div class="text-gray-800"></div>
+          </div>`;
+        if (!replyBox) {
+          row.insertAdjacentHTML('beforeend', html);
+          replyBox = row.querySelector('.bg-emerald-50');
+        }
+        const textEl = replyBox.querySelector('.text-gray-800');
+        if (textEl) textEl.textContent = r.reply;
+        const btn = row.querySelector('[data-action="reply"]');
+        if (btn) btn.innerHTML = btn.innerHTML.replace(/Reply(?!.*Reply)/, 'Edit reply');
+      } else {
+        if (replyBox) replyBox.remove();
+        const btn = row.querySelector('[data-action="reply"]');
+        if (btn) btn.innerHTML = btn.innerHTML.replace(/Edit reply/, 'Reply');
+      }
+    } else {
+      // LIST row
+      const replyCell = row.querySelector('td:nth-child(5)');
+      if (r.reply) {
+        replyCell.innerHTML = `<div class="text-gray-800"></div>`;
+        replyCell.querySelector('div').textContent = r.reply;
+        const btn = row.querySelector('[data-action="reply"]');
+        if (btn) btn.innerHTML = btn.innerHTML.replace(/Reply(?!.*Reply)/, 'Edit reply');
+      } else {
+        replyCell.innerHTML = `<span class="text-xs text-gray-400">No reply</span>`;
+        const btn = row.querySelector('[data-action="reply"]');
+        if (btn) btn.innerHTML = btn.innerHTML.replace(/Edit reply/, 'Reply');
+      }
+    }
+  }
+
+  function urlWithPk(url, pk){ return url.replace(/\/0\//, `/${pk}/`); }
+  function getCookie(name){
+    const v = `; ${document.cookie}`.split(`; ${name}=`);
+    return v.length === 2 ? v.pop().split(';').shift() : null;
+  }
+  async function postJSON(url, data){
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data || {})
+    });
+    return r.json().catch(()=>null);
+  }
+  function toast(msg, isErr){
+    const wrap = document.getElementById('toastWrap');
+    const el = document.createElement('div');
+    el.className = `rounded-xl px-3 py-2 text-sm shadow ${isErr?'bg-rose-600 text-white':'bg-gray-900 text-white'}`;
+    el.textContent = msg;
+    wrap.appendChild(el);
+    setTimeout(()=>{ el.remove(); }, 2500);
+  }
+})();
+</script>
+{% endblock %}

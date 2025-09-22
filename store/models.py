@@ -208,6 +208,7 @@ class ProductReview(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
     rating = models.PositiveIntegerField(choices=[(i, i) for i in range(1, 6)])
     comment = models.TextField(null=True, blank=True)
+    reply = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     uuid = ShortUUIDField(length=12, max_length=50, alphabet="1234567890")
 

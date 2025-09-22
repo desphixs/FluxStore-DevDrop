@@ -4,10 +4,12 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import F, Sum
+from django.utils import timezone
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 from shortuuid.django_fields import ShortUUIDField
 from decimal import Decimal
-
 
 class Cart(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cart', null=True, blank=True)
@@ -324,15 +326,15 @@ class Coupon(models.Model):
     code = models.CharField(max_length=40, unique=True, db_index=True)
     vendor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="coupons")
 
-    title = models.CharField(max_length=120, blank=True)
-    description = models.TextField(blank=True)
+    title = models.CharField(max_length=120, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
 
     discount_type = models.CharField(max_length=10, choices=DiscountType.choices)
     percent_off = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     amount_off  = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     max_discount_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
-    min_order_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    min_order_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True)
     starts_at = models.DateTimeField(null=True, blank=True)
     ends_at   = models.DateTimeField(null=True, blank=True)
 
@@ -378,3 +380,96 @@ class OrderItemDiscount(models.Model):
     vendor     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="order_item_discounts_as_vendor")
     amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+
+class NotificationQuerySet(models.QuerySet):
+    def for_user(self, user):
+        return self.filter(recipient=user)
+
+    def unread(self):
+        return self.filter(is_read=False)
+
+    def read(self):
+        return self.filter(is_read=True)
+
+    def mark_all_read(self):
+        return self.update(is_read=True, read_at=timezone.now())
+
+
+class Notification(models.Model):
+    class NType(models.TextChoices):
+        ORDER   = "ORDER", "Order"
+        PRODUCT = "PRODUCT", "Product"
+        REVIEW  = "REVIEW", "Review"
+        COUPON  = "COUPON", "Coupon"
+        PAYOUT  = "PAYOUT", "Payout"
+        SYSTEM  = "SYSTEM", "System"
+
+    class Level(models.TextChoices):
+        INFO    = "INFO", "Info"
+        SUCCESS = "SUCCESS", "Success"
+        WARNING = "WARNING", "Warning"
+        ERROR   = "ERROR", "Error"
+
+    # Works for both customers and vendors (no role restriction here)
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications_user",
+    )
+
+    # Optional: who triggered it (system or another user)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="notifications_sent",
+    )
+
+    ntype  = models.CharField(max_length=20, choices=NType.choices, default=NType.SYSTEM)
+    level  = models.CharField(max_length=20, choices=Level.choices, default=Level.INFO)
+    title  = models.CharField(max_length=200)
+    message = models.TextField(blank=True)
+
+    # Optional linking via Generic FK (to orders, products, reviews, etc.)
+    content_type = models.ForeignKey(ContentType, null=True, blank=True, on_delete=models.SET_NULL, related_name="content_type")
+    # Use an integer field because your models use integer PKs.
+    # If you truly need UUID/string PKs, see note below.
+    object_id = models.PositiveBigIntegerField(null=True, blank=True)
+    context_object = GenericForeignKey("content_type", "object_id")
+
+    # Optional: CTA link for the notification
+    target_url = models.CharField(max_length=500, blank=True)
+
+    is_read = models.BooleanField(default=False, db_index=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    meta = models.JSONField(null=True, blank=True)
+
+    uuid = ShortUUIDField(length=12, max_length=50, alphabet="1234567890")
+    created_at = models.DateTimeField(default=timezone.now)
+
+    objects = NotificationQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["recipient", "is_read", "created_at"]),
+            models.Index(fields=["content_type", "object_id"]),
+        ]
+
+    def __str__(self):
+        return f"{self.ntype} • {self.title} (to {self.recipient_id})"
+
+    def mark_read(self, save=True):
+        self.is_read = True
+        self.read_at = timezone.now()
+        if save:
+            self.save(update_fields=["is_read", "read_at"])
+
+    def mark_unread(self, save=True):
+        self.is_read = False
+        self.read_at = None
+        if save:
+            self.save(update_fields=["is_read", "read_at"])

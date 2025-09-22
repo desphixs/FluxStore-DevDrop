@@ -1,0 +1,793 @@
+{% extends "partials/vendor/vendor_navigation.html" %}
+{% block vendor_content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<form style="display:none" method="post">{% csrf_token %}</form>
+<div id="prod-app"
+     class="space-y-6"
+
+     data-product-id="{{ product.id }}"
+
+     {# ---- DETAILS endpoints ---- #}
+     data-url-product-update="{% url 'vendor:product_update_details_ajax' product.id %}"
+     data-url-publish-toggle="{% url 'vendor:product_publish_toggle_ajax' product.id %}"
+     data-url-feature-toggle="{% url 'vendor:product_feature_toggle_ajax' product.id %}"
+
+     {# ---- IMAGES endpoints ---- #}
+     data-url-image-upload="{% url 'vendor:product_image_upload_ajax' product.id %}"
+     data-url-image-delete="{% url 'vendor:product_image_delete_ajax' 0 %}"
+     data-url-image-primary="{% url 'vendor:product_image_mark_primary_ajax' 0 %}"
+
+     {# ---- VARIANTS (keep exactly as you had) ---- #}
+     data-url-varcat-create="{% url 'vendor:varcat_create_ajax' %}"
+     data-url-varcat-update="{% url 'vendor:varcat_update_ajax' 0 %}"
+     data-url-varcat-delete="{% url 'vendor:varcat_delete_ajax' 0 %}"
+     data-url-varval-add="{% url 'vendor:varval_add_ajax' 0 %}"
+     data-url-varval-del="{% url 'vendor:varval_delete_ajax' 0 %}"
+     data-url-variant-create="{% url 'vendor:variant_create_ajax' product.id %}"
+     data-url-variant-get="{% url 'vendor:variant_get_ajax' 0 %}"
+     data-url-variant-update="{% url 'vendor:variant_update_ajax' 0 %}"
+     data-url-variant-toggle="{% url 'vendor:variant_toggle_active_ajax' 0 %}"
+     data-url-variant-primary="{% url 'vendor:variant_set_primary_ajax' 0 %}"
+     data-url-variant-delete="{% url 'vendor:variant_delete_ajax' 0 %}"
+>
+
+  {# ---------- Header ---------- #}
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">{{ product.name }}</h1>
+      <p class="text-sm text-gray-500">Category: {{ product.category.name }}</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="btnFeature" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">
+        <i class="fa-solid fa-star{% if not product.is_featured %}-half-stroke{% endif %} text-amber-500"></i>
+        {% if product.is_featured %}Unfeature{% else %}Feature{% endif %}
+      </button>
+      <button id="btnPublish" class="inline-flex items-center gap-2 rounded-lg {% if product.status == 'PUBLISHED' %}bg-emerald-600 text-white{% else %}bg-gray-900 text-white{% endif %} px-3 py-2 text-sm font-semibold hover:opacity-90">
+        <i class="fa-solid {% if product.status == 'PUBLISHED' %}fa-eye{% else %}fa-eye-slash{% endif %}"></i>
+        {% if product.status == 'PUBLISHED' %}Unpublish{% else %}Publish{% endif %}
+      </button>
+      <a href="{% url 'vendor:products' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">
+        <i class="fa-solid fa-arrow-left"></i> Back
+      </a>
+    </div>
+  </div>
+
+  {# ---------- Tabs ---------- #}
+  <div class="rounded-2xl border border-gray-200 bg-white">
+    <div class="border-b border-gray-100 px-4 pt-4">
+      <nav class="flex gap-1">
+        <button type="button" data-tab="details" class="tab-btn px-3 py-2 text-sm font-medium rounded-t-lg border-b-2 border-gray-900">
+          <i class="fa-solid fa-pen-to-square mr-2"></i> Details
+        </button>
+        <button type="button" data-tab="variants" class="tab-btn px-3 py-2 text-sm font-medium rounded-t-lg text-gray-600 hover:text-gray-900 border-b-2 border-transparent">
+          <i class="fa-solid fa-table-list mr-2"></i> Variations & Variants
+        </button>
+        <button type="button" data-tab="images" class="tab-btn px-3 py-2 text-sm font-medium rounded-t-lg text-gray-600 hover:text-gray-900 border-b-2 border-transparent">
+          <i class="fa-solid fa-image mr-2"></i> Images
+        </button>
+      </nav>
+    </div>
+
+    <div class="p-5 space-y-6">
+
+      {# ---------- DETAILS TAB ---------- #}
+      <section id="tab-details" class="tab-panel">
+        <form id="formDetails" class="space-y-4">
+          {% csrf_token %}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium">Category</label>
+              {{ details_form.category|default:details_form.fields.category }}
+              {# If you use a widget styler, add classes as needed #}
+            </div>
+            <div>
+              <label class="text-sm font-medium">Status</label>
+              {{ details_form.status }}
+            </div>
+          </div>
+
+          <div>
+            <label class="text-sm font-medium">Name</label>
+            {{ details_form.name }}
+          </div>
+
+          <div>
+            <label class="text-sm font-medium">Description</label>
+            {{ details_form.description }}
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="inline-flex items-center gap-2 text-sm">
+              {{ details_form.is_featured }} Featured
+            </label>
+          </div>
+
+          <div id="detailsErrors" class="hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"></div>
+
+          <div class="flex items-center justify-end">
+            <button class="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-black">
+              <i class="fa-solid fa-floppy-disk"></i> Save details
+            </button>
+          </div>
+        </form>
+      </section>
+
+      {# ---------- VARIANTS TAB (YOUR EXISTING PAGE) ---------- #}
+      <section id="tab-variants" class="tab-panel hidden">
+        {# ----- your original variants UI follows, unchanged in logic ----- #}
+        <section class="rounded-2xl border border-gray-200 bg-white p-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-semibold">Variation dictionary</h2>
+            <button id="btnNewCat" class="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-3 py-1.5 text-xs font-semibold hover:bg-black">
+              <i class="fa-solid fa-plus"></i> New category
+            </button>
+          </div>
+
+          <div id="varcatGrid" class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for cat in varcats %}
+              <div class="rounded-xl border border-gray-200 p-3" data-cat-id="{{ cat.id }}">
+                <div class="flex items-center justify-between">
+                  <div class="font-medium">{{ cat.name }}</div>
+                  <div class="flex gap-2">
+                    <button class="text-xs px-2 py-1 rounded-lg border border-gray-200 hover:bg-gray-50" data-cat-edit>Edit</button>
+                    <button class="text-xs px-2 py-1 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50" data-cat-delete>Delete</button>
+                  </div>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-2 items-center" data-values>
+                  {% for v in cat.values.all %}
+                    <span class="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-2 py-1 text-xs" data-value-id="{{ v.id }}">
+                      {{ v.value }}
+                      <button class="text-gray-500 hover:text-rose-600" title="Remove" data-value-delete><i class="fa-solid fa-xmark"></i></button>
+                    </span>
+                  {% empty %}
+                    <span class="text-xs text-gray-500">No values yet.</span>
+                  {% endfor %}
+                  <form class="inline-flex items-center gap-2" data-value-form>
+                    <input class="rounded-lg border border-gray-300 px-2 py-1 text-xs" placeholder="Add value…">
+                    <button class="text-xs px-2 py-1 rounded-lg border border-gray-200 hover:bg-gray-50">Add</button>
+                  </form>
+                </div>
+              </div>
+            {% empty %}
+              <div class="col-span-full text-sm text-gray-500">No variation categories yet.</div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="rounded-2xl border border-gray-200 bg-white mt-4">
+          <div class="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+            <h2 class="text-sm font-semibold">Variants</h2>
+            <button id="btnNewVariant" class="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-3 py-1.5 text-xs font-semibold hover:bg-black">
+              <i class="fa-solid fa-plus"></i> New variant
+            </button>
+          </div>
+
+          <div id="variantList" class="divide-y divide-gray-100">
+            {% for v in variants %}
+              <div class="p-4 flex items-start justify-between gap-4" data-variant-id="{{ v.id }}">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium">SKU: {{ v.sku }}</span>
+                    {% if v.is_primary %}<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Primary</span>{% endif %}
+                    {% if not v.is_active %}<span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700">Inactive</span>{% endif %}
+                  </div>
+                  <div class="text-xs text-gray-600 mt-0.5">
+                    {{ v.variations.all|join:", " }} • Stock: {{ v.stock_quantity }}
+                  </div>
+                  <div class="text-sm mt-1">
+                    ₹{{ v.sale_price }}{% if v.show_regular_price %} <span class="line-through text-gray-500">₹{{ v.regular_price }}</span>{% endif %}
+                    {% with pct=v.discount_percentage %}{% if pct %}<span class="text-emerald-600 text-xs">-{{ pct }}%</span>{% endif %}{% endwith %}
+                  </div>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                  <button class="text-xs px-2 py-1 rounded-lg border border-gray-200 hover:bg-gray-50" data-variant-edit>Edit</button>
+                  <button class="text-xs px-2 py-1 rounded-lg border border-gray-200 hover:bg-gray-50" data-variant-primary>Primary</button>
+                  <button class="text-xs px-2 py-1 rounded-lg border border-gray-200 hover:bg-gray-50" data-variant-toggle>{% if v.is_active %}Deactivate{% else %}Activate{% endif %}</button>
+                  <button class="text-xs px-2 py-1 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50" data-variant-delete>Delete</button>
+                </div>
+              </div>
+            {% empty %}
+              <div class="p-6 text-sm text-gray-500">No variants yet.</div>
+            {% endfor %}
+          </div>
+        </section>
+
+        {# Modal: Category #}
+        <div id="catModal" class="fixed inset-0 z-50 hidden">
+          <div class="absolute inset-0 bg-black/40"></div>
+          <div class="relative mx-auto mt-24 w-full max-w-md">
+            <div class="rounded-2xl bg-white shadow-xl">
+              <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold" id="catModalTitle">New category</h3>
+                <button type="button" class="rounded-lg p-2 hover:bg-gray-100" data-close><i class="fa-solid fa-xmark"></i></button>
+              </div>
+              <form class="px-5 py-4 space-y-3" id="catForm">
+                <input type="hidden" name="id">
+                <div>
+                  <label class="text-sm font-medium">Name</label>
+                  <input name="name" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="e.g. Color" required>
+                </div>
+                <div id="catErr" class="hidden text-sm text-rose-700 border border-rose-200 bg-rose-50 rounded-xl p-2"></div>
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                  <button type="button" class="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50" data-close>Cancel</button>
+                  <button class="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-black">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        {# Modal: Variant #}
+        {% with label_choices=label_choices|default:product.variations.model.LABEL_CHOICES show_discount_choices=show_discount_choices|default:product.variations.model.SHOW_DISCOUNT_TYPE %}
+        <div id="variantModal" class="fixed inset-0 z-50 hidden">
+          <div class="absolute inset-0 bg-black/40"></div>
+          <div class="relative mx-auto my-10 w-full max-w-3xl">
+            <div class="rounded-2xl bg-white shadow-xl">
+              <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold" id="varModalTitle">New variant</h3>
+                <button type="button" class="rounded-lg p-2 hover:bg-gray-100" data-v-close><i class="fa-solid fa-xmark"></i></button>
+              </div>
+
+              <form id="variantForm" class="px-5 py-4 space-y-4">
+                <input type="hidden" name="id">
+
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label class="text-sm font-medium">SKU</label>
+                    <input name="sku" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="SKU123">
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium">Sale price</label>
+                    <input name="sale_price" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" required>
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium">Regular price</label>
+                    <input name="regular_price" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2">
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium">Stock</label>
+                    <input name="stock_quantity" type="number" min="0" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label class="text-sm font-medium">Label</label>
+                    <select name="label" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2">
+                      {% for key,val in label_choices %}
+                        <option value="{{ key }}">{{ val }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium">Discount display</label>
+                    <select name="show_discount_type" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2">
+                      {% for key,val in show_discount_choices %}
+                        <option value="{{ key }}">{{ val }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="flex items-end">
+                    <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" name="show_regular_price"> Show regular</label>
+                  </div>
+                  <div class="flex items-end">
+                    <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" checked> Active</label>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div><label class="text-sm font-medium">Weight (kg)</label><input name="weight" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2"></div>
+                  <div><label class="text-sm font-medium">Length (cm)</label><input name="length" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2"></div>
+                  <div><label class="text-sm font-medium">Height (cm)</label><input name="height" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2"></div>
+                  <div><label class="text-sm font-medium">Width (cm)</label><input name="width" type="number" step="0.01" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2"></div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-sm font-medium">Deal starts</label>
+                    <input name="deal_starts_at" type="datetime-local" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2">
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium">Deal ends</label>
+                    <input name="deal_ends_at" type="datetime-local" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2">
+                  </div>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 p-3">
+                  <div class="text-sm font-semibold">Select values</div>
+                  <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for cat in varcats %}
+                      <div>
+                        <div class="text-xs text-gray-500 mb-1">{{ cat.name }}</div>
+                        <div class="flex flex-wrap gap-2">
+                          {% for v in cat.values.all %}
+                            <label class="inline-flex items-center gap-1 text-xs rounded-lg border border-gray-300 px-2 py-1">
+                              <input type="checkbox" name="values" value="{{ v.id }}"> {{ v.value }}
+                            </label>
+                          {% empty %}
+                            <div class="text-xs text-gray-400">No values</div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                  <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" name="is_primary"> Make primary</label>
+                  <div class="flex items-center gap-2">
+                    <button type="button" class="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50" data-v-close>Cancel</button>
+                    <button class="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-black">Save</button>
+                  </div>
+                </div>
+
+                <div id="varErr" class="hidden text-sm text-rose-700 border border-rose-200 bg-rose-50 rounded-xl p-2"></div>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endwith %}
+      </section>
+
+      {# ---------- IMAGES TAB ---------- #}
+      <section id="tab-images" class="tab-panel hidden">
+        <div class="rounded-2xl border border-gray-200 p-4">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold">Product images</div>
+            <label class="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-3 py-1.5 text-xs font-semibold hover:bg-black cursor-pointer">
+              <i class="fa-solid fa-upload"></i> Upload
+              <input id="imageInput" type="file" class="hidden" accept="image/*" multiple>
+            </label>
+          </div>
+
+          <div id="imagesGrid" class="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {% for im in images %}
+              <div class="relative rounded-lg overflow-hidden border border-gray-200" data-image-id="{{ im.id }}">
+                <img src="{{ im.image.url }}" class="h-36 w-full object-cover" alt="">
+                <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 flex items-center justify-between">
+                  <div class="text-[11px] text-white">
+                    {% if im.is_primary %}<span class="px-2 py-0.5 rounded bg-emerald-600">Primary</span>{% endif %}
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <button class="rounded bg-white/90 text-gray-900 px-2 py-1 text-[11px]" data-primary-image="{{ im.id }}">Primary</button>
+                    <button class="rounded bg-white/90 text-rose-700 px-2 py-1 text-[11px]" data-del-image="{{ im.id }}">Delete</button>
+                  </div>
+                </div>
+              </div>
+            {% empty %}
+              <div class="text-sm text-gray-500">No images yet.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <div id="toastWrap" class="fixed bottom-6 right-6 space-y-2 z-50"></div>
+</div>
+
+{# ---------- JS: Tabs + Details + Images (variants IIFE is kept as-is below) ---------- #}
+<script>
+(function(){
+  const root = document.getElementById('prod-app');
+
+  // --- tabs ---
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const panels = document.querySelectorAll('.tab-panel');
+  tabBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const tab = btn.dataset.tab;
+      tabBtns.forEach(b=>{
+        const active = b.dataset.tab === tab;
+        b.classList.toggle('border-gray-900', active);
+        b.classList.toggle('text-gray-600', !active);
+        b.classList.toggle('border-transparent', !active);
+      });
+      panels.forEach(p=> p.classList.toggle('hidden', p.id !== `tab-${tab}`));
+    });
+  });
+
+function csrf() {
+  // 1) Prefer the server-rendered hidden input (works even when CSRF cookie is HttpOnly)
+  const el = document.querySelector('input[name="csrfmiddlewaretoken"]');
+  if (el && el.value) return el.value;
+
+  // 2) Fallback to cookie when allowed
+  const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+  return m ? m[1] : '';
+}  function toast(msg, err=false){
+    const el = document.createElement('div');
+    el.className = `rounded-lg px-3 py-2 text-sm shadow ${err?'bg-rose-600 text-white':'bg-gray-900 text-white'}`;
+    el.textContent = msg;
+    document.getElementById('toastWrap').appendChild(el);
+    setTimeout(()=> el.remove(), 2500);
+  }
+  async function postJSON(url, data){
+    const r = await fetch(url, {
+      method:'POST',
+      headers:{'X-CSRFToken': csrf(), 'X-Requested-With':'XMLHttpRequest', 'Content-Type':'application/json'},
+      body: JSON.stringify(data || {})
+    });
+    return r.json().catch(()=>null);
+  }
+  async function postForm(url, fd){
+    const r = await fetch(url, {
+      method:'POST',
+      headers:{'X-CSRFToken': csrf(), 'X-Requested-With':'XMLHttpRequest'},
+      body: fd
+    });
+    return r.json().catch(()=>null);
+  }
+
+  // --- details ---
+  const formDetails = document.getElementById('formDetails');
+  const detErr = document.getElementById('detailsErrors');
+  if (formDetails){
+    formDetails.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      detErr?.classList.add('hidden');
+      const data = Object.fromEntries(new FormData(formDetails).entries());
+      // normalize checkbox
+      if (formDetails.querySelector('input[name="is_featured"]')) {
+        data.is_featured = !!formDetails.querySelector('input[name="is_featured"]').checked;
+      }
+      const res = await postJSON(root.dataset.urlProductUpdate, data);
+      if(res?.ok){ toast('Details saved.'); }
+      else{
+        detErr.textContent = res?.message || (res?.errors && JSON.stringify(res.errors)) || 'Error';
+        detErr.classList.remove('hidden');
+      }
+    });
+
+    // publish / feature
+    document.getElementById('btnPublish')?.addEventListener('click', async ()=>{
+      const r = await postJSON(root.dataset.urlPublishToggle);
+      if (r?.ok) location.reload();
+    });
+    document.getElementById('btnFeature')?.addEventListener('click', async ()=>{
+      const r = await postJSON(root.dataset.urlFeatureToggle);
+      if (r?.ok) location.reload();
+    });
+  }
+
+  // --- images ---
+  const imageInput = document.getElementById('imageInput');
+  const imagesGrid = document.getElementById('imagesGrid');
+  if (imageInput && imagesGrid){
+    imageInput.addEventListener('change', async ()=>{
+      if(!imageInput.files || !imageInput.files.length) return;
+      const fd = new FormData();
+      Array.from(imageInput.files).forEach(f=> fd.append('images', f));
+      const res = await postForm(root.dataset.urlImageUpload, fd);
+      if(res?.ok){
+        (res.images || []).forEach(i=>{
+          imagesGrid.insertAdjacentHTML('afterbegin', `
+            <div class="relative rounded-lg overflow-hidden border border-gray-200" data-image-id="${i.id}">
+              <img src="${i.url}" class="h-36 w-full object-cover" alt="">
+              <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 flex items-center justify-between">
+                <div class="text-[11px] text-white">${i.is_primary ? '<span class="px-2 py-0.5 rounded bg-emerald-600">Primary</span>' : ''}</div>
+                <div class="flex items-center gap-1">
+                  <button class="rounded bg-white/90 text-gray-900 px-2 py-1 text-[11px]" data-primary-image="${i.id}">Primary</button>
+                  <button class="rounded bg-white/90 text-rose-700 px-2 py-1 text-[11px]" data-del-image="${i.id}">Delete</button>
+                </div>
+              </div>
+            </div>`);
+        });
+        toast('Uploaded.');
+        imageInput.value = '';
+      } else { toast('Upload failed.', true); }
+    });
+
+    imagesGrid.addEventListener('click', async (e)=>{
+      const card = e.target.closest('[data-image-id]'); if(!card) return;
+      const id = card.getAttribute('data-image-id');
+      if(e.target.closest('[data-primary-image]')){
+        const res = await postJSON(root.dataset.urlImagePrimary.replace(/\/0\//, `/${id}/`));
+        if(res?.ok) location.reload(); else toast('Failed.', true);
+      }
+      if(e.target.closest('[data-del-image]')){
+        if(!confirm('Delete this image?')) return;
+        const res = await postJSON(root.dataset.urlImageDelete.replace(/\/0\//, `/${id}/`));
+        if(res?.ok){ card.remove(); toast('Deleted.'); } else toast('Failed.', true);
+      }
+    });
+  }
+})();
+</script>
+
+{# ---------- JS: your original VARIANTS IIFE (logic unchanged) ---------- #}
+<script>
+(function(){
+  const root = document.getElementById('prod-app');
+  const toastWrap = document.getElementById('toastWrap');
+
+  const URLS = {
+    varcatCreate: root.dataset.urlVarcatCreate,
+    varcatUpdate: root.dataset.urlVarcatUpdate,
+    varcatDelete: root.dataset.urlVarcatDelete,
+    varvalAdd:    root.dataset.urlVarvalAdd,
+    varvalDel:    root.dataset.urlVarvalDel,
+    variantCreate: root.dataset.urlVariantCreate,
+    variantGet:    root.dataset.urlVariantGet,
+    variantUpdate: root.dataset.urlVariantUpdate,
+    variantToggle: root.dataset.urlVariantToggle,
+    variantPrimary: root.dataset.urlVariantPrimary,
+    variantDelete: root.dataset.urlVariantDelete,
+  };
+
+  function urlWithId(url, id){ return url.replace(/\/0\//, `/${id}/`); }   // fixed backticks only
+function csrf() {
+  // 1) Prefer the server-rendered hidden input (works even when CSRF cookie is HttpOnly)
+  const el = document.querySelector('input[name="csrfmiddlewaretoken"]');
+  if (el && el.value) return el.value;
+
+  // 2) Fallback to cookie when allowed
+  const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+  return m ? m[1] : '';
+}  async function post(url, data){
+    const r = await fetch(url, {
+      method:'POST',
+      headers:{'X-CSRFToken': csrf(), 'X-Requested-With': 'XMLHttpRequest'},
+      body: data instanceof FormData ? data : new URLSearchParams(data)
+    });
+    return r.json().catch(()=>null);
+  }
+  async function get(url){
+    const r = await fetch(url, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+    return r.json().catch(()=>null);
+  }
+  function toast(msg, err){
+    const el = document.createElement('div');
+    el.className = `rounded-lg px-3 py-2 text-sm shadow ${err?'bg-rose-600 text-white':'bg-gray-900 text-white'}`;
+    el.textContent = msg; toastWrap.appendChild(el);
+    setTimeout(()=>{ el.remove(); }, 2500);
+  }
+
+  // ---- Variation dictionary handlers ----
+  const grid = document.getElementById('varcatGrid');
+  const catModal = document.getElementById('catModal');
+  const catForm  = document.getElementById('catForm');
+  const catErr   = document.getElementById('catErr');
+  const catTitle = document.getElementById('catModalTitle');
+  document.getElementById('btnNewCat').addEventListener('click', ()=> openCatModal());
+
+  catModal.addEventListener('click', e=> { if (e.target.dataset.close!==undefined || e.target===catModal) toggleCat(false); });
+  function openCatModal(cat){
+    catForm.reset(); catErr.classList.add('hidden'); catErr.textContent='';
+    if(cat){ catTitle.textContent='Edit category'; catForm.elements.id.value=cat.id; catForm.elements.name.value=cat.name; }
+    else   { catTitle.textContent='New category'; catForm.elements.id.value=''; }
+    toggleCat(true);
+  }
+  function toggleCat(show){ catModal.classList.toggle('hidden', !show); document.body.classList.toggle('overflow-hidden', show); }
+
+  catForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const id = catForm.elements.id.value;
+    const name = catForm.elements.name.value.trim();
+    if (!name) return;
+
+    const url = id ? urlWithId(URLS.varcatUpdate, id) : URLS.varcatCreate;
+    const res = await post(url, {name});
+    if(res?.ok){
+      if(id){ replaceCat(res.cat); } else { prependCat(res.cat); }
+      toggleCat(false); toast('Saved');
+    }else{
+      catErr.textContent = res?.message || 'Error'; catErr.classList.remove('hidden');
+    }
+  });
+
+  function prependCat(cat){ grid.insertAdjacentHTML('afterbegin', renderCat(cat)); }
+  function replaceCat(cat){
+    const el = grid.querySelector(`[data-cat-id="${CSS.escape(String(cat.id))}"]`);
+    if(el) el.outerHTML = renderCat(cat);
+  }
+  function escapeHTML(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function renderCat(cat){
+    const chips = (cat.values||[]).map(v => `
+      <span class="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-2 py-1 text-xs" data-value-id="${v.id}">
+        ${escapeHTML(v.value)}
+        <button class="text-gray-500 hover:text-rose-600" data-value-delete title="Remove"><i class="fa-solid fa-xmark"></i></button>
+      </span>`).join('');
+    return `
+      <div class="rounded-xl border border-gray-200 p-3" data-cat-id="${cat.id}">
+        <div class="flex items-center justify-between">
+          <div class="font-medium">${escapeHTML(cat.name)}</div>
+          <div class="flex gap-2">
+            <button class="text-xs px-2 py-1 rounded-lg border border-gray-200 hover:bg-gray-50" data-cat-edit>Edit</button>
+            <button class="text-xs px-2 py-1 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50" data-cat-delete>Delete</button>
+          </div>
+        </div>
+        <div class="mt-2 flex flex-wrap gap-2 items-center" data-values>
+          ${chips || `<span class="text-xs text-gray-500">No values yet.</span>`}
+          <form class="inline-flex items-center gap-2" data-value-form>
+            <input class="rounded-lg border border-gray-300 px-2 py-1 text-xs" placeholder="Add value…">
+            <button class="text-xs px-2 py-1 rounded-lg border border-gray-200 hover:bg-gray-50">Add</button>
+          </form>
+        </div>
+      </div>`;
+  }
+
+  grid.addEventListener('click', async (e)=>{
+    const catEl = e.target.closest('[data-cat-id]');
+    if(!catEl) return;
+    const catId = catEl.dataset.catId;
+
+    if (e.target.closest('[data-cat-edit]')) {
+      const name = catEl.querySelector('.font-medium')?.textContent?.trim() || '';
+      openCatModal({id:catId, name});
+      return;
+    }
+    if (e.target.closest('[data-cat-delete]')) {
+      if(!confirm('Delete this category?')) return;
+      const res = await post(urlWithId(URLS.varcatDelete, catId), {});
+      if(res?.ok){ catEl.remove(); toast('Deleted'); }
+      else toast(res?.message||'Error', true);
+      return;
+    }
+    if (e.target.closest('[data-value-delete]')) {
+      const chip = e.target.closest('[data-value-id]');
+      const valId = chip.dataset.valueId;
+      const res = await post(urlWithId(URLS.varvalDel, valId), {});
+      if(res?.ok){ chip.remove(); toast('Removed'); }
+      else toast(res?.message||'Error', true);
+      return;
+    }
+  });
+
+  grid.addEventListener('submit', async (e)=>{
+    const form = e.target.closest('form[data-value-form]');
+    if(!form) return;
+    e.preventDefault();
+    const wrap = form.closest('[data-cat-id]');
+    const catId = wrap.dataset.catId;
+    const input = form.querySelector('input');
+    const value = (input.value || '').trim();
+    if(!value) return;
+    const res = await post(urlWithId(URLS.varvalAdd, catId), {value});
+    if(res?.ok){
+      const list = form.parentElement;
+      const empty = list.querySelector('.text-gray-500'); if (empty) empty.remove();
+      list.insertAdjacentHTML('afterbegin', `
+        <span class="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-2 py-1 text-xs" data-value-id="${res.value.id}">
+          ${escapeHTML(res.value.value)}
+          <button class="text-gray-500 hover:text-rose-600" data-value-delete title="Remove"><i class="fa-solid fa-xmark"></i></button>
+        </span>`);
+      input.value = '';
+      toast('Added');
+    }else{
+      toast(res?.message || 'Error', true);
+    }
+  });
+
+  // ---- Variants handlers ----
+  const vModal = document.getElementById('variantModal');
+  const vForm  = document.getElementById('variantForm');
+  const vErr   = document.getElementById('varErr');
+  const vTitle = document.getElementById('varModalTitle');
+  const vList  = document.getElementById('variantList');
+
+  document.getElementById('btnNewVariant').addEventListener('click', ()=> openVModal());
+  vModal.addEventListener('click', e=>{ if (e.target.dataset.vClose!==undefined || e.target===vModal) toggleV(false); });
+
+  function openVModal(data){
+    vForm.reset(); vErr.classList.add('hidden'); vErr.textContent='';
+    vForm.querySelectorAll('input[name="values"]').forEach(cb=> cb.checked=false);
+    if(data){
+      vTitle.textContent='Edit variant'; vForm.elements.id.value=data.id;
+      for (const k of ['sku','sale_price','regular_price','stock_quantity','weight','length','height','width']) {
+        if (data[k] !== null && data[k] !== undefined) vForm.elements[k].value = data[k];
+      }
+      vForm.elements.label.value = data.label || 'New';
+      vForm.elements.show_discount_type.value = data.show_discount_type || 'none';
+      vForm.elements.show_regular_price.checked = !!data.show_regular_price;
+      vForm.elements.is_active.checked = !!data.is_active;
+      vForm.elements.is_primary.checked = !!data.is_primary;
+      if (data.deal_starts_at) vForm.elements.deal_starts_at.value = toLocal(data.deal_starts_at);
+      if (data.deal_ends_at)   vForm.elements.deal_ends_at.value   = toLocal(data.deal_ends_at);
+      (data.values||[]).forEach(id=>{
+        const cb = vForm.querySelector(`input[name="values"][value="${id}"]`);
+        if (cb) cb.checked = true;
+      });
+    }else{
+      vTitle.textContent='New variant'; vForm.elements.id.value='';
+    }
+    toggleV(true);
+  }
+  function toggleV(show){ vModal.classList.toggle('hidden', !show); document.body.classList.toggle('overflow-hidden', show); }
+  function toLocal(iso){ const d=new Date(iso); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+  vForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    vErr.classList.add('hidden'); vErr.textContent='';
+    const fd = new FormData(vForm);
+    const values = Array.from(vForm.querySelectorAll('input[name="values"]:checked')).map(cb=>cb.value);
+    fd.delete('values'); values.forEach(v=> fd.append('values[]', v));
+
+    const id = vForm.elements.id.value;
+    const url = id ? urlWithId(URLS.variantUpdate, id) : URLS.variantCreate;
+    const res = await post(url, fd);
+    if(res?.ok){
+      if(id) replaceVariant(res.variant); else prependVariant(res.variant);
+      toggleV(false); toast('Saved');
+    }else{
+      vErr.textContent = (res && (res.message || JSON.stringify(res.errors||{}))) || 'Error';
+      vErr.classList.remove('hidden');
+    }
+  });
+
+  vList.addEventListener('click', async (e)=>{
+    const row = e.target.closest('[data-variant-id]');
+    if(!row) return;
+    const vid = row.dataset.variantId;
+
+    if (e.target.closest('[data-variant-edit]')) {
+      const data = await get(urlWithId(URLS.variantGet, vid));
+      if (data?.ok) openVModal(data.variant); else toast('Failed to load', true);
+      return;
+    }
+    if (e.target.closest('[data-variant-primary]')) {
+      const res = await post(urlWithId(URLS.variantPrimary, vid), {});
+      if(res?.ok){ refreshVariantListPrimary(res.variant.id); toast('Set as primary'); }
+      else toast(res?.message||'Error', true);
+      return;
+    }
+    if (e.target.closest('[data-variant-toggle]')) {
+      const res = await post(urlWithId(URLS.variantToggle, vid), {});
+      if(res?.ok){ replaceVariant(res.variant); toast('Updated'); }
+      else toast(res?.message||'Error', true);
+      return;
+    }
+    if (e.target.closest('[data-variant-delete]')) {
+      if(!confirm('Delete this variant?')) return;
+      const res = await post(urlWithId(URLS.variantDelete, vid), {});
+      if(res?.ok){ row.remove(); toast('Deleted'); }
+      else toast(res?.message||'Error', true);
+      return;
+    }
+  });
+
+  function prependVariant(v){ vList.insertAdjacentHTML('afterbegin', renderVariant(v)); }
+  function replaceVariant(v){
+    const el = vList.querySelector(`[data-variant-id="${CSS.escape(String(v.id))}"]`);
+    if(el) el.outerHTML = renderVariant(v);
+  }
+  function refreshVariantListPrimary(primaryId){
+    vList.querySelectorAll('[data-variant-id]').forEach(el=>{
+      if (String(el.dataset.variantId) === String(primaryId)) {
+        get(urlWithId(URLS.variantGet, primaryId)).then(d=>{ if(d?.ok) replaceVariant(d.variant); });
+      } else {
+        const badge = el.querySelector('.bg-emerald-50');
+        if (badge) badge.remove();
+      }
+    });
+  }
+  function renderVariant(v){
+    const disc = v.discount_pct || v.discount_percentage;
+    const inactive = v.is_active ? '' : `<span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700">Inactive</span>`;
+    const primary = v.is_primary ? `<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Primary</span>` : '';
+    return `
+      <div class="p-4 flex items-start justify-between gap-4" data-variant-id="${v.id}">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-medium">SKU: ${v.sku || ''}</span>
+            ${primary}${inactive}
+          </div>
+          <div class="text-xs text-gray-600 mt-0.5">${(v.values_text || (v.values||[]).map(x=>x.name||x.value).join(', ') || 'No attributes')}</div>
+          <div class="text-sm mt-1">
+            ₹${(Number(v.sale_price)||0).toFixed(2)}
+            ${v.show_regular_price ? `<span class="line-through text-gray-500 ml-1">₹${(Number(v.regular_price)||0).toFixed(2)}</span>` : ''}
+            ${disc ? `<span class="text-emerald-600 text-xs ml-1">-${disc}%</span>` : ''} • Stock: ${Number(v.stock_quantity||0)}
+          </div>
+        </div>
+        <div class="flex gap-2 shrink-0">
+          <button class="text-xs px-2 py-1 rounded-lg border border-gray-200 hover:bg-gray-50" data-variant-edit>Edit</button>
+          <button class="text-xs px-2 py-1 rounded-lg border border-gray-200 hover:bg-gray-50" data-variant-primary>Primary</button>
+          <button class="text-xs px-2 py-1 rounded-lg border border-gray-200 hover:bg-gray-50" data-variant-toggle>${v.is_active ? 'Deactivate' : 'Activate'}</button>
+          <button class="text-xs px-2 py-1 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50" data-variant-delete>Delete</button>
+        </div>
+      </div>`;
+  }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,580 @@
+{% extends "partials/vendor/vendor_navigation.html" %}
+
+{% block vendor_content %}
+<div id="coupon-app"
+     class="space-y-6"
+     data-create-url="{% url 'vendor:coupon_create_ajax' %}"
+     data-get-url="{% url 'vendor:coupon_get_ajax' 0 %}"
+     data-update-url="{% url 'vendor:coupon_update_ajax' 0 %}"
+     data-delete-url="{% url 'vendor:coupon_delete_ajax' 0 %}"
+     data-toggle-url="{% url 'vendor:coupon_toggle_active_ajax' 0 %}">
+
+  <!-- header -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Coupons</h1>
+      <p class="text-sm text-gray-500">Create discounts, schedule campaigns, and track redemptions.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="{{ request.get_full_path }}"
+         class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50">
+        <svg class="h-4 w-4 text-gray-700" viewBox="0 0 24 24" fill="none"><path d="M3 2v6h6M21 22v-6h-6M3.51 15a9 9 0 0 0 14.85 3M2 12a9 9 0 0 1 15-6.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Refresh
+      </a>
+      <button id="btnNew"
+              type="button"
+              class="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-3 py-2 text-sm font-semibold hover:bg-black">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        New coupon
+      </button>
+    </div>
+  </div>
+
+  <!-- filters -->
+  <form method="get" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="sm:col-span-2">
+      <div class="relative">
+        <input type="search" name="q" value="{{ filters.q }}"
+               placeholder="Search by code, title, description…"
+               class="w-full rounded-xl border border-gray-300 pl-10 pr-3 py-2 focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 bg-white">
+        <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <select name="state" class="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 bg-white">
+        <option value="" {% if not filters.state %}selected{% endif %}>All</option>
+        <option value="active" {% if filters.state == 'active' %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if filters.state == 'inactive' %}selected{% endif %}>Inactive</option>
+        <option value="live" {% if filters.state == 'live' %}selected{% endif %}>Live now</option>
+        <option value="scheduled" {% if filters.state == 'scheduled' %}selected{% endif %}>Scheduled</option>
+        <option value="expired" {% if filters.state == 'expired' %}selected{% endif %}>Expired</option>
+      </select>
+      <button class="rounded-xl bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-black">Filter</button>
+    </div>
+  </form>
+
+  <!-- grid list (server-rendered) -->
+  <div id="couponList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% for c in coupons %}
+      <div class="rounded-2xl border border-gray-200 bg-white p-4" data-id="{{ c.id }}">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold truncate">{{ c.code }}</span>
+              {% if c.is_active and c.is_live %}
+                <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Live</span>
+              {% elif c.is_active %}
+                <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">Scheduled/Expired</span>
+              {% else %}
+                <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700">Inactive</span>
+              {% endif %}
+            </div>
+            {% if c.title %}
+              <div class="text-xs text-gray-500 mt-0.5 truncate">{{ c.title }}</div>
+            {% endif %}
+          </div>
+          <label class="inline-flex items-center gap-2 text-xs">
+            <input type="checkbox" {% if c.is_active %}checked{% endif %} data-action="toggle">
+            Active
+          </label>
+        </div>
+
+        <div class="mt-3 grid grid-cols-3 gap-2 text-sm">
+          <div class="rounded-lg border border-gray-100 p-2">
+            <div class="text-xs text-gray-500">Type</div>
+            <div class="font-medium">
+              {% if c.discount_type == "PERCENT" %}
+                {{ c.percent_off|default:0 }}%
+              {% else %}
+                ₹{{ c.amount_off|default:0|floatformat:2 }}
+              {% endif %}
+            </div>
+          </div>
+          <div class="rounded-lg border border-gray-100 p-2">
+            <div class="text-xs text-gray-500">Used</div>
+            <div class="font-medium">{{ c.redemptions_count|default:0 }}</div>
+          </div>
+          <div class="rounded-lg border border-gray-100 p-2">
+            <div class="text-xs text-gray-500">Discount ₹</div>
+            <div class="font-medium">{{ c.discount_granted_total|default:0|floatformat:2 }}</div>
+          </div>
+        </div>
+
+        <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-600">
+          <div class="rounded-lg border border-gray-100 p-2">
+            <div class="text-[11px] text-gray-500">Schedule</div>
+            <div class="mt-0.5">
+              {% if c.starts_at and c.ends_at %}
+                {{ c.starts_at|date:"M j, Y H:i" }} → {{ c.ends_at|date:"M j, Y H:i" }}
+              {% elif c.starts_at %}
+                From {{ c.starts_at|date:"M j, Y H:i" }}
+              {% elif c.ends_at %}
+                Until {{ c.ends_at|date:"M j, Y H:i" }}
+              {% else %}
+                —
+              {% endif %}
+            </div>
+          </div>
+          <div class="rounded-lg border border-gray-100 p-2">
+            <div class="text-[11px] text-gray-500">Limits</div>
+            <div class="mt-0.5">
+              Min: {% if c.min_order_amount %}₹{{ c.min_order_amount|floatformat:2 }}{% else %}—{% endif %}
+              {% if c.max_discount_amount %} • Cap: ₹{{ c.max_discount_amount|floatformat:2 }}{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-end gap-2">
+          <button data-action="copy" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><rect x="8" y="2" width="8" height="4" rx="1" stroke="currentColor" stroke-width="2"/><rect x="4" y="6" width="16" height="14" rx="2" stroke="currentColor" stroke-width="2"/></svg>
+            Copy
+          </button>
+          <button data-action="edit" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Edit
+          </button>
+          <button data-action="delete" class="inline-flex items-center gap-1 rounded-lg border border-rose-200 text-rose-700 px-3 py-1.5 text-xs hover:bg-rose-50">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Delete
+          </button>
+        </div>
+      </div>
+    {% empty %}
+      <div id="emptyState" class="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center col-span-full">
+        <div class="mx-auto h-12 w-12 rounded-xl bg-gray-100 flex items-center justify-center">
+          <svg class="h-6 w-6 text-gray-600" viewBox="0 0 24 24" fill="none"><path d="M2 9a3 3 0 0 0 0 6m20-6a3 3 0 0 1 0 6M6 5h12a2 2 0 0 1 2 2v2.5a1.5 1.5 0 0 0 0 3V15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2.5a1.5 1.5 0 0 0 0-3V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="m15 9-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 9h.01M15 15h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h3 class="mt-3 text-lg font-semibold">No coupons yet</h3>
+        <p class="text-sm text-gray-500 mt-1">Create your first coupon to kick off a promo.</p>
+        <button id="emptyNew" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-3 py-2 text-sm font-semibold hover:bg-black">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          New coupon
+        </button>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- toast stack -->
+  <div id="toastWrap" class="fixed bottom-6 right-6 space-y-2 z-50"></div>
+
+  <!-- modal: create / edit -->
+  <div id="couponModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="relative mx-auto mt-20 w-full max-w-2xl">
+      <div class="rounded-2xl bg-white shadow-xl">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+          <div>
+            <h3 id="modalTitle" class="text-lg font-semibold">New coupon</h3>
+            <p id="modalSubtitle" class="text-xs text-gray-500">Set amounts, schedule, and limits.</p>
+          </div>
+          <button type="button" id="modalClose" class="rounded-lg p-2 hover:bg-gray-100">
+            <svg class="h-5 w-5 text-gray-600" viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <form id="couponForm" class="px-5 py-4 space-y-4">
+          <input type="hidden" name="id" />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium">Code</label>
+              <input name="code" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="e.g. SUMMER25" required>
+            </div>
+            <div>
+              <label class="text-sm font-medium">Title</label>
+              <input name="title" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="Summer sale">
+            </div>
+          </div>
+
+          <div>
+            <label class="text-sm font-medium">Description</label>
+            <textarea name="description" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="Short copy shown to buyers"></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="text-sm font-medium">Discount type</label>
+              <select name="discount_type" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2">
+                <option value="PERCENT">Percent</option>
+                <option value="FIXED">Fixed amount</option>
+              </select>
+            </div>
+
+            <div id="percentWrap">
+              <label class="text-sm font-medium flex items-center gap-1">Percent off
+                <svg class="h-3.5 w-3.5 text-gray-500" viewBox="0 0 24 24" fill="none"><circle cx="17" cy="7" r="1" fill="currentColor"/><circle cx="7" cy="17" r="1" fill="currentColor"/><path d="M7 7l10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </label>
+              <input name="percent_off" type="number" step="0.01" min="0" max="100" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="e.g. 15">
+            </div>
+
+            <div id="amountWrap" class="hidden">
+              <label class="text-sm font-medium flex items-center gap-1">Amount off
+                <svg class="h-3.5 w-3.5 text-gray-500" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
+              </label>
+              <input name="amount_off" type="number" step="0.01" min="0" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="e.g. 250.00">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="text-sm font-medium">Max discount (₹)</label>
+              <input name="max_discount_amount" type="number" step="0.01" min="0" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="Optional cap">
+            </div>
+            <div>
+              <label class="text-sm font-medium">Min order (₹)</label>
+              <input name="min_order_amount" type="number" step="0.01" min="0" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="Optional minimum">
+            </div>
+            <div class="flex items-end">
+              <label class="inline-flex items-center gap-2 text-sm">
+                <input name="is_active" type="checkbox" class="rounded border-gray-300">
+                Active
+              </label>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium flex items-center gap-1">Starts at
+                <svg class="h-3.5 w-3.5 text-gray-500" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </label>
+              <input name="starts_at" type="datetime-local" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2">
+            </div>
+            <div>
+              <label class="text-sm font-medium flex items-center gap-1">Ends at
+                <svg class="h-3.5 w-3.5 text-gray-500" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </label>
+              <input name="ends_at" type="datetime-local" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium">Usage limit (total)</label>
+              <input name="usage_limit_total" type="number" min="0" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="Optional">
+            </div>
+            <div>
+              <label class="text-sm font-medium">Usage limit (per user)</label>
+              <input name="usage_limit_per_user" type="number" min="0" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="Optional">
+            </div>
+          </div>
+
+          <div id="formErrors" class="hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"></div>
+
+          <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+            <button type="button" id="modalCancel" class="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">Cancel</button>
+            <button type="submit" class="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-black">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const root = document.getElementById('coupon-app');
+  const listEl = document.getElementById('couponList');
+  const toastWrap = document.getElementById('toastWrap');
+
+  const CREATE_URL = root.dataset.createUrl;
+  const GET_URL    = root.dataset.getUrl;
+  const UPDATE_URL = root.dataset.updateUrl;
+  const DELETE_URL = root.dataset.deleteUrl;
+  const TOGGLE_URL = root.dataset.toggleUrl;
+
+  const btnNew = document.getElementById('btnNew');
+  const emptyNew = document.getElementById('emptyNew');
+
+  const modal = document.getElementById('couponModal');
+  const modalClose = document.getElementById('modalClose');
+  const modalCancel = document.getElementById('modalCancel');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalSubtitle = document.getElementById('modalSubtitle');
+  const form = document.getElementById('couponForm');
+  const formErrors = document.getElementById('formErrors');
+
+  let editingId = null;
+
+  btnNew && btnNew.addEventListener('click', openCreate);
+  emptyNew && emptyNew.addEventListener('click', openCreate);
+  modalClose.addEventListener('click', closeModal);
+  modalCancel.addEventListener('click', closeModal);
+  form.addEventListener('submit', onFormSubmit);
+  form.elements['discount_type'].addEventListener('change', syncDiscountFields);
+
+  listEl.addEventListener('click', async (e)=>{
+    const card = e.target.closest('[data-id]');
+    if (!card) return;
+    const id = card.dataset.id;
+    const btn = e.target.closest('[data-action]');
+    const action = btn ? btn.dataset.action : null;
+
+    // toggle
+    if (!action && e.target.matches('input[type="checkbox"][data-action="toggle"]')) {
+      const res = await postJSON(urlWithPk(TOGGLE_URL, id));
+      if (res?.ok && res.coupon) {
+        replaceCard(id, res.coupon);
+        toast('Updated.');
+      } else {
+        e.target.checked = !e.target.checked;
+        toast(res?.message || 'Failed to update.', true);
+      }
+      return;
+    }
+
+    if (action === 'copy') {
+      const code = card.querySelector('.font-semibold')?.textContent?.trim();
+      try { await navigator.clipboard.writeText(code || ''); toast('Code copied.'); } catch {}
+      return;
+    }
+
+    if (action === 'edit') {
+      const data = await getJSON(urlWithPk(GET_URL, id));
+      if (data?.ok) openEdit(data.coupon);
+      else toast('Failed to load coupon.', true);
+      return;
+    }
+
+    if (action === 'delete') {
+      if (!confirm('Delete this coupon?')) return;
+      const res = await postJSON(urlWithPk(DELETE_URL, id));
+      if (res?.ok) {
+        card.remove();
+        if (!listEl.querySelector('[data-id]')) {
+          const es = document.getElementById('emptyState');
+          if (es) es.classList.remove('hidden');
+        }
+        toast('Deleted.');
+      } else {
+        toast(res?.message || 'Failed to delete.', true);
+      }
+      return;
+    }
+  });
+
+  function openCreate(){
+    editingId = null;
+    form.reset();
+    setVal('discount_type', 'PERCENT'); syncDiscountFields();
+    formErrors.classList.add('hidden'); formErrors.textContent = '';
+    modalTitle.textContent = 'New coupon';
+    modalSubtitle.textContent = 'Set amounts, schedule, and limits.';
+    showModal(true);
+  }
+
+  function openEdit(c){
+    editingId = c.id;
+    form.reset();
+    setVal('id', c.id);
+    setVal('code', c.code);
+    setVal('title', c.title);
+    setVal('description', c.description);
+    setVal('discount_type', c.discount_type);
+    setVal('percent_off', c.percent_off);
+    setVal('amount_off', c.amount_off);
+    setVal('max_discount_amount', c.max_discount_amount);
+    setVal('min_order_amount', c.min_order_amount);
+    setChecked('is_active', !!c.is_active);
+    setVal('starts_at', toLocalInput(c.starts_at));
+    setVal('ends_at', toLocalInput(c.ends_at));
+    setVal('usage_limit_total', c.usage_limit_total);
+    setVal('usage_limit_per_user', c.usage_limit_per_user);
+    syncDiscountFields();
+    formErrors.classList.add('hidden'); formErrors.textContent = '';
+    modalTitle.textContent = 'Edit coupon';
+    modalSubtitle.textContent = c.code || '';
+    showModal(true);
+  }
+
+  function closeModal(){ showModal(false); }
+  function showModal(flag){
+    modal.classList.toggle('hidden', !flag);
+    document.body.classList.toggle('overflow-hidden', flag);
+  }
+
+  function setVal(name, v){ if (v===null || typeof v==='undefined') return; const el=form.elements[name]; if (el) el.value = v; }
+  function setChecked(name, v){ const el=form.elements[name]; if (el) el.checked = !!v; }
+
+  function syncDiscountFields(){
+    const dtype = form.elements['discount_type'].value;
+    const percentWrap = document.getElementById('percentWrap');
+    const amountWrap  = document.getElementById('amountWrap');
+    if (dtype === 'PERCENT') { percentWrap.classList.remove('hidden'); amountWrap.classList.add('hidden'); }
+    else { amountWrap.classList.remove('hidden'); percentWrap.classList.add('hidden'); }
+  }
+
+  async function onFormSubmit(e){
+    e.preventDefault();
+    formErrors.classList.add('hidden'); formErrors.textContent = '';
+
+    const payload = formToJSON(form);
+    if (payload.discount_type === 'PERCENT') payload.amount_off = null;
+    else payload.percent_off = null;
+    payload.starts_at = fromLocalInput(payload.starts_at);
+    payload.ends_at   = fromLocalInput(payload.ends_at);
+
+    const url = editingId ? urlWithPk(UPDATE_URL, editingId) : CREATE_URL;
+    const res = await postJSON(url, payload);
+
+    if (res?.ok && res.coupon) {
+      if (editingId) {
+        replaceCard(editingId, res.coupon);
+        toast('Updated.');
+      } else {
+        prependCard(res.coupon);
+        toast('Created.');
+      }
+      closeModal();
+    } else {
+      const errs = res?.errors || {};
+      const flat = Object.entries(errs).map(([k,v]) => `${k}: ${Array.isArray(v)?v.join(', '):v}`).join('\n') || (res?.message || 'Validation error.');
+      formErrors.textContent = flat;
+      formErrors.classList.remove('hidden');
+    }
+  }
+
+  function prependCard(c){
+    const es = document.getElementById('emptyState');
+    if (es) es.classList.add('hidden');
+    listEl.insertAdjacentHTML('afterbegin', renderCard(c));
+  }
+  function replaceCard(id, c){
+    const el = listEl.querySelector(`[data-id="${CSS.escape(String(id))}"]`);
+    if (el) el.outerHTML = renderCard(c);
+  }
+
+  function renderCard(c){
+    const typeLabel = c.discount_type === 'PERCENT' ? `${num(c.percent_off)}%` : `₹${money(c.amount_off)}`;
+    const schedule = fmtDateRange(c.starts_at, c.ends_at);
+    const badge = (()=> {
+      if (!c.is_active) return `<span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700">Inactive</span>`;
+      const now = Date.now(), st = c.starts_at ? Date.parse(c.starts_at) : null, en = c.ends_at ? Date.parse(c.ends_at) : null;
+      if ((st && now < st) || (en && now > en)) return `<span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">Scheduled/Expired</span>`;
+      return `<span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Live</span>`;
+    })();
+
+    return `
+      <div class="rounded-2xl border border-gray-200 bg-white p-4" data-id="${c.id}">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold truncate">${escapeHTML(c.code || '')}</span>
+              ${badge}
+            </div>
+            ${c.title ? `<div class="text-xs text-gray-500 mt-0.5 truncate">${escapeHTML(c.title)}</div>` : ``}
+          </div>
+          <label class="inline-flex items-center gap-2 text-xs">
+            <input type="checkbox" ${c.is_active ? 'checked' : ''} data-action="toggle">
+            Active
+          </label>
+        </div>
+
+        <div class="mt-3 grid grid-cols-3 gap-2 text-sm">
+          <div class="rounded-lg border border-gray-100 p-2">
+            <div class="text-xs text-gray-500">Type</div>
+            <div class="font-medium">${typeLabel}</div>
+          </div>
+          <div class="rounded-lg border border-gray-100 p-2">
+            <div class="text-xs text-gray-500">Used</div>
+            <div class="font-medium">${c.redemptions_count || 0}</div>
+          </div>
+          <div class="rounded-lg border border-gray-100 p-2">
+            <div class="text-xs text-gray-500">Discount ₹</div>
+            <div class="font-medium">${money(c.discount_granted_total || 0)}</div>
+          </div>
+        </div>
+
+        <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-600">
+          <div class="rounded-lg border border-gray-100 p-2">
+            <div class="text-[11px] text-gray-500">Schedule</div>
+            <div class="mt-0.5">${schedule || '—'}</div>
+          </div>
+          <div class="rounded-lg border border-gray-100 p-2">
+            <div class="text-[11px] text-gray-500">Limits</div>
+            <div class="mt-0.5">
+              Min: ${money(c.min_order_amount) || '—'}${c.max_discount_amount ? ` • Cap: ₹${money(c.max_discount_amount)}` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-end gap-2">
+          <button data-action="copy" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><rect x="8" y="2" width="8" height="4" rx="1" stroke="currentColor" stroke-width="2"/><rect x="4" y="6" width="16" height="14" rx="2" stroke="currentColor" stroke-width="2"/></svg>
+            Copy
+          </button>
+          <button data-action="edit" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs hover:bg-gray-50">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Edit
+          </button>
+          <button data-action="delete" class="inline-flex items-center gap-1 rounded-lg border border-rose-200 text-rose-700 px-3 py-1.5 text-xs hover:bg-rose-50">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Delete
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  function urlWithPk(url, pk){ return url.replace(/\/0\//, `/${pk}/`); }
+
+  function getCookie(name){
+    const v = `; ${document.cookie}`.split(`; ${name}=`);
+    return v.length === 2 ? v.pop().split(';').shift() : null;
+    }
+
+  async function postJSON(url, data){
+    const opts = {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/json'
+      },
+      body: data ? JSON.stringify(data) : undefined
+    };
+    const r = await fetch(url, opts);
+    return r.json().catch(()=>null);
+  }
+  async function getJSON(url){
+    const r = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+    return r.json().catch(()=>null);
+  }
+
+  function formToJSON(form){
+    const d = new FormData(form), o = {};
+    for (const [k,v] of d.entries()) o[k] = v === '' ? null : v;
+    o.is_active = !!form.elements['is_active'].checked;
+    for (const n of ['percent_off','amount_off','max_discount_amount','min_order_amount','usage_limit_total','usage_limit_per_user']) {
+      if (o[n] !== null && o[n] !== '' && !isNaN(o[n])) o[n] = String(o[n]);
+    }
+    return o;
+  }
+  function toLocalInput(iso){
+    if (!iso) return '';
+    const d = new Date(iso); if (isNaN(d)) return '';
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function fromLocalInput(s){
+    if (!s) return null;
+    const d = new Date(s);
+    return isNaN(d) ? null : d.toISOString();
+  }
+  function money(x){ const n = Number(x); return isFinite(n) ? n.toFixed(2) : ''; }
+  function num(x){ const n = Number(x); return isFinite(n) ? String(n) : ''; }
+  function escapeHTML(s){
+    return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function fmtDateRange(a,b){
+    const f = x => x ? new Date(x).toLocaleString() : null;
+    const s = f(a), e = f(b);
+    if (s && e) return `${s} → ${e}`;
+    if (s) return `From ${s}`;
+    if (e) return `Until ${e}`;
+    return '';
+  }
+
+  (function(){ const el = form.elements['discount_type']; if (el) el.dispatchEvent(new Event('change')); })();
+})();
+</script>
+{% endblock %}

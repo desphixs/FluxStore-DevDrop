@@ -2,6 +2,16 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings 
 from shortuuid.django_fields import ShortUUIDField
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+from django.db import models
+from django.db.models import Q
+from django.utils import timezone
+from shortuuid.django_fields import ShortUUIDField
 
 class User(AbstractUser):
     class Role(models.TextChoices):
@@ -35,14 +45,44 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.email}'s Profile"
     
-
 class VendorProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='vendor_profile', limit_choices_to={'role': User.Role.BUYER})
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='vendor_profile',
+        limit_choices_to={'role': User.Role.VENDOR},  # <-- FIXED
+    )
+    # Core business info
     business_name = models.CharField(max_length=255, unique=True)
-    business_description = models.TextField(blank=True, null=True)
+    slug = models.SlugField(max_length=255, null=True, blank=True) 
+    contact_email = models.EmailField(unique=True)
     business_phone = models.CharField(max_length=20)
     business_address = models.CharField(max_length=255)
-    contact_email = models.EmailField(unique=True)
+    business_description = models.TextField(blank=True, null=True)
+
+    # Branding
+    logo = models.ImageField(upload_to='vendor/logo/', blank=True, null=True)
+    banner = models.ImageField(upload_to='vendor/banner/', blank=True, null=True)
+
+    # Meta / policies
+    website_url = models.URLField(blank=True, null=True)
+    socials = models.JSONField(blank=True, null=True)  # {"instagram": "...", "twitter": "..."}
+    shipping_policy = models.TextField(blank=True, null=True)
+    return_policy = models.TextField(blank=True, null=True)
+    opening_hours = models.CharField(max_length=255, blank=True, null=True)
+
+    # Commerce
+    currency = models.CharField(max_length=10, default="USD")  # "NGN", "USD", etc.
+    country = models.CharField(max_length=60, default="NG")
+    tax_id = models.CharField(max_length=60, blank=True, null=True)
+    min_order_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    is_open = models.BooleanField(default=True)
+
+    # Payout (basic fields; swap to your payments provider later)
+    bank_name = models.CharField(max_length=120, blank=True, null=True)
+    account_name = models.CharField(max_length=120, blank=True, null=True)
+    account_number = models.CharField(max_length=60, blank=True, null=True)
+
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -84,4 +124,8 @@ class Address(models.Model):
         super().save(*args, **kwargs)
 
 
-        
+
+@receiver(post_save, sender=User)
+def ensure_user_profile(sender, instance, created, **kwargs):
+    if created and not hasattr(instance, "profile"):
+        UserProfile.objects.create(user=instance)

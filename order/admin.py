@@ -356,3 +356,11 @@ class OrderItemDiscountAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+    
+
+
+@admin.register(models.Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("id", "recipient", "ntype", "level", "title", "is_read", "created_at")
+    list_filter = ("ntype", "level", "is_read", "created_at")
+    search_fields = ("title", "message", "recipient__email", "recipient__username")

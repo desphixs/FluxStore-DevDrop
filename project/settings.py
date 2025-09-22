@@ -38,9 +38,19 @@ SECRET_KEY = 'django-insecure-guul@(b7x1(^-t!&k#f@u!sfd*v87%p(+-vnqs110g!@rmnpzy
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1', 'https://*.ngrok-free.app', 'https://efashionbazaar.up.railway.app']
+CSRF_TRUSTED_ORIGINS = [ 
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000", 
+    'http://127.0.0.1', 
+    'https://*.ngrok-free.app', 
+    'https://efashionbazaar.up.railway.app'
+]
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
-
+CSRF_TRUSTED_ORIGINS = [
+   
+]
 
 
 # Application definition
@@ -62,6 +72,7 @@ INSTALLED_APPS = [
     'addon',
     'payments',
     'customer',
+    'vendor',
 
     # Third party apps
     'whitenoise',
@@ -213,3 +224,7 @@ EASEBUZZ_ENV = env("EASEBUZZ_ENV").lower().strip()
 
 def EASEBUZZ_BASE():
     return "https://pay.easebuzz.in" if EASEBUZZ_ENV == "prod" else "https://testpay.easebuzz.in"
+
+
+
+LOGIN_URL = "userauths:login"

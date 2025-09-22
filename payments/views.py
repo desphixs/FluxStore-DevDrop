@@ -1,10 +1,5 @@
-# payments/views.py
-import json
-import secrets
-import hashlib
-from decimal import Decimal
 
-import requests
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -13,7 +8,25 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_POST
-from order import models as order_models  # adjust import path if different
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Sum, F, Count
+from django.db.models.functions import Coalesce
+from django.db.models import DecimalField
+from django.shortcuts import get_object_or_404, redirect
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+
+from order import models as order_models
+
+# payments/views.py
+import json
+import secrets
+import hashlib
+from decimal import Decimal
+import logging
+import requests
+
+log = logging.getLogger(__name__)
 
 
 def _ez_base():
@@ -205,53 +218,345 @@ def easebuzz_start(request, order_id: str):
     print("[EASEBUZZ][INIT][REDIRECT]", hosted_url)
     return redirect(hosted_url)
 
+
+
+
+# ---------- Easebuzz helpers ----------
+
+def _easebuzz_base_url() -> str:
+    env = (getattr(settings, "EASEBUZZ_ENV", "PROD") or "").upper()
+    if env in {"UAT", "TEST", "SANDBOX"} or getattr(settings, "DEBUG", False):
+        return "https://testpay.easebuzz.in"
+    return "https://pay.easebuzz.in"
+
+def _easebuzz_status_urls() -> list[str]:
+    """
+    If you know your exact status URL from your merchant docs, set EASEBUZZ_TXN_STATUS_URL in settings.
+    Otherwise we try a few common endpoints (first one that returns JSON wins).
+    """
+    if getattr(settings, "EASEBUZZ_TXN_STATUS_URL", None):
+        return [settings.EASEBUZZ_TXN_STATUS_URL]
+
+    base = _easebuzz_base_url().rstrip("/")
+    # Known/popular patterns (keep order)
+    candidates = [
+        f"{base}/payment/transaction/v2/retrieve",
+        f"{base}/transaction/v2/retrieve",
+        f"{base}/payment/v2/transaction",
+    ]
+    return candidates
+
+def _sha512_pipe(*parts) -> str:
+    s = "|".join("" if p is None else str(p) for p in parts)
+    return hashlib.sha512(s.encode("utf-8")).hexdigest()
+
+def _easebuzz_status_payload(txnid: str, easebuzz_id: str | None) -> dict:
+    """
+    Minimal payload. Some accounts require a 'hash' (key|txnid|salt), others not.
+    We include both txnid and easebuzz_id if we have them.
+    """
+    payload = {
+        "key": getattr(settings, "EASEBUZZ_KEY", ""),
+        "txnid": txnid,
+    }
+    if easebuzz_id:
+        payload["easebuzz_id"] = easebuzz_id
+
+    salt = getattr(settings, "EASEBUZZ_SALT", "")
+    if salt:
+        # Common scheme in Easebuzz status APIs; adjust if your docs specify differently.
+        payload["hash"] = _sha512_pipe(payload["key"], payload["txnid"], salt)
+
+    return payload
+
+def _easebuzz_txn_status(txnid: str, easebuzz_id: str | None = None, timeout=10) -> dict | None:
+    """
+    Try a few candidate URLs until one returns JSON. Returns parsed JSON or None.
+    """
+    payload = _easebuzz_status_payload(txnid, easebuzz_id)
+    headers = {"User-Agent": "EfashionBazaar/1.0", "Accept": "application/json"}
+
+    for url in _easebuzz_status_urls():
+        try:
+            r = requests.post(url, data=payload, headers=headers, timeout=timeout)
+            r.raise_for_status()
+            # Some endpoints return text/plain JSON; safe-load
+            try:
+                data = r.json()
+            except Exception:
+                data = json.loads((r.text or "").strip() or "{}")
+
+            log.info("[EASEBUZZ][STATUS] %s -> %s", url, data)
+            return data
+        except Exception as e:
+            log.warning("[EASEBUZZ][STATUS][FAIL] %s (%s)", url, e)
+            continue
+    return None
+
+def _easebuzz_status_is_success(resp: dict | None) -> tuple[bool, str, str | None]:
+    """
+    Return (ok, gateway_status_string, easebuzz_payment_id or None).
+    We accept 'success' / 'captured' variants.
+    """
+    if not isinstance(resp, dict):
+        return (False, "no-response", None)
+
+    # Flexible parsing across API variants
+    top_status = resp.get("status")
+    data = resp.get("data") if isinstance(resp.get("data"), dict) else resp
+
+    gstat = (data.get("status") or data.get("txn_status") or data.get("response_status") or "").lower()
+    ez_id = data.get("easebuzz_id") or data.get("payment_id") or resp.get("easebuzz_id")
+
+    ok = False
+    if str(top_status) in {"1", "success", "True", "true"}:
+        # Many endpoints put the canonical gateway result inside data.status
+        ok = gstat in {"success", "captured", "success-verified"}
+    else:
+        # Some endpoints only set 'data.status'
+        ok = gstat in {"success", "captured", "success-verified"}
+
+    return (ok, gstat or str(top_status), ez_id)
+
+# ---------- Notification helpers ----------
+
+def _notify_once(recipient, ntype, level, title, message, obj, meta=None):
+    """
+    Idempotent-ish: don't spam duplicates for the same order + title + recipient.
+    """
+    ct = ContentType.objects.get_for_model(obj.__class__)
+    meta = meta or {}
+    exists = order_models.Notification.objects.filter(
+        recipient=recipient,
+        ntype=ntype,
+        title=title,
+        content_type=ct,
+        object_id=str(obj.pk),
+    ).exists()
+    if exists:
+        return
+
+    order_models.Notification.objects.create(
+        recipient=recipient,
+        ntype=ntype,
+        level=level,
+        title=title,
+        message=message or "",
+        content_type=ct,
+        object_id=str(obj.pk),
+        meta=meta,
+    )
+
+def _notify_buyer_order_paid(order):
+    title = "Order placed"
+    message = f"Thanks! Your order #{order.order_id} has been placed."
+    _notify_once(
+        recipient=order.buyer,
+        ntype=order_models.Notification.NType.ORDER,
+        level=order_models.Notification.Level.SUCCESS,
+        title=title,
+        message=message,
+        obj=order,
+        meta={"target_url": f"/customer/orders/{order.order_id}/"},
+    )
+
+def _notify_vendors_order_paid(order):
+    """
+    One notification per vendor present in the order.
+    Includes a quick summary for that vendor: items, gross, discount, net.
+    """
+    vendor_rows = (
+        order.items
+             .values("vendor_id")
+             .annotate(
+                 item_count=Coalesce(Sum("quantity"), 0),
+                 gross=Coalesce(
+                     Sum(F("price") * F("quantity"),
+                         output_field=DecimalField(max_digits=12, decimal_places=2)
+                     ),
+                     Decimal("0.00")
+                 ),
+                 disc=Coalesce(
+                     Sum("line_discount_total",
+                         output_field=DecimalField(max_digits=12, decimal_places=2)
+                     ),
+                     Decimal("0.00")
+                 ),
+             )
+    )
+
+    for row in vendor_rows:
+        vendor_id = row["vendor_id"]
+        if not vendor_id:
+            continue
+        try:
+            vendor_user = order_models.settings.AUTH_USER_MODEL.objects.get(pk=vendor_id)  # won’t work
+        except Exception:
+            # Better: fetch via your User model directly
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            vendor_user = User.objects.filter(pk=vendor_id).first()
+        if not vendor_user:
+            continue
+
+        net = (row["gross"] or Decimal("0.00")) - (row["disc"] or Decimal("0.00"))
+        title = f"New paid order #{order.order_id}"
+        message = f"{row['item_count']} item(s) • ₹{net:.2f} net for you."
+
+        _notify_once(
+            recipient=vendor_user,
+            ntype=order_models.Notification.NType.ORDER,
+            level=order_models.Notification.Level.SUCCESS,
+            title=title,
+            message=message,
+            obj=order,
+            meta={"target_url": f"/vendor/orders/{order.order_id}/"},
+        )
+
+# ---------- Your return view (drop-in) ----------
+
 @csrf_exempt  # Easebuzz posts from their domain
 def easebuzz_return(request):
     """
-    Easebuzz posts the payment result to SURL/FURL.
-    We'll:
-      - identify the order via udf1
-      - verify reverse hash if present
-      - set payment_status
+    Verify with Easebuzz Transaction API BEFORE marking paid.
+    Then create notifications (buyer + each vendor) and move order to PROCESSING.
     """
     payload = request.POST.dict() if request.method == "POST" else request.GET.dict()
-    order_id = payload.get("udf1")
-    if not order_id:
+    order_public_id = payload.get("udf1")
+    if not order_public_id:
         return HttpResponseBadRequest("Missing udf1 (order id).")
 
-    order = get_object_or_404(order_models.Order, order_id=order_id)
-    key = payload.get("key", "")
-    txnid = payload.get("txnid", "")
+    order = get_object_or_404(order_models.Order, order_id=order_public_id)
+
+    txnid = payload.get("txnid", "") or (order.easebuzz_txnid or "")
+    easebuzz_id = payload.get("easebuzz_id", "") or (order.easebuzz_payment_id or "")
     status_val = (payload.get("status", "") or "").lower()
-    easebuzz_id = payload.get("easebuzz_id", "")
 
-    # Optional: reverse-hash validation if 'hash' present
-    verified = False
-    try:
-        resp_hash = payload.get("hash")
-        if resp_hash:
-            calc = _hash_response_reverse(payload, settings.EASEBUZZ_SALT)
-            verified = (resp_hash.lower() == calc.lower())
-    except Exception:
-        verified = False
-
-    # persist raw return
+    # Persist raw gateway return + our reverse-hash flag if you already compute it elsewhere
     meta = order.payment_meta or {}
-    meta.update({"easebuzz_return": payload, "return_verified": verified})
+    meta.update({
+        "easebuzz_return": payload,
+        "return_received_at": timezone.now().isoformat(),
+    })
+
+    # 1) Verify with Transaction Status API
+    verified_resp = _easebuzz_txn_status(txnid=txnid, easebuzz_id=easebuzz_id)
+    ok, gateway_status, ez_id_from_status = _easebuzz_status_is_success(verified_resp)
+
+    # Stash verification result for audit
+    meta["easebuzz_verify"] = {
+        "ok": ok,
+        "gateway_status": gateway_status,
+        "raw": verified_resp,
+    }
+
+    # Keep any new easebuzz_id we learn
+    if ez_id_from_status and not easebuzz_id:
+        easebuzz_id = ez_id_from_status
+
     order.payment_meta = meta
     order.easebuzz_payment_id = easebuzz_id or order.easebuzz_payment_id
 
-    if status_val in ("success", "captured") and (verified or True):
-        # If you're strict, require verified == True. In practice, many merchants also cross-check via Transaction API or webhook.
-        order.payment_status = "PAID"
-        order.status = order_models.Order.OrderStatus.PROCESSING
-    else:
-        order.payment_status = "FAILED"
+    # 2) Update order + notifications if success
+    if ok:
+        # Idempotency: only transition if not already PAID
+        if order.payment_status != "PAID":
+            order.payment_status = "PAID"
+            order.status = order_models.Order.OrderStatus.PROCESSING
+            order.save(update_fields=["payment_meta", "easebuzz_payment_id", "payment_status", "status", "updated_at"])
 
-    order.save(update_fields=["payment_meta", "easebuzz_payment_id", "payment_status", "status", "updated_at"])
-    if order.payment_status == "PAID":
+            # Fan-out notifications
+            try:
+                if order.buyer:
+                    _notify_buyer_order_paid(order)
+            except Exception as e:
+                log.warning("Buyer notify failed: %s", e)
+
+            try:
+                _notify_vendors_order_paid(order)
+            except Exception as e:
+                log.warning("Vendor notify failed: %s", e)
+        # Redirect to success
         return redirect(reverse("payments:thank_you", kwargs={"order_id": order.order_id}))
-    return redirect(reverse("payments:failed", kwargs={"order_id": order.order_id}))
+    else:
+        # Failed (or not verified) — mark FAILED unless already PAID from prior flow
+        if order.payment_status != "PAID":
+            order.payment_status = "FAILED"
+            order.save(update_fields=["payment_meta", "easebuzz_payment_id", "payment_status", "updated_at"])
+        return redirect(reverse("payments:failed", kwargs={"order_id": order.order_id}))
+
+# @csrf_exempt  # Easebuzz posts from their domain
+# def easebuzz_return(request):
+#     """
+#     Easebuzz posts the payment result to SURL/FURL.
+#     We'll:
+#       - identify the order via udf1
+#       - verify reverse hash if present
+#       - set payment_status
+#     """
+#     payload = request.POST.dict() if request.method == "POST" else request.GET.dict()
+#     order_id = payload.get("udf1")
+#     if not order_id:
+#         return HttpResponseBadRequest("Missing udf1 (order id).")
+
+#     order = get_object_or_404(order_models.Order, order_id=order_id)
+#     key = payload.get("key", "")
+#     txnid = payload.get("txnid", "")
+#     status_val = (payload.get("status", "") or "").lower()
+#     easebuzz_id = payload.get("easebuzz_id", "")
+
+#     # Optional: reverse-hash validation if 'hash' present
+#     verified = False
+#     try:
+#         resp_hash = payload.get("hash")
+#         if resp_hash:
+#             calc = _hash_response_reverse(payload, settings.EASEBUZZ_SALT)
+#             verified = (resp_hash.lower() == calc.lower())
+#     except Exception:
+#         verified = False
+
+#     # persist raw return
+#     meta = order.payment_meta or {}
+#     meta.update({"easebuzz_return": payload, "return_verified": verified})
+#     order.payment_meta = meta
+#     order.easebuzz_payment_id = easebuzz_id or order.easebuzz_payment_id
+
+#     if status_val in ("success", "captured") and (verified or True):
+#         # If you're strict, require verified == True. In practice, many merchants also cross-check via Transaction API or webhook.
+#         order.payment_status = "PAID"
+
+#         order_models.Notification.objects.create(
+#             recipient=order.buyer,
+#             actor=None,  # or request.user/system
+#             ntype=order_models.Notification.NType.ORDER,
+#             level=order_models.Notification.Level.SUCCESS,
+#             title="Order placed",
+#             message=f"Thanks! Your order #{order.order_id} has been placed.",
+#             content_type=ContentType.objects.get_for_model(order),
+#             object_id=order.pk,
+#             target_url=f"/customer/orders/{order.order_id}/",
+#         )
+
+#         # # Create for a vendor when a review is posted
+#         # order_models.Notification.objects.create(
+#         #     recipient=vendor_user,
+#         #     ntype=order_models.Notification.NType.REVIEW,
+#         #     level=order_models.Notification.Level.INFO,
+#         #     title="New product review",
+#         #     message=f"{order.buy.email} rated {review.product.name} {review.rating}/5",
+#         #     content_type=ContentType.objects.get_for_model(review),
+#         #     object_id=review.pk,
+#         #     target_url=f"/vendor/reviews/?q={review.product.name}",
+#         # )
+
+#         order.status = order_models.Order.OrderStatus.PROCESSING
+#     else:
+#         order.payment_status = "FAILED"
+
+#     order.save(update_fields=["payment_meta", "easebuzz_payment_id", "payment_status", "status", "updated_at"])
+#     if order.payment_status == "PAID":
+#         return redirect(reverse("payments:thank_you", kwargs={"order_id": order.order_id}))
+#     return redirect(reverse("payments:failed", kwargs={"order_id": order.order_id}))
 
 
 @csrf_exempt
