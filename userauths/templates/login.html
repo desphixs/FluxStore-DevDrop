@@ -19,6 +19,7 @@
 
         <form method="post" class="space-y-6" x-data="{ isSubmitting: false }" @submit="isSubmitting = true">
             {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next_url }}">
 
             <div>
                 <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">Email
@@ -53,11 +54,15 @@
                     </span>
                 </button>
             </div>
+            <p class="text-sm text-center text-gray-600 mb-0 pb-0">
+                Don't have an account? <a href="{% url 'userauths:register' %}"
+                    class="font-medium text-indigo-600 hover:text-indigo-500">Register</a>
+            </p>
+            <p class="text-sm text-center text-gray-600 mt-0 pt-0">
+                <a href="{% url 'vendor:vendor_register' %}"
+                    class="font-medium text-indigo-600 hover:text-indigo-500">Become a vendor</a>
+            </p>
         </form>
-        <p class="text-sm text-center text-gray-600">
-            Don't have an account? <a href="{% url 'userauths:register' %}"
-                class="font-medium text-indigo-600 hover:text-indigo-500">Register</a>
-        </p>
     </div>
 </div>
 {% endblock %}

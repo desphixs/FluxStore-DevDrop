@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views, products
-
+from userauths import views as userauths_views
 app_name = "vendor"
 
 urlpatterns = [
@@ -95,5 +95,10 @@ urlpatterns += [
     path("ajax/variant/<int:pk>/toggle/", products.variant_toggle_active_ajax, name="variant_toggle_active_ajax"),
     path("ajax/variant/<int:pk>/primary/", products.variant_set_primary_ajax, name="variant_set_primary_ajax"),
     path("ajax/variant/<int:pk>/delete/", products.variant_delete_ajax, name="variant_delete_ajax"),
+
+
+    path("register/", userauths_views.vendor_register_view, name="vendor_register"),
+    path("", views.vendors_list, name="vendor_list"),
+    path("<slug:slug>/", views.vendor_detail, name="vendor_detail"),
 
 ]

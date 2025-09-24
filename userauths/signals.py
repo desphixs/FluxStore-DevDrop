@@ -9,15 +9,15 @@ def create_user_profile(sender, instance, created, **kwargs):
         # Always create a UserProfile for every user
         UserProfile.objects.create(user=instance)
 
-        # If the user is a vendor, also create a VendorProfile stub
-        if instance.role == User.Role.VENDOR:
-            VendorProfile.objects.create(
-                user=instance,
-                business_name=f"{instance.username}'s Business",
-                business_phone="",
-                business_address="",
-                contact_email=instance.email,
-            )
+        # # If the user is a vendor, also create a VendorProfile stub
+        # if instance.role == User.Role.VENDOR:
+        #     VendorProfile.objects.create(
+        #         user=instance,
+        #         business_name=f"{instance.username}'s Business",
+        #         business_phone="",
+        #         business_address="",
+        #         contact_email=instance.email,
+        #     )
 
 
 @receiver(post_save, sender=User)

@@ -36,6 +36,32 @@ from .forms import (
     ProductVariationForm, ProductImageForm
 )
 
+from datetime import datetime
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+
+def _parse_dt(val):
+    """
+    Accepts '', None, datetime, or an ISO-ish string from <input type="datetime-local">.
+    Returns timezone-aware datetime or None.
+    """
+    if not val:
+        return None
+    if isinstance(val, datetime):
+        return timezone.make_aware(val) if timezone.is_naive(val) else val
+    s = str(val).strip()
+    # html datetime-local looks like "2025-09-24T22:33"
+    # Try Django's parser first
+    dt = parse_datetime(s.replace('Z', '+00:00'))
+    if dt is None:
+        try:
+            dt = datetime.fromisoformat(s)
+        except Exception:
+            return None
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, timezone.get_current_timezone())
+    return dt
+
 # You already have this in your project; keeping a light fallback:
 def vendor_required(view_func):
     def _wrapped(request, *args, **kwargs):
@@ -699,8 +725,8 @@ def variant_to_dict(v: store_models.ProductVariation):
         "stock_quantity": v.stock_quantity,
         "label": v.label,
         "deal_active": v.deal_active,
-        "deal_starts_at": v.deal_starts_at.isoformat() if v.deal_starts_at else None,
-        "deal_ends_at": v.deal_ends_at.isoformat() if v.deal_ends_at else None,
+        "deal_starts_at": (v.deal_starts_at.isoformat() if hasattr(v.deal_starts_at, "isoformat") and v.deal_starts_at else None),
+        "deal_ends_at":   (v.deal_ends_at.isoformat() if hasattr(v.deal_ends_at, "isoformat") and v.deal_ends_at else None),
         "weight": str(v.weight),
         "length": str(v.length),
         "height": str(v.height),
@@ -880,6 +906,28 @@ def variant_create_ajax(request, product_id: int):
     data = request.POST
     try:
         with transaction.atomic():
+            # v = store_models.ProductVariation.objects.create(
+            #     product=product,
+            #     sale_price=Decimal(data.get("sale_price") or "0"),
+            #     regular_price=Decimal(data.get("regular_price") or "0"),
+            #     show_regular_price=bool(data.get("show_regular_price")),
+            #     show_discount_type=data.get("show_discount_type") or "none",
+            #     stock_quantity=int(data.get("stock_quantity") or 0),
+            #     sku=(data.get("sku") or "").strip(),
+            #     is_active=bool(data.get("is_active")),
+            #     is_primary=bool(data.get("is_primary")),
+            #     label=data.get("label") or "New",
+            #     deal_active=bool(data.get("deal_active")),
+            #     weight=Decimal(data.get("weight") or "0"),
+            #     length=Decimal(data.get("length") or "0"),
+            #     height=Decimal(data.get("height") or "0"),
+            #     width=Decimal(data.get("width") or "0"),
+            # )
+            # # optional datetimes
+            # v.deal_starts_at = data.get("deal_starts_at") or None
+            # v.deal_ends_at = data.get("deal_ends_at") or None
+            # v.save()
+
             v = store_models.ProductVariation.objects.create(
                 product=product,
                 sale_price=Decimal(data.get("sale_price") or "0"),
@@ -897,9 +945,9 @@ def variant_create_ajax(request, product_id: int):
                 height=Decimal(data.get("height") or "0"),
                 width=Decimal(data.get("width") or "0"),
             )
-            # optional datetimes
-            v.deal_starts_at = data.get("deal_starts_at") or None
-            v.deal_ends_at = data.get("deal_ends_at") or None
+            # optional datetimes (parse to aware datetimes)
+            v.deal_starts_at = _parse_dt(data.get("deal_starts_at"))
+            v.deal_ends_at   = _parse_dt(data.get("deal_ends_at"))
             v.save()
 
             # attach selected VariationValue ids
@@ -942,8 +990,6 @@ def variant_update_ajax(request, pk: int):
             make_primary = bool(data.get("is_primary"))
             v.label = data.get("label") or v.label
             v.deal_active = bool(data.get("deal_active"))
-            v.deal_starts_at = data.get("deal_starts_at") or None
-            v.deal_ends_at = data.get("deal_ends_at") or None
             v.weight = Decimal(data.get("weight") or "0")
             v.length = Decimal(data.get("length") or "0")
             v.height = Decimal(data.get("height") or "0")

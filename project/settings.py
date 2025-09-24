@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     # Third party apps
     'whitenoise',
     'django_ckeditor_5',
+    "django_summernote",
 ]
 
 MIDDLEWARE = [

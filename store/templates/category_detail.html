@@ -1,0 +1,116 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block content %}
+<main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:mt-52 mt-14">
+  <!-- Header / Breadcrumbs (simple) -->
+  <nav class="mb-3 text-xs text-gray-500">
+    <a href="{% url 'store:category_list' %}" class="hover:text-[#991b1b]">Categories</a>
+    <span class="mx-2">/</span>
+    {% if category.parent %}
+      <a href="{% url 'store:category_detail' category.parent.slug category.parent.id %}" class="hover:text-[#991b1b]">{{ category.parent.name }}</a>
+      <span class="mx-2">/</span>
+    {% endif %}
+    <span class="text-gray-700">{{ category.name }}</span>
+  </nav>
+
+  <header class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">{{ category.name }}</h1>
+    {% if category.description %}
+      <p class="mt-1 text-sm text-gray-600">{{ category.description }}</p>
+    {% endif %}
+    <p class="mt-1 text-sm text-gray-600">{{ total_products }} product{{ total_products|pluralize }}</p>
+  </header>
+
+  {% if subcategories %}
+  <section class="mb-6">
+    <div class="flex flex-wrap gap-2">
+      {% for sc in subcategories %}
+      <a href="{% url 'store:category_detail' sc.slug sc.id %}"
+         class="rounded-full border px-3 py-1 text-xs hover:border-[#991b1b] hover:text-[#991b1b]">
+        {{ sc.name }}
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Product Grid -->
+  {% if page_obj.object_list %}
+  <section>
+    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for p in page_obj.object_list %}
+      <!-- YOUR CARD (unchanged) -->
+      <div
+          class="relative flex flex-col overflow-hidden rounded-xl h-fit border border-gray-200 bg-white transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-lg">
+          <span
+              class="absolute left-3 top-3 rounded-md {{p.primary_item.label_color}} px-2.5 py-1 text-xs font-semibold text-white">{{p.primary_item.label}}</span>
+
+          {% if p.primary_item.show_discount_type == "price" %}
+          <span class="absolute left-3 top-10  rounded-md bg-black px-2.5 py-1 text-xs font-semibold text-white">
+              ${{p.primary_item.discount_amount|floatformat:0}} OFF</span>
+          {% endif %}
+
+          {% if p.primary_item.show_discount_type == "percentage" %}
+          <span class="absolute left-3 top-10 rounded-md bg-black border-0.5 px-2.5 py-1 text-xs font-semibold text-white">
+              {{p.primary_item.discount_amount|floatformat:0}}% OFF</span>
+          {% endif %}
+
+          <a href="{% url 'store:product_detail' p.slug %}">
+              <img src="{{p.primary_image.image.url}}" alt="{{ p.name }}"
+                  class="h-[16rem] w-full object-contain" />
+          </a>
+
+          <div class="p-4">
+              <p class="text-xs text-gray-500"> <a href="">{{p.category.name}}</a></p>
+              <h3 class="mb-2  text-sm font-semibold text-gray-800"><a href="{% url 'store:product_detail' p.slug %}">{{p.name}}</a></h3>
+              <div class="mb-2 flex items-center text-sm">
+                  <span class="text-yellow-600">
+                      {% for i in "12345" %}
+                      {% if forloop.counter <= p.average_rating_int %}★{% else %}☆{% endif %} {% endfor %}
+                  </span>
+                  <span class="ml-1 text-gray-400">({{p.average_rating_int}})</span>
+              </div>
+              <p class="text-xs text-gray-500">By: {{p.vendor.vendor_profile.business_name}}</p>
+
+              <div class="mt-auto flex items-center justify-between">
+                  <div>
+                      <span class="text-lg font-bold text-gray-900">${{p.primary_item.sale_price}}</span>
+
+                      {% if p.primary_item.show_regular_price %}
+                      <span class="text-sm font-light text-gray-400 line-through">${{p.primary_item.regular_price}}</span>
+                      {% endif %}
+                  </div>
+                  <button data-product-id="{{ p.id }}"
+                      data-variation-id="{{ p.primary_item.id }}"
+                      class="add-to-cart rounded-lg bg-[#991B1B] px-4 py-2 text-sm font-bold text-white transition-colors duration-300  hover:bg-[#b32727] hover:text-white">
+                      ＋ Add
+                  </button>
+              </div>
+          </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-8 flex items-center justify-center gap-2">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="rounded-lg border px-3 py-2 text-sm">Prev</a>
+      {% else %}
+        <button class="rounded-lg border px-3 py-2 text-sm opacity-40" disabled>Prev</button>
+      {% endif %}
+      <span class="text-sm text-gray-700">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="rounded-lg border px-3 py-2 text-sm">Next</a>
+      {% else %}
+        <button class="rounded-lg border px-3 py-2 text-sm opacity-40" disabled>Next</button>
+      {% endif %}
+    </div>
+  </section>
+  {% else %}
+    <div class="rounded-2xl border p-10 text-center text-gray-600">
+      No products in this category yet.
+    </div>
+  {% endif %}
+</main>
+{% endblock %}

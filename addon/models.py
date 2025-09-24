@@ -1,4 +1,7 @@
+
 from django.db import models
+from django.utils.translation import gettext_lazy as _
+from django.core.validators import MinValueValidator
 
 class SiteConfiguration(models.Model):
     site_name = models.CharField(max_length=255, default="My Website")
@@ -109,3 +112,82 @@ class HeroSection(models.Model):
 
     def __str__(self):
         return f"Hero Section: {self.title}"
+    
+
+class Page(models.Model):
+    class Key(models.TextChoices):
+        REFUND_POLICY = "refund_policy", _("Refund Policy")
+        PRIVACY_POLICY = "privacy_policy", _("Privacy Policy")
+        TERMS_AND_CONDITIONS = "terms_and_conditions", _("Terms & Conditions")
+        COOKIE_POLICY = "cookie_policy", _("Cookie Policy")
+        SHIPPING_POLICY = "shipping_policy", _("Shipping Policy")
+        ABOUT = "about", _("About Us")
+
+    key = models.CharField( max_length=64, choices=Key.choices, unique=True, help_text=_("Fixed identifier used by views to fetch this page."),)
+    title = models.CharField(max_length=150)
+    content = models.TextField(blank=True, help_text=_("HTML or Markdown – your choice."))
+    is_published = models.BooleanField(default=True)
+    hero_image = models.FileField(upload_to="image", null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Page")
+        verbose_name_plural = _("Pages")
+        ordering = ["key"]
+
+    def __str__(self):
+        return f"{self.get_key_display()}"
+
+
+class FAQ(models.Model):
+    
+    question = models.CharField(max_length=255)
+    answer = models.TextField()
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0)])
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("FAQ")
+        verbose_name_plural = _("FAQs")
+        ordering = ["sort_order", "id"]
+        indexes = [
+            models.Index(fields=["is_active"]),
+            models.Index(fields=["sort_order"]),
+        ]
+
+    def __str__(self):
+        return self.question[:60]
+
+
+class ContactMessage(models.Model):
+    class Status(models.TextChoices):
+        NEW = "new", _("New")
+        IN_PROGRESS = "in_progress", _("In Progress")
+        RESOLVED = "resolved", _("Resolved")
+        SPAM = "spam", _("Spam")
+
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    subject = models.CharField(max_length=150, blank=True)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW)
+    consent = models.BooleanField(default=False, help_text=_("User consented to be contacted."))
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Contact Message")
+        verbose_name_plural = _("Contact Messages")
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.email} – {self.subject or 'No subject'}"

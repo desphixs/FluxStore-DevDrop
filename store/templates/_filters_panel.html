@@ -1,0 +1,67 @@
+{% block filters_partial %}
+<div class="space-y-6">
+  <!-- Category -->
+  <div>
+    <h3 class="text-sm font-semibold text-gray-900">Category</h3>
+    <div class="mt-2 space-y-2 max-h-64 overflow-auto pr-1">
+      <label class="flex items-center gap-2 text-sm">
+        <input type="radio" name="category" value="" checked>
+        <span>All</span>
+      </label>
+      {% for c in categories %}
+      <label class="flex items-center gap-2 text-sm">
+        <input type="radio" name="category" value="{{ c.slug }}">
+        <span>{{ c.name }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Price -->
+  <div>
+    <h3 class="text-sm font-semibold text-gray-900">Price</h3>
+    <div class="mt-2 grid grid-cols-2 gap-2">
+      <input id="min-price" type="number" min="0" step="1" placeholder="Min" value="{{ min_price|default:0 }}"
+             class="w-full rounded-md border px-2 py-1 text-sm">
+      <input id="max-price" type="number" min="0" step="1" placeholder="Max" value="{{ max_price|default:0 }}"
+             class="w-full rounded-md border px-2 py-1 text-sm">
+    </div>
+    <button id="apply-price" class="mt-2 w-full rounded-md border px-2 py-1 text-sm">Apply</button>
+  </div>
+
+  <!-- Rating -->
+  <div>
+    <h3 class="text-sm font-semibold text-gray-900">Minimum Rating</h3>
+    <div class="mt-2 space-y-1">
+      <label class="flex items-center gap-2 text-sm"><input type="radio" name="rating_min" value="" checked> Any</label>
+      <label class="flex items-center gap-2 text-sm"><input type="radio" name="rating_min" value="4"> 4★ & up</label>
+      <label class="flex items-center gap-2 text-sm"><input type="radio" name="rating_min" value="3"> 3★ & up</label>
+      <label class="flex items-center gap-2 text-sm"><input type="radio" name="rating_min" value="2"> 2★ & up</label>
+      <label class="flex items-center gap-2 text-sm"><input type="radio" name="rating_min" value="1"> 1★ & up</label>
+    </div>
+  </div>
+
+  <!-- Label -->
+  <div>
+    <h3 class="text-sm font-semibold text-gray-900">Label</h3>
+    <select id="label-select" class="mt-2 w-full rounded-md border px-2 py-1 text-sm">
+      <option value="">Any</option>
+      {% for l in labels %}
+      <option value="{{ l }}">{{ l }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- Toggles -->
+  <div class="space-y-2">
+    <label class="flex items-center justify-between text-sm">
+      <span>Deals only</span>
+      <input id="deal-toggle" type="checkbox" class="h-4 w-4">
+    </label>
+    <label class="flex items-center justify-between text-sm">
+      <span>In stock</span>
+      <input id="stock-toggle" type="checkbox" class="h-4 w-4">
+    </label>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'assets/css/typography.css' %}">
+
+<main class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12 lg:mt-52 mt-14">
+  <!-- Header -->
+  <header class="mb-8">
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900">
+      About {{ site_config.site_name|default:"Our Store" }}
+    </h1>
+  </header>
+
+  <!-- Hero / Intro -->
+  <section class="mb-10">
+    <div class="overflow-hidden rounded-2xl bg-gray-50">
+      <img
+        src="{{ site_config.site_banner.url|default:'' }}"
+        alt="{{ site_config.site_name|default:'Brand' }}"
+        class="w-full h-56 object-cover"
+        onerror="this.style.display='none';"
+      />
+    </div>
+    <article id="pageContent" class="prose prose-neutral max-w-none dark:prose-invert">
+      {# Render HTML from your editor (CKEditor/Summernote). Only safe if you trust editors. #}
+      {{ page.content|safe }}
+    </article>
+  </section>
+
+  <!-- Highlights -->
+  <section class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+    <div class="rounded-2xl border p-6">
+      <h2 class="text-lg font-semibold">What we do</h2>
+      <p class="mt-2 text-gray-700">
+        Curate reliable products, keep prices honest, and deliver fast. No fluff.
+      </p>
+    </div>
+    <div class="rounded-2xl border p-6">
+      <h2 class="text-lg font-semibold">Why people trust us</h2>
+      <p class="mt-2 text-gray-700">
+        Clear policies, easy returns, and support that actually replies.
+      </p>
+    </div>
+  </section>
+
+  <!-- Contact / Meta -->
+  <section class="mt-10 rounded-2xl border p-6">
+    <h2 class="text-lg font-semibold">Contact</h2>
+    <ul class="mt-3 space-y-2 text-gray-700">
+      <li><strong>Address:</strong> {{ site_config.address|default:"—" }}</li>
+      <li><strong>Phone:</strong> {{ site_config.phone|default:"—" }}</li>
+      <li><strong>Email:</strong> {{ site_config.email|default:"—" }}</li>
+      <li><strong>Hours:</strong> {{ site_config.working_hours|default:"—" }}</li>
+    </ul>
+  </section>
+</main>
+{% endblock content %}

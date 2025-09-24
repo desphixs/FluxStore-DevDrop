@@ -104,18 +104,18 @@ class ProductDetailsForm(forms.ModelForm):
         fields = ["category", "name", "description", "status", "is_featured"]
         widgets = {
             "category": forms.Select(attrs={
-                "class": "form-select block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
+                "class": "form-select block w-full mt-1 border border-gray-400 rounded-md focus:ring focus:ring-indigo-200 focus:border-indigo-500 p-2"
             }),
             "name": forms.TextInput(attrs={
-                "class": "form-input block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200",
+                "class": "form-input block w-full mt-1 border border-gray-400 rounded-md focus:ring focus:ring-indigo-200 focus:border-indigo-500 p-2",
                 "maxlength": 255
             }),
             "description": forms.Textarea(attrs={
-                "class": "form-textarea block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200",
+                "class": "form-textarea block w-full mt-1 border border-gray-400 rounded-md focus:ring focus:ring-indigo-200 focus:border-indigo-500 p-2",
                 "rows": 8
             }),
             "status": forms.Select(attrs={
-                "class": "form-select block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
+                "class": "form-select block w-full mt-1 border border-gray-300 rounded-md focus:ring focus:ring-indigo-200 focus:border-indigo-500 p-2"
             }),
             "is_featured": forms.CheckboxInput(attrs={
                 "class": "form-checkbox h-5 w-5 text-indigo-600"

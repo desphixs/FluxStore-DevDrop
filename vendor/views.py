@@ -47,6 +47,124 @@ from userauths.models import VendorProfile, User
 from userauths.forms import UserProfileForm, VendorProfileForm
 
 
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Q, Count, Avg, Min, Max
+from django.db.models.functions import Coalesce
+from django.core.paginator import Paginator
+
+from userauths.models import VendorProfile
+from store.models import Product  # uses your Product.ProductStatus enums
+
+
+def vendors_list(request):
+    q = (request.GET.get("q") or "").strip()
+
+    vendors = (
+        VendorProfile.objects.select_related("user")
+        .annotate(
+            total_products=Count(
+                "user__products",
+                filter=Q(user__products__status=Product.ProductStatus.PUBLISHED),
+                distinct=True,
+            ),
+            avg_rating=Coalesce(Avg("user__products__reviews__rating"), 0.0),
+            reviews_count=Count("user__products__reviews", distinct=True),
+            in_stock_skus=Count(
+                "user__products__variations",
+                filter=Q(
+                    user__products__variations__is_active=True,
+                    user__products__variations__stock_quantity__gt=0,
+                ),
+                distinct=True,
+            ),
+            active_deals=Count(
+                "user__products__variations",
+                filter=Q(
+                    user__products__variations__is_active=True,
+                    user__products__variations__deal_active=True,
+                ),
+                distinct=True,
+            ),
+            min_price=Min(
+                "user__products__variations__sale_price",
+                filter=Q(user__products__variations__is_primary=True),
+            ),
+            max_price=Max(
+                "user__products__variations__sale_price",
+                filter=Q(user__products__variations__is_primary=True),
+            ),
+        )
+        .order_by("-is_verified", "business_name")
+    )
+
+    if q:
+        vendors = vendors.filter(
+            Q(business_name__icontains=q) | Q(user__email__icontains=q)
+        )
+
+    paginator = Paginator(vendors, 24)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(
+        request,
+        "vendor/vendor_list.html",
+        {
+            "page_title": "Vendors",
+            "page_obj": page_obj,
+            "q": q,
+        },
+    )
+
+def vendor_detail(request, slug):
+    vendor = get_object_or_404(
+        VendorProfile.objects.select_related("user"),
+        slug=slug,
+    )
+
+    products_qs = (
+        Product.objects.filter(
+            vendor=vendor.user,
+            status=Product.ProductStatus.PUBLISHED,
+        )
+        .select_related("category")
+        .prefetch_related("images", "variations", "reviews")
+        .order_by("-created_at")
+    )
+
+    stats = products_qs.aggregate(
+        avg_rating=Avg("reviews__rating"),
+        reviews_count=Count("reviews", distinct=True),
+        total_products=Count("id", distinct=True),
+        min_price=Min("variations__sale_price", filter=Q(variations__is_primary=True)),
+        max_price=Max("variations__sale_price", filter=Q(variations__is_primary=True)),
+        in_stock_skus=Count(
+            "variations",
+            filter=Q(variations__is_active=True, variations__stock_quantity__gt=0),
+            distinct=True,
+        ),
+        active_deals=Count(
+            "variations",
+            filter=Q(variations__is_active=True, variations__deal_active=True),
+            distinct=True,
+        ),
+    )
+
+    paginator = Paginator(products_qs, 12)  # 12 per page
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(
+        request,
+        "vendor/vendor_detail.html",
+        {
+            "page_title": vendor.business_name,
+            "vendor": vendor,
+            "page_obj": page_obj,
+            "stats": stats,
+        },
+    )
+
+
+
 
 def _is_ajax(request):
     # fetch() won’t set this automatically, so we just accept JSON or form posts as “ajax”.

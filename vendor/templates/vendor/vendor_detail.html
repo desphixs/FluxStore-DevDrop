@@ -1,0 +1,200 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block content %}
+<main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:mt-52 mt-14">
+
+<section class="relative overflow-visible rounded-2xl border">
+  <div class="h-40 sm:h-52 overflow-hidden rounded-2xl bg-gray-100">
+    {% if vendor.banner %}
+      <img src="{{ vendor.banner.url }}" alt="{{ vendor.business_name }} banner" class="h-full w-full object-cover">
+    {% else %}
+      <div class="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200"></div>
+    {% endif %}
+  </div>
+
+  <!-- Avatar anchored to bottom and pulled out with translate -->
+  <div class="absolute left-6 bottom-40 translate-y-1/2 sm:left-8 sm:translate-y-2/3">
+    <div class="h-20 w-20 sm:h-24 sm:w-24 overflow-hidden rounded-xl border bg-white shadow">
+      {% if vendor.logo %}
+        <img src="{{ vendor.logo.url }}" alt="{{ vendor.business_name }} logo" class="h-full w-full object-contain">
+      {% else %}
+        <div class="flex h-full w-full items-center justify-center text-xs text-gray-400">No logo</div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- spacer so content doesn't collide with avatar -->
+<div class="h-10 sm:h-12"></div>
+
+  <!-- Header + Meta -->
+  <section class="mt-12 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">{{ vendor.business_name }}</h1>
+      <p class="mt-1 text-sm text-gray-600">{{ vendor.business_description|default:"" }}</p>
+
+      <div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-700">
+        {% if vendor.is_verified %}
+          <span class="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Verified</span>
+        {% endif %}
+        {% if vendor.country %}<span>Country: {{ vendor.country }}</span>{% endif %}
+        {% if vendor.currency %}<span>Currency: {{ vendor.currency }}</span>{% endif %}
+        {% if vendor.opening_hours %}<span>Hours: {{ vendor.opening_hours }}</span>{% endif %}
+        {% if vendor.website_url %}
+          <a href="{{ vendor.website_url }}" target="_blank" class="text-[#991b1b] underline">Website</a>
+        {% endif %}
+      </div>
+
+      <div class="mt-2 flex flex-wrap gap-4 text-sm text-gray-700">
+        {% if vendor.business_address %}<span><strong>Address:</strong> {{ vendor.business_address }}</span>{% endif %}
+        {% if vendor.business_phone %}<span><strong>Phone:</strong> {{ vendor.business_phone }}</span>{% endif %}
+        {% if vendor.contact_email %}<span><strong>Email:</strong> {{ vendor.contact_email }}</span>{% endif %}
+      </div>
+
+      {% if vendor.socials %}
+      <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+        {% if vendor.socials.instagram %}<a class="text-gray-600 hover:text-[#991b1b]" href="{{ vendor.socials.instagram }}" target="_blank">Instagram</a>{% endif %}
+        {% if vendor.socials.twitter %}<a class="text-gray-600 hover:text-[#991b1b]" href="{{ vendor.socials.twitter }}" target="_blank">Twitter/X</a>{% endif %}
+        {% if vendor.socials.facebook %}<a class="text-gray-600 hover:text-[#991b1b]" href="{{ vendor.socials.facebook }}" target="_blank">Facebook</a>{% endif %}
+        {% if vendor.socials.tiktok %}<a class="text-gray-600 hover:text-[#991b1b]" href="{{ vendor.socials.tiktok }}" target="_blank">TikTok</a>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div class="rounded-lg border p-3 text-center">
+        <p class="text-xs text-gray-500">Products</p>
+        <p class="text-base font-semibold text-gray-900">{{ stats.total_products|default:0 }}</p>
+      </div>
+      <div class="rounded-lg border p-3 text-center">
+        <p class="text-xs text-gray-500">Avg Rating</p>
+        <p class="text-base font-semibold text-gray-900">{{ stats.avg_rating|default:0|floatformat:1 }}</p>
+      </div>
+      <div class="rounded-lg border p-3 text-center">
+        <p class="text-xs text-gray-500">Reviews</p>
+        <p class="text-base font-semibold text-gray-900">{{ stats.reviews_count|default:0 }}</p>
+      </div>
+      <div class="rounded-lg border p-3 text-center">
+        <p class="text-xs text-gray-500">In-stock SKUs</p>
+        <p class="text-base font-semibold text-gray-900">{{ stats.in_stock_skus|default:0 }}</p>
+      </div>
+      <div class="rounded-lg border p-3 text-center">
+        <p class="text-xs text-gray-500">Active deals</p>
+        <p class="text-base font-semibold text-gray-900">{{ stats.active_deals|default:0 }}</p>
+      </div>
+      <div class="rounded-lg border p-3 text-center">
+        <p class="text-xs text-gray-500">Price</p>
+        <p class="text-base font-semibold text-gray-900">
+          {% if stats.min_price and stats.max_price %}${{ stats.min_price }} – ${{ stats.max_price }}{% else %}—{% endif %}
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Policies (collapsible) -->
+  {% if vendor.shipping_policy or vendor.return_policy %}
+  <section class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+    {% if vendor.shipping_policy %}
+    <details class="rounded-2xl border p-5">
+      <summary class="cursor-pointer text-base font-semibold text-gray-900">Shipping Policy</summary>
+      <div class="prose prose-sm mt-3 max-w-none text-gray-700">{{ vendor.shipping_policy|linebreaks }}</div>
+    </details>
+    {% endif %}
+    {% if vendor.return_policy %}
+    <details class="rounded-2xl border p-5">
+      <summary class="cursor-pointer text-base font-semibold text-gray-900">Return Policy</summary>
+      <div class="prose prose-sm mt-3 max-w-none text-gray-700">{{ vendor.return_policy|linebreaks }}</div>
+    </details>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <!-- Product Grid -->
+  <section class="mt-10">
+    <div class="mb-3 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-gray-900">Products</h2>
+      <p class="text-sm text-gray-600">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+    </div>
+
+    {% if page_obj.object_list %}
+    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for p in page_obj.object_list %}
+      <!-- EXACT CARD YOU PROVIDED -->
+      <div
+          class="relative flex flex-col overflow-hidden rounded-xl h-fit border border-gray-200 bg-white transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-lg">
+          <span
+              class="absolute left-3 top-3 rounded-md {{p.primary_item.label_color}} px-2.5 py-1 text-xs font-semibold text-white">{{p.primary_item.label}}</span>
+
+          {% if p.primary_item.show_discount_type == "price" %}
+          <span class="absolute left-3 top-10  rounded-md bg-black px-2.5 py-1 text-xs font-semibold text-white">
+              ${{p.primary_item.discount_amount|floatformat:0}} OFF</span>
+          {% endif %}
+
+          {% if p.primary_item.show_discount_type == "percentage" %}
+          <span class="absolute left-3 top-10 rounded-md bg-black border-0.5 px-2.5 py-1 text-xs font-semibold text-white">
+              {{p.primary_item.discount_amount|floatformat:0}}% OFF</span>
+          {% endif %}
+
+          <a href="{% url 'store:product_detail' p.slug %}">
+              <img src="{{p.primary_image.image.url}}" alt="{{ p.name }}"
+                  class="h-[16rem] w-full object-contain" />
+          </a>
+
+          <div class="p-4">
+              <p class="text-xs text-gray-500"> <a href="">{{p.category.name}}</a></p>
+              <h3 class="mb-2  text-sm font-semibold text-gray-800"><a href="{% url 'store:product_detail' p.slug %}">{{p.name}}</a></h3>
+              <div class="mb-2 flex items-center text-sm">
+                  <span class="text-yellow-600">
+                      {% for i in "12345" %}
+                      {% if forloop.counter <= p.average_rating_int %}★{% else %}☆{% endif %} {% endfor %} </span>
+                          <span class="ml-1 text-gray-400">({{p.average_rating_int}})</span>
+              </div>
+              <p class="text-xs text-gray-500">By: {{p.vendor.vendor_profile.business_name}}</p>
+
+              <div class="mt-auto flex items-center justify-between">
+                  <div>
+                      <span class="text-lg font-bold text-gray-900">${{p.primary_item.sale_price}}</span>
+
+                      {% if p.primary_item.show_regular_price %}
+                      <span class="text-sm font-light text-gray-400 line-through">${{p.primary_item.regular_price}}</span>
+                      {% endif %}
+
+                  </div>
+                  <button data-product-id="{{ p.id }}"
+                      data-variation-id="{{ p.primary_item.id }}"
+                      class="add-to-cart rounded-lg bg-[#991B1B] px-4 py-2 text-sm font-bold text-white transition-colors duration-300  hover:bg-[#b32727] hover:text-white">
+                      ＋ Add
+                  </button>
+              </div>
+          </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-8 flex items-center justify-center gap-2">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="rounded-lg border px-3 py-2 text-sm">Prev</a>
+      {% else %}
+        <button class="rounded-lg border px-3 py-2 text-sm opacity-40" disabled>Prev</button>
+      {% endif %}
+
+      <span class="text-sm text-gray-700">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="rounded-lg border px-3 py-2 text-sm">Next</a>
+      {% else %}
+        <button class="rounded-lg border px-3 py-2 text-sm opacity-40" disabled>Next</button>
+      {% endif %}
+    </div>
+
+    {% else %}
+      <div class="rounded-2xl border p-10 text-center text-gray-600">
+        This vendor hasn’t published any products yet.
+      </div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

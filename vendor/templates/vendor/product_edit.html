@@ -343,11 +343,11 @@
           <div id="imagesGrid" class="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {% for im in images %}
               <div class="relative rounded-lg overflow-hidden border border-gray-200" data-image-id="{{ im.id }}">
-                <img src="{{ im.image.url }}" class="h-36 w-full object-cover" alt="">
+                <img src="{{ im.image.url }}" class="h-52 w-full object-contain" alt="">
                 <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 flex items-center justify-between">
-                  <div class="text-[11px] text-white">
-                    {% if im.is_primary %}<span class="px-2 py-0.5 rounded bg-emerald-600">Primary</span>{% endif %}
-                  </div>
+                  <div class="text-[11px] text-white" data-badge-slot>
+                      {% if im.is_primary %}<span class="primary-badge px-2 py-0.5 rounded bg-emerald-600">Primary</span>{% endif %}
+                    </div>
                   <div class="flex items-center gap-1">
                     <button class="rounded bg-white/90 text-gray-900 px-2 py-1 text-[11px]" data-primary-image="{{ im.id }}">Primary</button>
                     <button class="rounded bg-white/90 text-rose-700 px-2 py-1 text-[11px]" data-del-image="{{ im.id }}">Delete</button>
@@ -464,9 +464,11 @@ function csrf() {
         (res.images || []).forEach(i=>{
           imagesGrid.insertAdjacentHTML('afterbegin', `
             <div class="relative rounded-lg overflow-hidden border border-gray-200" data-image-id="${i.id}">
-              <img src="${i.url}" class="h-36 w-full object-cover" alt="">
+              <img src="${i.url}" class="h-52 w-full object-contain" alt="">
               <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 flex items-center justify-between">
-                <div class="text-[11px] text-white">${i.is_primary ? '<span class="px-2 py-0.5 rounded bg-emerald-600">Primary</span>' : ''}</div>
+                <div class="text-[11px] text-white" data-badge-slot>
+                  ${i.is_primary ? '<span class="primary-badge px-2 py-0.5 rounded bg-emerald-600">Primary</span>' : ''}
+                </div>
                 <div class="flex items-center gap-1">
                   <button class="rounded bg-white/90 text-gray-900 px-2 py-1 text-[11px]" data-primary-image="${i.id}">Primary</button>
                   <button class="rounded bg-white/90 text-rose-700 px-2 py-1 text-[11px]" data-del-image="${i.id}">Delete</button>
@@ -482,9 +484,27 @@ function csrf() {
     imagesGrid.addEventListener('click', async (e)=>{
       const card = e.target.closest('[data-image-id]'); if(!card) return;
       const id = card.getAttribute('data-image-id');
-      if(e.target.closest('[data-primary-image]')){
+      // if(e.target.closest('[data-primary-image]')){
+      //   const res = await postJSON(root.dataset.urlImagePrimary.replace(/\/0\//, `/${id}/`));
+      //   if(res?.ok) toast('Image marked as primary.', true); else toast('Failed.', true);
+      // }
+      if (e.target.closest('[data-primary-image]')) {
         const res = await postJSON(root.dataset.urlImagePrimary.replace(/\/0\//, `/${id}/`));
-        if(res?.ok) location.reload(); else toast('Failed.', true);
+        if (res?.ok) {
+          // 1) clear any existing primary badges
+          imagesGrid.querySelectorAll('.primary-badge').forEach(el => el.remove());
+
+          // 2) add primary badge to this card’s slot
+          const slot = card.querySelector('[data-badge-slot]');
+          if (slot) {
+            slot.innerHTML = '<span class="primary-badge px-2 py-0.5 rounded bg-emerald-600">Primary</span>';
+          }
+
+          // 3) green toast
+          toast('Image marked as primary.', false);
+        } else {
+          toast2(res?.message || 'Failed.', 'error');
+        }
       }
       if(e.target.closest('[data-del-image]')){
         if(!confirm('Delete this image?')) return;
@@ -543,6 +563,24 @@ function csrf() {
     el.textContent = msg; toastWrap.appendChild(el);
     setTimeout(()=>{ el.remove(); }, 2500);
   }
+
+  function toast2(msg, type='info'){
+  // backward-compat for old boolean calls
+  if (type === true) type = 'error';
+  if (type === false) type = 'info';
+
+  const styles = {
+    info: 'bg-gray-900 text-white',
+    success: 'bg-emerald-600 text-white',
+    error: 'bg-rose-600 text-white'
+  };
+
+  const el = document.createElement('div');
+  el.className = `rounded-lg px-3 py-2 text-sm shadow ${styles[type] || styles.info}`;
+  el.textContent = msg;
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(()=> el.remove(), 2500);
+}
 
   // ---- Variation dictionary handlers ----
   const grid = document.getElementById('varcatGrid');

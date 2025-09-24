@@ -1,0 +1,126 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'assets/css/typography.css' %}">
+
+
+<main class="container mx-auto max-w-5xl px-4 py-10 lg:mt-52 mt-14">
+  {# Optional breadcrumb if you want to pass one later #}
+  {% if breadcrumb %}
+    <nav aria-label="Breadcrumb" class="mb-6 text-sm text-muted-foreground">
+      {{ breadcrumb|safe }}
+    </nav>
+  {% endif %}
+
+  {# Hero / Title #}
+  <header class="mb-8">
+    {% if page.hero_image %}
+      <figure class="mb-6 overflow-hidden rounded-2xl">
+        <img src="{{ page.hero_image }}" alt="{{ page.title }}" class="w-full object-cover">
+      </figure>
+    {% endif %}
+
+    <h1 class="text-3xl md:text-4xl font-bold tracking-tight">{{ page.title }}</h1>
+
+    <div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+      {% if page.meta_description %}
+        <p class="line-clamp-2">{{ page.meta_description }}</p>
+      {% endif %}
+
+      {# Meta row: updated + reading time #}
+      <div class="flex items-center gap-2">
+        <span>Last updated:</span>
+        <time datetime="{{ page.updated_at|date:'c' }}">{{ page.updated_at|date:"M d, Y" }}</time>
+        <span>•</span>
+        <span id="readingTime">—</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="grid grid-cols-1 lg:grid-cols-[220px,1fr] gap-8">
+    {# Auto-generated Table of Contents (desktop) #}
+    <aside class="hidden lg:block">
+      <div class="sticky top-24">
+        <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">On this page</p>
+        <nav id="toc" class="space-y-2 text-sm"></nav>
+      </div>
+    </aside>
+
+    {# Content #}
+    <article id="pageContent" class="prose prose-neutral max-w-none dark:prose-invert">
+      {# Render HTML from your editor (CKEditor/Summernote). Only safe if you trust editors. #}
+      {{ page.content|safe }}
+    </article>
+  </section>
+
+  {# Footer actions: print / share (simple) #}
+  <footer class="mt-12 flex flex-wrap gap-3">
+    <button type="button" onclick="window.print()" class="rounded-xl border px-4 py-2 text-sm hover:bg-muted">
+      Print this page
+    </button>
+    <button type="button" id="copyLinkBtn" class="rounded-xl border px-4 py-2 text-sm hover:bg-muted">
+      Copy link
+    </button>
+  </footer>
+</main>
+
+<script>
+  // --- Reading time (approx 200 wpm) ---
+  (function () {
+    const contentEl = document.getElementById('pageContent');
+    if (!contentEl) return;
+    const text = contentEl.innerText || '';
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    const minutes = Math.max(1, Math.round(words / 200));
+    const rt = document.getElementById('readingTime');
+    if (rt) rt.textContent = minutes + ' min read';
+  })();
+
+  // --- Build TOC from h2/h3 ---
+  (function () {
+    const contentEl = document.getElementById('pageContent');
+    const tocEl = document.getElementById('toc');
+    if (!contentEl || !tocEl) return;
+
+    const headings = contentEl.querySelectorAll('h2, h3');
+    if (!headings.length) {
+      tocEl.innerHTML = '<span class="text-muted-foreground">No sections</span>';
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    headings.forEach((h, idx) => {
+      // Ensure each heading has an id
+      if (!h.id) {
+        h.id = (h.textContent || 'section-' + idx)
+          .toLowerCase()
+          .replace(/[^\w]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+      }
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent || h.id;
+      a.className = 'block hover:underline ' + (h.tagName === 'H3' ? 'pl-4' : '');
+      frag.appendChild(a);
+    });
+    tocEl.appendChild(frag);
+  })();
+
+  // --- Copy link ---
+  (function () {
+    const btn = document.getElementById('copyLinkBtn');
+    if (!btn || !navigator.clipboard) return;
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        btn.textContent = 'Link copied!';
+        setTimeout(() => (btn.textContent = 'Copy link'), 1500);
+      } catch (e) {
+        btn.textContent = 'Failed to copy';
+        setTimeout(() => (btn.textContent = 'Copy link'), 1500);
+      }
+    });
+  })();
+</script>
+
+{% endblock content %}

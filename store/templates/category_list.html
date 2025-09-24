@@ -1,0 +1,46 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block content %}
+<main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:mt-52 mt-14">
+  <header class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Shop by Category</h1>
+    <p class="text-sm text-gray-600">Browse all top categories.</p>
+  </header>
+
+  {% if categories %}
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+    {% for c in categories %}
+    <article class="group overflow-hidden rounded-2xl border bg-white shadow-sm hover:shadow-lg transition">
+      <a href="{% url 'store:category_detail' c.slug c.id %}">
+        <div class="h-28 bg-gray-50">
+          {% if c.image %}
+            <img src="{{ c.image.url }}" alt="{{ c.name }}" class="h-full w-full object-cover">
+          {% else %}
+            <div class="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200"></div>
+          {% endif %}
+        </div>
+        <div class="p-4">
+          <h2 class="font-semibold text-gray-900 group-hover:text-[#991b1b] truncate">{{ c.name }}</h2>
+          {% with total=c.direct_products|add:c.child_products %}
+          <p class="mt-1 text-sm text-gray-600">
+            {{ total }} product{{ total|pluralize }}
+          </p>
+          {% endwith %}
+          {% if c.children.all %}
+            <p class="mt-1 text-xs text-gray-500 line-clamp-1">
+              {% for ch in c.children.all %}{{ ch.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            </p>
+          {% endif %}
+        </div>
+      </a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="rounded-2xl border p-10 text-center text-gray-600">
+      No categories yet.
+    </div>
+  {% endif %}
+</main>
+{% endblock %}

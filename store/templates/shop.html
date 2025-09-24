@@ -1,0 +1,289 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block content %}
+<main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 mt-32">
+  <!-- Header -->
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Shop</h1>
+      <p class="text-sm text-gray-600">Browse products, filter deeply, and search with typos. No reloads.</p>
+    </div>
+    <button id="open-filters" class="md:hidden inline-flex items-center rounded-lg border px-3 py-2 text-sm">
+      Filters
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+    <!-- Sidebar -->
+    <aside class="md:col-span-3">
+      <!-- Desktop panel -->
+      <div class="hidden md:block sticky top-24 space-y-6 rounded-2xl border p-4">
+        {% include "_filters_panel.html" %}
+      </div>
+
+      <!-- Mobile off-canvas -->
+      <div id="filters-drawer" class="fixed inset-0 z-40 hidden">
+        <div id="drawer-overlay" class="absolute inset-0 bg-black/40"></div>
+        <div class="absolute left-0 top-0 h-full w-80 max-w-[85%] -translate-x-full bg-white p-4 shadow-xl transition-transform" id="drawer-panel">
+          <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Filters</h2>
+            <button id="close-filters" class="rounded-md border px-2 py-1 text-sm">Close</button>
+          </div>
+          {% include "_filters_panel.html" %}
+        </div>
+      </div>
+    </aside>
+
+    <!-- Products -->
+    <section class="md:col-span-9">
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <div class="relative w-full max-w-md">
+          <input id="search-input" type="text" placeholder="Search products…"
+                 class="w-full rounded-lg border px-3 py-2 pr-9 focus:outline-none focus:ring-2 focus:ring-[#991b1b]">
+          <svg class="pointer-events-none absolute right-3 top-2.5 h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none">
+            <path d="M21 21l-4.3-4.3M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+
+        <select id="sort-select" class="rounded-lg border px-3 py-2">
+          <option value="newest">Newest</option>
+          <option value="price_low">Price: Low to High</option>
+          <option value="price_high">Price: High to Low</option>
+          <option value="rating">Top Rated</option>
+          <option value="popular">Most Reviewed</option>
+        </select>
+      </div>
+
+      <div id="results-meta" class="mb-3 text-sm text-gray-600"></div>
+
+      <div id="products-grid" class="grid grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+      <div id="pager" class="mt-6 flex items-center justify-center gap-3">
+        <button id="prev-page" class="rounded-lg border px-3 py-2 text-sm disabled:opacity-40">Prev</button>
+        <span id="page-indicator" class="text-sm text-gray-700"></span>
+        <button id="next-page" class="rounded-lg border px-3 py-2 text-sm disabled:opacity-40">Next</button>
+      </div>
+
+      <div id="empty-state" class="mt-8 hidden text-center text-gray-600">
+        No products found. Try adjusting filters or spelling.
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Shared filters partial (inline include target) -->
+{% comment %} _filters_panel.html {% endcomment %}
+{% block filters_partial %}
+{% endblock %}
+
+<script>
+// ------------- Drawer (mobile) -------------
+const openBtn = document.getElementById('open-filters');
+const drawer = document.getElementById('filters-drawer');
+const drawerPanel = document.getElementById('drawer-panel');
+const drawerOverlay = document.getElementById('drawer-overlay');
+const closeBtn = document.getElementById('close-filters');
+
+function openDrawer() {
+  drawer.classList.remove('hidden');
+  requestAnimationFrame(() => {
+    drawerPanel.classList.remove('-translate-x-full');
+  });
+}
+function closeDrawer() {
+  drawerPanel.classList.add('-translate-x-full');
+  setTimeout(() => drawer.classList.add('hidden'), 200);
+}
+if (openBtn) openBtn.addEventListener('click', openDrawer);
+if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
+
+// ------------- Filters state -------------
+const state = {
+  q: "",
+  category: "",
+  label: "",
+  deal: false,
+  stock: false,
+  min_price: "",
+  max_price: "",
+  rating_min: "",
+  sort: "newest",
+  page: 1,
+  page_size: 24,
+};
+
+const els = {
+  search: document.getElementById('search-input'),
+  sort: document.getElementById('sort-select'),
+  products: document.getElementById('products-grid'),
+  meta: document.getElementById('results-meta'),
+  empty: document.getElementById('empty-state'),
+  pager: {
+    prev: document.getElementById('prev-page'),
+    next: document.getElementById('next-page'),
+    indicator: document.getElementById('page-indicator')
+  },
+  // sidebar inputs will be queried later
+};
+
+// ------------- Sidebar bindings -------------
+function qs(sel, root=document){ return root.querySelector(sel) }
+function qsa(sel, root=document){ return Array.from(root.querySelectorAll(sel)) }
+
+function bindSidebar() {
+  const rootDesktop = document.querySelector('.md\\:block .space-y-6');
+  const rootMobile = drawerPanel;
+
+  // Category radios
+  qsa('input[name="category"]', rootDesktop).concat(qsa('input[name="category"]', rootMobile))
+    .forEach(r => r.addEventListener('change', () => { state.category = r.value; state.page = 1; fetchAndRender(); }));
+
+  // Label select
+  qsa('#label-select', rootDesktop).concat(qsa('#label-select', rootMobile))
+    .forEach(s => s.addEventListener('change', () => { state.label = s.value; state.page = 1; fetchAndRender(); }));
+
+  // Toggles
+  qsa('#deal-toggle', rootDesktop).concat(qsa('#deal-toggle', rootMobile))
+    .forEach(t => t.addEventListener('change', () => { state.deal = t.checked; state.page = 1; fetchAndRender(); }));
+  qsa('#stock-toggle', rootDesktop).concat(qsa('#stock-toggle', rootMobile))
+    .forEach(t => t.addEventListener('change', () => { state.stock = t.checked; state.page = 1; fetchAndRender(); }));
+
+  // Price
+  const minInputs = qsa('#min-price', rootDesktop).concat(qsa('#min-price', rootMobile));
+  const maxInputs = qsa('#max-price', rootDesktop).concat(qsa('#max-price', rootMobile));
+  const applyBtns = qsa('#apply-price', rootDesktop).concat(qsa('#apply-price', rootMobile));
+  applyBtns.forEach(btn => btn.addEventListener('click', () => {
+    state.min_price = minInputs[0].value;
+    state.max_price = maxInputs[0].value;
+    state.page = 1;
+    fetchAndRender();
+  }));
+
+  // Rating
+  qsa('input[name="rating_min"]', rootDesktop).concat(qsa('input[name="rating_min"]', rootMobile))
+    .forEach(r => r.addEventListener('change', () => { state.rating_min = r.value; state.page = 1; fetchAndRender(); }));
+}
+
+bindSidebar();
+
+// ------------- Search + Sort -------------
+let searchTimer = null;
+els.search.addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    state.q = e.target.value.trim();
+    state.page = 1;
+    fetchAndRender();
+  }, 250);
+});
+els.sort.addEventListener('change', () => {
+  state.sort = els.sort.value;
+  state.page = 1;
+  fetchAndRender();
+});
+
+// ------------- Pagination -------------
+els.pager.prev.addEventListener('click', () => {
+  if (els.pager.prev.disabled) return;
+  state.page = Math.max(1, state.page - 1);
+  fetchAndRender();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+els.pager.next.addEventListener('click', () => {
+  if (els.pager.next.disabled) return;
+  state.page = state.page + 1;
+  fetchAndRender();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// ------------- Renderer -------------
+function stars(rInt) {
+  let s = '';
+  for (let i=1; i<=5; i++) s += (i<=rInt ? '★' : '☆');
+  return s;
+}
+function productCardHTML(p) {
+  const labelColor = p.primary.label_color || "bg-gray-300 text-black";
+  const discountTag = (p.primary.show_discount_type === "price")
+    ? `<span class="absolute left-3 top-10 rounded-md bg-black px-2.5 py-1 text-xs font-semibold text-white">$${Math.round(p.primary.discount_amount)} OFF</span>`
+    : (p.primary.show_discount_type === "percentage")
+      ? `<span class="absolute left-3 top-10 rounded-md bg-black px-2.5 py-1 text-xs font-semibold text-white">${Math.round(p.primary.discount_amount)}% OFF</span>`
+      : "";
+
+  const regular = p.primary.show_regular_price
+    ? `<span class="text-sm font-light text-gray-400 line-through">$${p.primary.regular_price}</span>`
+    : "";
+
+  return `
+<div class="relative flex flex-col overflow-hidden rounded-xl h-fit border border-gray-200 bg-white transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-lg">
+  <span class="absolute left-3 top-3 rounded-md ${labelColor} px-2.5 py-1 text-xs font-semibold text-white">${p.primary.label}</span>
+  ${discountTag}
+  <a href="{% url 'store:product_detail' 'SLUG' %}".replace('SLUG', p.slug)>
+    <img src="${p.image_url || ''}" alt="${p.name}" class="h-[16rem] w-full object-contain"/>
+  </a>
+  <div class="p-4">
+    <p class="text-xs text-gray-500">${p.category?.name || ''}</p>
+    <h3 class="mb-2 text-sm font-semibold text-gray-800">
+      <a href="{% url 'store:product_detail' 'SLUG' %}".replace('SLUG', p.slug)>${p.name}</a>
+    </h3>
+    <div class="mb-2 flex items-center text-sm">
+      <span class="text-yellow-600">${stars(p.average_rating_int)}</span>
+      <span class="ml-1 text-gray-400">(${p.average_rating_int})</span>
+    </div>
+    <p class="text-xs text-gray-500">By: ${p.vendor_name || ''}</p>
+    <div class="mt-auto flex items-center justify-between">
+      <div>
+        <span class="text-lg font-bold text-gray-900">$${p.primary.sale_price}</span>
+        ${regular}
+      </div>
+      <button data-product-id="${p.id}" class="add-to-cart rounded-lg bg-[#991B1B] px-4 py-2 text-sm font-bold text-white transition-colors duration-300 hover:bg-[#b32727]">
+        ＋ Add
+      </button>
+    </div>
+  </div>
+</div>`;
+}
+
+function render(items, meta) {
+  if (!items.length) {
+    els.products.innerHTML = "";
+    els.empty.classList.remove('hidden');
+  } else {
+    els.empty.classList.add('hidden');
+    els.products.innerHTML = items.map(productCardHTML).join("");
+  }
+  els.meta.textContent = `${meta.total} result${meta.total===1?'':'s'} • Page ${meta.page} of ${meta.total_pages}`;
+  els.pager.indicator.textContent = `Page ${meta.page} / ${meta.total_pages}`;
+  els.pager.prev.disabled = meta.page <= 1;
+  els.pager.next.disabled = meta.page >= meta.total_pages;
+}
+
+// ------------- Fetcher -------------
+async function fetchAndRender() {
+  const params = new URLSearchParams({
+    q: state.q,
+    category: state.category,
+    label: state.label,
+    deal: state.deal ? "1" : "0",
+    stock: state.stock ? "1" : "0",
+    min_price: state.min_price || "",
+    max_price: state.max_price || "",
+    rating_min: state.rating_min || "",
+    sort: state.sort,
+    page: String(state.page),
+    page_size: String(state.page_size),
+  });
+  const url = "{% url 'store:product_list_api' %}?" + params.toString();
+  const res = await fetch(url);
+  const data = await res.json();
+  if (data.ok) {
+    render(data.items, data);
+  } else {
+    render([], { total:0, page:1, total_pages:1 });
+  }
+}
+fetchAndRender();
+</script>
+{% endblock %}

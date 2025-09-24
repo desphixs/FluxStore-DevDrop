@@ -125,7 +125,8 @@ class Address(models.Model):
 
 
 
-@receiver(post_save, sender=User)
-def ensure_user_profile(sender, instance, created, **kwargs):
-    if created and not hasattr(instance, "profile"):
-        UserProfile.objects.create(user=instance)
+# @receiver(post_save, sender=User)
+# def ensure_user_profile(sender, instance, created, **kwargs):
+#     if created:
+#         # Safe if something else already created it
+#         UserProfile.objects.get_or_create(user=instance)

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import shoppage
 
 app_name = 'store'  # Optional: Use a namespace for better URL management
 
@@ -23,6 +24,13 @@ urlpatterns = [
     # Coupon
     path('coupon/apply/', views.apply_coupon, name='apply_coupon'),
     path('coupon/remove/', views.remove_coupon, name='remove_coupon'),
+
+    # Shop and filtering
+    path("shop/", shoppage.shop, name="shop"),
+    path("api/products/", shoppage.product_list_api, name="product_list_api"),
+
+    path("categories/", views.category_list, name="category_list"),
+    path("categories/<slug:slug>-<int:pk>/", views.category_detail, name="category_detail"),
    
     path('<slug:slug>/', views.product_detail_view, name='product_detail'),
 ]

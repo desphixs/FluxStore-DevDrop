@@ -7,6 +7,8 @@ from django.views.decorators.csrf import csrf_protect
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.conf import settings
+from django.db.models import Q, Count
+from django.core.paginator import Paginator
 
 from decimal import Decimal, getcontext, ROUND_HALF_UP
 import json
@@ -189,6 +191,77 @@ def product_detail_view(request, slug):
         'related_products': related_products,
     }
     return render(request, 'product_detail.html', context)
+
+def category_list(request):
+    """
+    Top-level categories with product counts.
+    Count = direct products in this category + products in immediate children.
+    (Keeps it fast; if you need deep recursion later, we can add a CTE.)
+    """
+    cats = (
+        store_models.Category.objects.filter(is_active=True, parent__isnull=True)
+        .annotate(
+            direct_products=Count(
+                "products",
+                filter=Q(products__status=store_models.Product.ProductStatus.PUBLISHED),
+                distinct=True,
+            ),
+            child_products=Count(
+                "children__products",
+                filter=Q(children__products__status=store_models.Product.ProductStatus.PUBLISHED),
+                distinct=True,
+            ),
+        )
+        .order_by("name")
+        .prefetch_related("children")
+    )
+
+    return render(
+        request,
+        "category_list.html",
+        {"page_title": "Categories", "categories": cats},
+    )
+
+
+def category_detail(request, slug, pk):
+    """
+    Category detail: shows this category, its immediate subcategories,
+    and all published products in this category OR any of its children.
+    """
+    category = get_object_or_404(
+        store_models.Category.objects.filter(is_active=True).select_related("parent"),
+        pk=pk,
+        slug=slug,
+    )
+
+    subcats = store_models.Category.objects.filter(is_active=True, parent=category).order_by("name")
+
+    products_qs = (
+        store_models.Product.objects.filter(status=store_models.Product.ProductStatus.PUBLISHED)
+        .filter(Q(category=category) | Q(category__parent=category))
+        .select_related("category", "vendor")
+        .prefetch_related("images", "variations", "reviews")
+        .order_by("-created_at")
+    )
+
+    paginator = Paginator(products_qs, 12)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    # counts for UI
+    total_products = products_qs.count()
+
+    return render(
+        request,
+        "category_detail.html",
+        {
+            "page_title": category.name,
+            "category": category,
+            "subcategories": subcats,
+            "page_obj": page_obj,
+            "total_products": total_products,
+        },
+    )
+
 
 @require_POST
 @csrf_protect

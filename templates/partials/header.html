@@ -6,10 +6,10 @@
     <div id="top-bar"
         class="hidden md:flex justify-between items-center px-6 py-2 text-sm border-b border-transparent transition-all duration-300">
         <div class="flex space-x-4">
-            <a href="#" class="hover:underline">About Us </a>
+            <a href="{% url 'addon:about' %}" class="hover:underline">About Us </a>
             <a href="{% url 'customer:dashboard' %}" class="hover:underline">My Account</a>
-            <a href="#" class="hover:underline">Wishlist</a>
-            <a href="#" class="hover:underline">Order Tracking</a>
+            <a href="{% url 'customer:wishlist' %}" class="hover:underline">Wishlist</a>
+            <!-- <a href="#" class="hover:underline">Order Tracking</a> -->
         </div>
         <div class="flex items-center space-x-4">
             <span>Need help? Call Us: <span class="text-yellow-400 font-bold">{{site_config.phone}}</span></span>
@@ -38,7 +38,7 @@
 
         <div class="flex items-center space-x-4 md:space-x-6">
            
-            <a href="#" class="relative flex items-center">
+            <a href="{% url 'customer:wishlist' %}" class="relative flex items-center">
                 <i class="fa fa-heart mr-1"></i> <span class="hidden md:inline">Wishlist</span>
                 <span class="absolute -top-2 -right-3 bg-[#B01F00] text-xs rounded-full px-2">6</span>
             </a>
@@ -73,15 +73,13 @@
             <i class="fa fa-list mr-2"></i> Browse All Categories
         </button>
         <div id="desktop-links" class="flex space-x-6">
-            <a href="#">Men</a>
-            <a href="#">Kids</a>
-            <a href="#">Deals</a>
-            <a href="#">Home</a>
-            <a href="#">About</a>
-            <a href="#">Shop</a>
-            <a href="#">Vendors</a>
-            <a href="#">Mega menu</a>
-            <a href="#">Contact</a>
+            <a href="/">Home</a>
+            <a href="{% url 'store:category_list' %}">Categories</a>
+            <a href="{% url 'store:shop' %}">Deals</a>
+            <a href="{% url 'addon:about' %}">About</a>
+            <a href="{% url 'store:shop' %}">Shop</a>
+            <a href="{% url 'vendor:vendor_list' %}">Vendors</a>
+            <a href="{% url 'addon:contact' %}">Contact</a>
         </div>
         <div class="flex items-center space-x-2">
             <i class="fa fa-headphones text-2xl"></i>
