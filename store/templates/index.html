@@ -234,12 +234,12 @@
 
                             <div class="flex justify-between items-center mt-6">
                                 <div class="flex items-baseline">
-                                    <span class="text-2xl font-bold text-black">${{item.sale_price}}</span>
+                                    <span class="text-2xl font-bold text-black">{{site_config.currency_abbr}}{{item.sale_price}}</span>
 
                                     {% if item.show_regular_price %}
 
 
-                                    <span class="text-sm text-gray-400 line-through ml-2">${{item.regular_price}}</span>
+                                    <span class="text-sm text-gray-400 line-through ml-2">{{site_config.currency_abbr}}{{item.regular_price}}</span>
                                     {% endif %}
                                 </div>
                                 <button
@@ -290,11 +290,11 @@
                                 {{p.name}}</p>
                             <div class="flex items-center mt-1 text-xs text-gray-500">({{p.average_rating_int}})</div>
                             <div class="flex items-baseline mt-1">
-                                <span class="text-md font-bold text-[#F9CB15]">${{p.primary_item.sale_price}}</span>
+                                <span class="text-md font-bold text-[#F9CB15]">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
 
                                 {% if p.primary_item.show_regular_price %}
                                 <span
-                                    class="text-xs text-gray-400 line-through ml-2">${{p.primary_item.regular_price}}</span>
+                                    class="text-xs text-gray-400 line-through ml-2">{{site_config.currency_abbr}}{{p.primary_item.regular_price}}</span>
                                 {% endif %}
 
                             </div>
@@ -329,11 +329,11 @@
                                 {{p.name}}</p>
                             <div class="flex items-center mt-1 text-xs text-gray-500">({{p.average_rating_int}})</div>
                             <div class="flex items-baseline mt-1">
-                                <span class="text-md font-bold text-[#F9CB15]">${{p.primary_item.sale_price}}</span>
+                                <span class="text-md font-bold text-[#F9CB15]">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
 
                                 {% if p.primary_item.show_regular_price %}
                                 <span
-                                    class="text-xs text-gray-400 line-through ml-2">${{p.primary_item.regular_price}}</span>
+                                    class="text-xs text-gray-400 line-through ml-2">{{site_config.currency_abbr}}{{p.primary_item.regular_price}}</span>
                                 {% endif %}
 
                             </div>
@@ -366,11 +366,11 @@
                                 {{p.name}}</p>
                             <div class="flex items-center mt-1 text-xs text-gray-500">({{p.average_rating_int}})</div>
                             <div class="flex items-baseline mt-1">
-                                <span class="text-md font-bold text-[#F9CB15]">${{p.primary_item.sale_price}}</span>
+                                <span class="text-md font-bold text-[#F9CB15]">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
 
                                 {% if p.primary_item.show_regular_price %}
                                 <span
-                                    class="text-xs text-gray-400 line-through ml-2">${{p.primary_item.regular_price}}</span>
+                                    class="text-xs text-gray-400 line-through ml-2">{{site_config.currency_abbr}}{{p.primary_item.regular_price}}</span>
                                 {% endif %}
 
                             </div>
@@ -403,11 +403,11 @@
                                 {{p.name}}</p>
                             <div class="flex items-center mt-1 text-xs text-gray-500">({{p.average_rating_int}})</div>
                             <div class="flex items-baseline mt-1">
-                                <span class="text-md font-bold text-[#F9CB15]">${{p.primary_item.sale_price}}</span>
+                                <span class="text-md font-bold text-[#F9CB15]">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
 
                                 {% if p.primary_item.show_regular_price %}
                                 <span
-                                    class="text-xs text-gray-400 line-through ml-2">${{p.primary_item.regular_price}}</span>
+                                    class="text-xs text-gray-400 line-through ml-2">{{site_config.currency_abbr}}{{p.primary_item.regular_price}}</span>
                                 {% endif %}
 
                             </div>

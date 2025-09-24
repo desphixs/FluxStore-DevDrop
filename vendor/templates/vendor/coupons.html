@@ -86,7 +86,7 @@
               {% if c.discount_type == "PERCENT" %}
                 {{ c.percent_off|default:0 }}%
               {% else %}
-                ₹{{ c.amount_off|default:0|floatformat:2 }}
+                {{site_config.currency_abbr}}{{ c.amount_off|default:0|floatformat:2 }}
               {% endif %}
             </div>
           </div>
@@ -95,7 +95,7 @@
             <div class="font-medium">{{ c.redemptions_count|default:0 }}</div>
           </div>
           <div class="rounded-lg border border-gray-100 p-2">
-            <div class="text-xs text-gray-500">Discount ₹</div>
+            <div class="text-xs text-gray-500">Discount {{site_config.currency_abbr}}</div>
             <div class="font-medium">{{ c.discount_granted_total|default:0|floatformat:2 }}</div>
           </div>
         </div>
@@ -118,8 +118,8 @@
           <div class="rounded-lg border border-gray-100 p-2">
             <div class="text-[11px] text-gray-500">Limits</div>
             <div class="mt-0.5">
-              Min: {% if c.min_order_amount %}₹{{ c.min_order_amount|floatformat:2 }}{% else %}—{% endif %}
-              {% if c.max_discount_amount %} • Cap: ₹{{ c.max_discount_amount|floatformat:2 }}{% endif %}
+              Min: {% if c.min_order_amount %}{{site_config.currency_abbr}}{{ c.min_order_amount|floatformat:2 }}{% else %}—{% endif %}
+              {% if c.max_discount_amount %} • Cap: {{site_config.currency_abbr}}{{ c.max_discount_amount|floatformat:2 }}{% endif %}
             </div>
           </div>
         </div>
@@ -479,7 +479,7 @@
             <div class="font-medium">${c.redemptions_count || 0}</div>
           </div>
           <div class="rounded-lg border border-gray-100 p-2">
-            <div class="text-xs text-gray-500">Discount ₹</div>
+            <div class="text-xs text-gray-500">Discount {{site_config.currency_abbr}}</div>
             <div class="font-medium">${money(c.discount_granted_total || 0)}</div>
           </div>
         </div>

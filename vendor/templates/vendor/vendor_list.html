@@ -87,7 +87,7 @@
         <div class="mt-3 flex items-center justify-between text-xs text-gray-600">
           <span>Price: 
             {% if v.min_price and v.max_price %}
-              ${{ v.min_price }} – ${{ v.max_price }}
+              {{site_config.currency_abbr}}{{ v.min_price }} – {{site_config.currency_abbr}}{{ v.max_price }}
             {% else %}
               —
             {% endif %}

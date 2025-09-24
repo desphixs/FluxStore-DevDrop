@@ -50,7 +50,7 @@
 
         <div class="mt-3 flex items-center justify-between">
           <div class="text-sm font-semibold">
-            {% if pv %}₹{{ pv.sale_price|floatformat:2 }}
+            {% if pv %}{{site_config.currency_abbr}}{{ pv.sale_price|floatformat:2 }}
             {% else %}
               {# If you want product min price, swap in a helper; else show ‘—’ #}
               —

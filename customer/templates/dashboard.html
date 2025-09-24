@@ -42,7 +42,7 @@
         <svg class="h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1a11 11 0 1 0 11 11A11.013 11.013 0 0 0 12 1zm.5 17.93V20h-1v-1.07A6.992 6.992 0 0 1 6 13h2a5 5 0 0 0 10 0 5 5 0 0 0-10 0H6a7 7 0 0 1 12-4h-1.54a3.5 3.5 0 1 0 0 2H18a7 7 0 0 1-5.5 5.93z"/></svg>
       </span>
     </div>
-    <div class="mt-3 text-3xl font-bold">₹{{ stats.total_spent|floatformat:2 }}</div>
+    <div class="mt-3 text-3xl font-bold">{{site_config.currency_abbr}}{{ stats.total_spent|floatformat:2 }}</div>
     <p class="mt-1 text-xs text-gray-500">Paid & not canceled/refunded</p>
   </div>
 
@@ -67,7 +67,7 @@
       </span>
     </div>
     <div class="mt-3 text-3xl font-bold">{{ stats.unpaid_orders|default:0 }}</div>
-    <p class="mt-1 text-xs text-gray-500">₹{{ stats.unpaid_amount|floatformat:2 }}</p>
+    <p class="mt-1 text-xs text-gray-500">{{site_config.currency_abbr}}{{ stats.unpaid_amount|floatformat:2 }}</p>
   </div>
 </div>
 
@@ -106,7 +106,7 @@
             <td class="px-5 py-3 text-gray-600">
               {{ o.items.count }} item{{ o.items.count|pluralize }}
             </td>
-            <td class="px-5 py-3 font-semibold">₹{{ o.amount_payable|floatformat:2 }}</td>
+            <td class="px-5 py-3 font-semibold">{{site_config.currency_abbr}}{{ o.amount_payable|floatformat:2 }}</td>
             <td class="px-5 py-3">
               {% if o.status == "DELIVERED" %}
                 <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">Delivered</span>
@@ -180,7 +180,7 @@
       <p class="text-sm font-semibold">Pay outstanding</p>
       <span class="text-xs text-gray-500">Unpaid</span>
     </div>
-    <p class="mt-1 text-2xl font-bold">₹{{ stats.unpaid_amount|floatformat:2 }}</p>
+    <p class="mt-1 text-2xl font-bold">{{site_config.currency_abbr}}{{ stats.unpaid_amount|floatformat:2 }}</p>
     <p class="mt-1 text-xs text-gray-500">{{ stats.unpaid_orders }} order{{ stats.unpaid_orders|pluralize }}</p>
   </a>
 

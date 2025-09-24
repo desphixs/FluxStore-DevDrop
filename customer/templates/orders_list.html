@@ -75,7 +75,7 @@
           </td>
           <td class="px-5 py-3 text-gray-600">{{ o.created_at|date:"M j, Y" }}</td>
           <td class="px-5 py-3 text-gray-600">{{ o.items.count }} item{{ o.items.count|pluralize }}</td>
-          <td class="px-5 py-3 font-semibold">₹{{ o.amount_payable|floatformat:2 }}</td>
+          <td class="px-5 py-3 font-semibold">{{site_config.currency_abbr}}{{ o.amount_payable|floatformat:2 }}</td>
 
           {# order status pill #}
           <td class="px-5 py-3">

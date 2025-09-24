@@ -48,7 +48,7 @@
 
           {% if p.primary_item.show_discount_type == "price" %}
           <span class="absolute left-3 top-10  rounded-md bg-black px-2.5 py-1 text-xs font-semibold text-white">
-              ${{p.primary_item.discount_amount|floatformat:0}} OFF</span>
+              {{site_config.currency_abbr}}{{p.primary_item.discount_amount|floatformat:0}} OFF</span>
           {% endif %}
 
           {% if p.primary_item.show_discount_type == "percentage" %}
@@ -75,10 +75,10 @@
 
               <div class="mt-auto flex items-center justify-between">
                   <div>
-                      <span class="text-lg font-bold text-gray-900">${{p.primary_item.sale_price}}</span>
+                      <span class="text-lg font-bold text-gray-900">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
 
                       {% if p.primary_item.show_regular_price %}
-                      <span class="text-sm font-light text-gray-400 line-through">${{p.primary_item.regular_price}}</span>
+                      <span class="text-sm font-light text-gray-400 line-through">{{site_config.currency_abbr}}{{p.primary_item.regular_price}}</span>
                       {% endif %}
                   </div>
                   <button data-product-id="{{ p.id }}"

@@ -24,6 +24,8 @@ class SiteConfiguration(models.Model):
 
     # Only allow one config row
     singleton = models.BooleanField(default=True, editable=False)
+    currency_abbr = models.CharField(max_length=255, blank=True, null=True, default="$", help_text="$")
+    currency_symbol = models.CharField(max_length=255, blank=True, null=True, default="USD", help_text="USD")
 
     class Meta:
         verbose_name = "Site Configuration"

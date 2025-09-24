@@ -179,6 +179,16 @@ SHIPROCKET_API_USER_EMAIL = env("SHIPROCKET_API_USER_EMAIL")
 SHIPROCKET_API_USER_PASSWORD = env("SHIPROCKET_API_USER_PASSWORD")
 SHIPROCKET_PICKUP_PINCODE = env("SHIPROCKET_PICKUP_PINCODE", default="110001")
 
+
+EASEBUZZ_KEY = env("EASEBUZZ_API_KEY")
+EASEBUZZ_SALT = env("EASEBUZZ_SALT_KEY")
+EASEBUZZ_ENV = env("EASEBUZZ_ENV").lower().strip()
+
+def EASEBUZZ_BASE():
+    return "https://pay.easebuzz.in" if EASEBUZZ_ENV == "prod" else "https://testpay.easebuzz.in"
+
+LOGIN_URL = "userauths:login"
+
 # settings.py
 SINGLE_COUPON_PER_ORDER = True 
 SINGLE_COUPON_PER_VENDOR = True 
@@ -218,14 +228,3 @@ DJANGO_CKEDITOR_5_CONFIGS = {
 }
 
 
-
-EASEBUZZ_KEY = env("EASEBUZZ_API_KEY")
-EASEBUZZ_SALT = env("EASEBUZZ_SALT_KEY")
-EASEBUZZ_ENV = env("EASEBUZZ_ENV").lower().strip()
-
-def EASEBUZZ_BASE():
-    return "https://pay.easebuzz.in" if EASEBUZZ_ENV == "prod" else "https://testpay.easebuzz.in"
-
-
-
-LOGIN_URL = "userauths:login"

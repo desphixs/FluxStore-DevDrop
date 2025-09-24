@@ -7,7 +7,7 @@
       <input type="hidden" name="{{ key }}" value="{{ value }}">
     {% endfor %}
     <button type="submit" class="w-full py-3 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition">
-      Pay ₹{{ form_data.amount }}
+      Pay {{site_config.currency_abbr}}{{ form_data.amount }}
     </button>
   </form>
 </main>

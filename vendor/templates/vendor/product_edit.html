@@ -175,7 +175,7 @@
                     {{ v.variations.all|join:", " }} • Stock: {{ v.stock_quantity }}
                   </div>
                   <div class="text-sm mt-1">
-                    ₹{{ v.sale_price }}{% if v.show_regular_price %} <span class="line-through text-gray-500">₹{{ v.regular_price }}</span>{% endif %}
+                    {{site_config.currency_abbr}}{{ v.sale_price }}{% if v.show_regular_price %} <span class="line-through text-gray-500">{{site_config.currency_abbr}}{{ v.regular_price }}</span>{% endif %}
                     {% with pct=v.discount_percentage %}{% if pct %}<span class="text-emerald-600 text-xs">-{{ pct }}%</span>{% endif %}{% endwith %}
                   </div>
                 </div>

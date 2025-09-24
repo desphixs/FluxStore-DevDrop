@@ -152,9 +152,9 @@
               {% endif %}
             </div>
             <div class="text-right">
-              <div class="text-sm text-gray-600">₹{{ it.price|floatformat:2 }}</div>
+              <div class="text-sm text-gray-600">{{site_config.currency_abbr}}{{ it.price|floatformat:2 }}</div>
               <div class="text-xs text-gray-400">Qty: {{ it.quantity }}</div>
-                <div class="mt-1 text-sm font-semibold">₹{{ it.subtotal|floatformat:2 }}</div>
+                <div class="mt-1 text-sm font-semibold">{{site_config.currency_abbr}}{{ it.subtotal|floatformat:2 }}</div>
             </div>
           </li>
           {% endwith %}
@@ -177,7 +177,7 @@
                   <span class="font-medium">{{ c.coupon__code }}</span>
                   <span class="text-xs text-gray-500 ml-2">{{ c.coupon__discount_type|title }}</span>
                 </div>
-                <div class="font-medium">- ₹{{ c.discount_amount|floatformat:2 }}</div>
+                <div class="font-medium">- {{site_config.currency_abbr}}{{ c.discount_amount|floatformat:2 }}</div>
               </li>
             {% endfor %}
           </ul>
@@ -193,24 +193,24 @@
       <dl class="space-y-2 text-sm">
         <div class="flex justify-between">
           <dt class="text-gray-600">Items</dt>
-          <dd class="font-medium">₹{{ order.item_total|floatformat:2 }}</dd>
+          <dd class="font-medium">{{site_config.currency_abbr}}{{ order.item_total|floatformat:2 }}</dd>
         </div>
 
         {% if order.item_discount_total and order.item_discount_total|floatformat:2 != "0.00" %}
         <div class="flex justify-between">
           <dt class="text-emerald-700">Discounts</dt>
-          <dd class="font-medium text-emerald-700">- ₹{{ order.item_discount_total|floatformat:2 }}</dd>
+          <dd class="font-medium text-emerald-700">- {{site_config.currency_abbr}}{{ order.item_discount_total|floatformat:2 }}</dd>
         </div>
         {% endif %}
 
         <div class="flex justify-between">
           <dt class="text-gray-600">Shipping</dt>
-          <dd class="font-medium">₹{{ order.shipping_fee|floatformat:2 }}</dd>
+          <dd class="font-medium">{{site_config.currency_abbr}}{{ order.shipping_fee|floatformat:2 }}</dd>
         </div>
 
         <div class="pt-3 mt-2 border-t border-gray-100 flex justify-between items-center">
           <dt class="text-base font-semibold">Total</dt>
-          <dd class="text-2xl font-bold">₹{{ order.amount_payable|floatformat:2 }}</dd>
+          <dd class="text-2xl font-bold">{{site_config.currency_abbr}}{{ order.amount_payable|floatformat:2 }}</dd>
         </div>
       </dl>
 

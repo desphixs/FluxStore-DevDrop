@@ -47,14 +47,14 @@
         </div>
         <div class="rounded-xl border border-gray-100 p-3">
           <dt class="text-gray-500">Gross</dt>
-          <dd class="mt-1 text-lg font-semibold">₹{{ totals.gross|floatformat:2 }}</dd>
+          <dd class="mt-1 text-lg font-semibold">{{site_config.currency_abbr}}{{ totals.gross|floatformat:2 }}</dd>
         </div>
         <div class="rounded-xl border border-gray-100 p-3">
           <dt class="text-gray-500">Net</dt>
-          <dd class="mt-1 text-lg font-semibold">₹{{ totals.net|floatformat:2 }}</dd>
+          <dd class="mt-1 text-lg font-semibold">{{site_config.currency_abbr}}{{ totals.net|floatformat:2 }}</dd>
         </div>
       </dl>
-      <p class="mt-2 text-xs text-gray-500">Discounts applied: ₹{{ totals.discount|floatformat:2 }}</p>
+      <p class="mt-2 text-xs text-gray-500">Discounts applied: {{site_config.currency_abbr}}{{ totals.discount|floatformat:2 }}</p>
     </div>
 
     <!-- Payment & fulfillment -->
@@ -139,7 +139,7 @@
     <section class="lg:col-span-2 rounded-2xl border border-gray-200 bg-white overflow-hidden">
       <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <h2 class="text-sm font-semibold tracking-wide">Items (your listings)</h2>
-        <div class="text-xs text-gray-500">Net: ₹{{ totals.net|floatformat:2 }}</div>
+        <div class="text-xs text-gray-500">Net: {{site_config.currency_abbr}}{{ totals.net|floatformat:2 }}</div>
       </div>
 
       {% if items %}
@@ -168,7 +168,7 @@
                   <div class="text-xs text-gray-400 mt-0.5">SKU: {{ pv.sku }}</div>
                 </div>
                 <div class="text-right">
-                  <div class="text-sm text-gray-700">₹{{ it.price|floatformat:2 }}</div>
+                  <div class="text-sm text-gray-700">{{site_config.currency_abbr}}{{ it.price|floatformat:2 }}</div>
                   <div class="text-xs text-gray-500">Qty: {{ it.quantity }}</div>
                 </div>
               </div>
@@ -176,15 +176,15 @@
               <div class="mt-2 grid grid-cols-3 gap-3 text-sm">
                 <div class="rounded-xl border border-gray-100 p-2">
                   <div class="text-xs text-gray-500">Subtotal</div>
-                  <div class="font-semibold">₹{{ it.line_subtotal|floatformat:2 }}</div>
+                  <div class="font-semibold">{{site_config.currency_abbr}}{{ it.line_subtotal|floatformat:2 }}</div>
                 </div>
                 <div class="rounded-xl border border-gray-100 p-2">
                   <div class="text-xs text-gray-500">Discount</div>
-                  <div class="font-semibold">₹{{ it.line_discount_total|floatformat:2 }}</div>
+                  <div class="font-semibold">{{site_config.currency_abbr}}{{ it.line_discount_total|floatformat:2 }}</div>
                 </div>
                 <div class="rounded-xl border border-gray-100 p-2">
                   <div class="text-xs text-gray-500">Net</div>
-                  <div class="font-semibold">₹{{ it.line_net|floatformat:2 }}</div>
+                  <div class="font-semibold">{{site_config.currency_abbr}}{{ it.line_net|floatformat:2 }}</div>
                 </div>
               </div>
 
@@ -218,9 +218,9 @@
 
       <div class="px-5 py-4 border-t border-gray-100">
         <div class="flex items-center justify-end gap-6 text-sm">
-          <div><span class="text-gray-500">Gross:</span> <span class="font-semibold">₹{{ totals.gross|floatformat:2 }}</span></div>
-          <div><span class="text-gray-500">Discount:</span> <span class="font-semibold">₹{{ totals.discount|floatformat:2 }}</span></div>
-          <div><span class="text-gray-500">Net:</span> <span class="font-semibold">₹{{ totals.net|floatformat:2 }}</span></div>
+          <div><span class="text-gray-500">Gross:</span> <span class="font-semibold">{{site_config.currency_abbr}}{{ totals.gross|floatformat:2 }}</span></div>
+          <div><span class="text-gray-500">Discount:</span> <span class="font-semibold">{{site_config.currency_abbr}}{{ totals.discount|floatformat:2 }}</span></div>
+          <div><span class="text-gray-500">Net:</span> <span class="font-semibold">{{site_config.currency_abbr}}{{ totals.net|floatformat:2 }}</span></div>
         </div>
       </div>
 
@@ -288,7 +288,7 @@
               <li class="flex items-center justify-between rounded-xl border border-gray-100 p-3">
                 <div>
                   <div class="font-medium">{{ c.coupon__code }}</div>
-                  <div class="text-xs text-gray-500">{{ c.coupon__discount_type|title }} • ₹{{ c.discount_amount|floatformat:2 }}</div>
+                  <div class="text-xs text-gray-500">{{ c.coupon__discount_type|title }} • {{site_config.currency_abbr}}{{ c.discount_amount|floatformat:2 }}</div>
                 </div>
                 <div class="text-xs text-gray-500">{{ c.applied_at }}</div>
               </li>
@@ -330,7 +330,7 @@
         <div class="mt-3 grid grid-cols-3 gap-3 text-sm">
           <div class="rounded-xl border border-gray-100 p-3">
             <div class="text-xs text-gray-500">Price</div>
-            <div class="font-semibold">₹<span id="mPrice">0.00</span></div>
+            <div class="font-semibold">{{site_config.currency_abbr}}<span id="mPrice">0.00</span></div>
           </div>
           <div class="rounded-xl border border-gray-100 p-3">
             <div class="text-xs text-gray-500">Qty</div>
@@ -338,15 +338,15 @@
           </div>
           <div class="rounded-xl border border-gray-100 p-3">
             <div class="text-xs text-gray-500">Subtotal</div>
-            <div class="font-semibold">₹<span id="mSubtotal">0.00</span></div>
+            <div class="font-semibold">{{site_config.currency_abbr}}<span id="mSubtotal">0.00</span></div>
           </div>
           <div class="rounded-xl border border-gray-100 p-3">
             <div class="text-xs text-gray-500">Discount</div>
-            <div class="font-semibold">₹<span id="mDiscount">0.00</span></div>
+            <div class="font-semibold">{{site_config.currency_abbr}}<span id="mDiscount">0.00</span></div>
           </div>
           <div class="rounded-xl border border-gray-100 p-3">
             <div class="text-xs text-gray-500">Net</div>
-            <div class="font-semibold">₹<span id="mNet">0.00</span></div>
+            <div class="font-semibold">{{site_config.currency_abbr}}<span id="mNet">0.00</span></div>
           </div>
           <div class="rounded-xl border border-gray-100 p-3">
             <div class="text-xs text-gray-500">Weight</div>

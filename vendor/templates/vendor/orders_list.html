@@ -119,9 +119,9 @@
                 </td>
                 <td class="px-5 py-3 text-gray-600">{{ o.created_at|date:"M j, Y" }}</td>
                 <td class="px-5 py-3 text-right">{{ o.v_item_count|default:0 }}</td>
-                <td class="px-5 py-3 text-right">₹{{ o.v_gross|floatformat:2 }}</td>
-                <td class="px-5 py-3 text-right">₹{{ o.v_disc|floatformat:2 }}</td>
-                <td class="px-5 py-3 text-right font-semibold">₹{{ o.v_net|floatformat:2 }}</td>
+                <td class="px-5 py-3 text-right">{{site_config.currency_abbr}}{{ o.v_gross|floatformat:2 }}</td>
+                <td class="px-5 py-3 text-right">{{site_config.currency_abbr}}{{ o.v_disc|floatformat:2 }}</td>
+                <td class="px-5 py-3 text-right font-semibold">{{site_config.currency_abbr}}{{ o.v_net|floatformat:2 }}</td>
                 <td class="px-5 py-3">
                   {% if o.payment_status == "PAID" %}
                     <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">Paid</span>
@@ -194,11 +194,11 @@
               </div>
               <div class="rounded-xl border border-gray-100 p-3">
                 <div class="text-xs text-gray-500">Gross</div>
-                <div class="mt-1 text-lg font-semibold">₹{{ o.v_gross|floatformat:2 }}</div>
+                <div class="mt-1 text-lg font-semibold">{{site_config.currency_abbr}}{{ o.v_gross|floatformat:2 }}</div>
               </div>
               <div class="rounded-xl border border-gray-100 p-3">
                 <div class="text-xs text-gray-500">Net</div>
-                <div class="mt-1 text-lg font-semibold">₹{{ o.v_net|floatformat:2 }}</div>
+                <div class="mt-1 text-lg font-semibold">{{site_config.currency_abbr}}{{ o.v_net|floatformat:2 }}</div>
               </div>
             </div>
 

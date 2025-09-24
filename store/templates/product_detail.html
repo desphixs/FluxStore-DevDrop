@@ -132,7 +132,7 @@
             {% endif %}
         >
             {% if product.primary_item %}
-                ${{ product.primary_item.regular_price }}
+                {{site_config.currency_abbr}}{{ product.primary_item.regular_price }}
             {% endif %}
         </div>
 
