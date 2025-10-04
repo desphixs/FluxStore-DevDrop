@@ -35,10 +35,13 @@ def _ez_base():
 
 
 def _hosted_checkout_url_from_data(access_key: str) -> str:
-    # Easebuzz Hosted Checkout: append access key to /pay/<access_key>
-    # UAT:  https://testpay.easebuzz.in/pay/<access_key>
-    # PROD: https://pay.easebuzz.in/pay/<access_key>
-    return f"{_ez_base()}/pay/{access_key}"
+    return f"{_ez_checkout_base()}/pay/{access_key}"
+
+# def _hosted_checkout_url_from_data(access_key: str) -> str:
+#     # Easebuzz Hosted Checkout: append access key to /pay/<access_key>
+#     # UAT:  https://testpay.easebuzz.in/pay/<access_key>
+#     # PROD: https://pay.easebuzz.in/pay/<access_key>
+#     return f"{_ez_base()}/pay/{access_key}"
 
 def _hash_request(params: dict, salt: str) -> str:
     """
@@ -174,7 +177,7 @@ def easebuzz_start(request, order_id: str):
     print("[EASEBUZZ][INIT][REQUEST]", json.dumps(safe_params, indent=2))
 
     try:
-        url = f"{_ez_base()}/payment/initiateLink"  # test: https://testpay.easebuzz.in ; prod: https://pay.easebuzz.in  :contentReference[oaicite:1]{index=1}
+        url = f"{_ez_checkout_base()}/payment/initiateLink"  # test: https://testpay.easebuzz.in ; prod: https://pay.easebuzz.in  :contentReference[oaicite:1]{index=1}
         resp = requests.post(url, data=params, headers={"Content-Type": "application/x-www-form-urlencoded"}, timeout=30)
         content_type = resp.headers.get("content-type", "")
         raw_text = (resp.text or "")[:1000]
@@ -223,28 +226,35 @@ def easebuzz_start(request, order_id: str):
 
 # ---------- Easebuzz helpers ----------
 
-def _easebuzz_base_url() -> str:
+# def _easebuzz_base_url() -> str:
+#     env = (getattr(settings, "EASEBUZZ_ENV", "PROD") or "").upper()
+#     if env in {"UAT", "TEST", "SANDBOX"} or getattr(settings, "DEBUG", False):
+#         return "https://testpay.easebuzz.in"
+#     return "https://pay.easebuzz.in"
+    
+
+# def _easebuzz_status_urls() -> list[str]:
+#     """
+#     Official v2 retrieve endpoint (env-aware). Keep one canonical URL to avoid
+#     parsing HTML from legacy/merchant-specific paths.
+#     """
+#     base = _easebuzz_base_url().rstrip("/")
+#     return [f"{base}/transaction/v2/retrieve"]
+
+
+# Separate bases for checkout vs. API (dashboard)
+def _ez_checkout_base() -> str:
     env = (getattr(settings, "EASEBUZZ_ENV", "PROD") or "").upper()
-    if env in {"UAT", "TEST", "SANDBOX"} or getattr(settings, "DEBUG", False):
-        return "https://testpay.easebuzz.in"
-    return "https://pay.easebuzz.in"
+    return "https://testpay.easebuzz.in" if env in {"UAT","TEST","SANDBOX"} or getattr(settings, "DEBUG", False) else "https://pay.easebuzz.in"
+
+def _ez_api_base() -> str:
+    env = (getattr(settings, "EASEBUZZ_ENV", "PROD") or "").upper()
+    return "https://testdashboard.easebuzz.in" if env in {"UAT","TEST","SANDBOX"} or getattr(settings, "DEBUG", False) else "https://dashboard.easebuzz.in"
 
 def _easebuzz_status_urls() -> list[str]:
-    """
-    If you know your exact status URL from your merchant docs, set EASEBUZZ_TXN_STATUS_URL in settings.
-    Otherwise we try a few common endpoints (first one that returns JSON wins).
-    """
-    if getattr(settings, "EASEBUZZ_TXN_STATUS_URL", None):
-        return [settings.EASEBUZZ_TXN_STATUS_URL]
-
-    base = _easebuzz_base_url().rstrip("/")
-    # Known/popular patterns (keep order)
-    candidates = [
-        f"{base}/payment/transaction/v2/retrieve",
-        f"{base}/transaction/v2/retrieve",
-        f"{base}/payment/v2/transaction",
-    ]
-    return candidates
+    base = _ez_api_base().rstrip("/")
+    # v2 first, optionally fall back to v1 if your account expects it
+    return [f"{base}/transaction/v2/retrieve", f"{base}/transaction/v1/retrieve"]
 
 def _sha512_pipe(*parts) -> str:
     s = "|".join("" if p is None else str(p) for p in parts)
@@ -269,54 +279,101 @@ def _easebuzz_status_payload(txnid: str, easebuzz_id: str | None) -> dict:
 
     return payload
 
+
 def _easebuzz_txn_status(txnid: str, easebuzz_id: str | None = None, timeout=10) -> dict | None:
-    """
-    Try a few candidate URLs until one returns JSON. Returns parsed JSON or None.
-    """
     payload = _easebuzz_status_payload(txnid, easebuzz_id)
-    headers = {"User-Agent": "EfashionBazaar/1.0", "Accept": "application/json"}
+    headers = {
+        "User-Agent": "EfashionBazaar/1.0",
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+
 
     for url in _easebuzz_status_urls():
         try:
-            r = requests.post(url, data=payload, headers=headers, timeout=timeout)
-            r.raise_for_status()
-            # Some endpoints return text/plain JSON; safe-load
-            try:
-                data = r.json()
-            except Exception:
-                data = json.loads((r.text or "").strip() or "{}")
+            r = requests.post(url, data=payload, headers=headers, timeout=timeout, allow_redirects=False)
+            status = r.status_code
+            ctype = r.headers.get("content-type", "")
+            raw = (r.text or "")[:800]
 
-            log.info("[EASEBUZZ][STATUS] %s -> %s", url, data)
-            return data
-        except Exception as e:
-            log.warning("[EASEBUZZ][STATUS][FAIL] %s (%s)", url, e)
+            log.info("[EZ][STATUS][HTTP] code=%s ctype=%s", status, ctype)
+            log.info("[EZ][STATUS][BODY] %s", raw)
+
+            # If it's not JSON-ish, show me
+            if "application/json" not in ctype and not raw.strip().startswith(("{", "[")):
+                log.error("[EASEBUZZ][STATUS][NONJSON] %s %s %s :: %s", status, ctype, url, raw)
+                # try next candidate (or return None)
+                continue
+
+            log.info("[EZ][STATUS][REQ] url=%s payload=%s", url, payload)
+
+
+            try:
+                return r.json()
+            except Exception:
+                return json.loads((r.text or "").strip() or "{}")
+        except requests.RequestException as e:
+            log.error("[EASEBUZZ][STATUS][HTTPFAIL] %s :: %s", url, e)
             continue
     return None
+
+
 
 def _easebuzz_status_is_success(resp: dict | None) -> tuple[bool, str, str | None]:
     """
     Return (ok, gateway_status_string, easebuzz_payment_id or None).
-    We accept 'success' / 'captured' variants.
+    Accepts variants like boolean/numeric flags and nested data.
     """
     if not isinstance(resp, dict):
         return (False, "no-response", None)
 
-    # Flexible parsing across API variants
-    top_status = resp.get("status")
-    data = resp.get("data") if isinstance(resp.get("data"), dict) else resp
+    def _norm_str(v) -> str:
+        # Convert anything to a lowercase string, safely.
+        if v is None:
+            return ""
+        if isinstance(v, (dict, list)):  # not a status token
+            return ""
+        try:
+            return str(v).strip().lower()
+        except Exception:
+            return ""
 
-    gstat = (data.get("status") or data.get("txn_status") or data.get("response_status") or "").lower()
-    ez_id = data.get("easebuzz_id") or data.get("payment_id") or resp.get("easebuzz_id")
+    # Top-level status sometimes comes as 1/0/true/false/"success"
+    top_status_raw = resp.get("status")
+    top_status = _norm_str(top_status_raw)
 
-    ok = False
-    if str(top_status) in {"1", "success", "True", "true"}:
-        # Many endpoints put the canonical gateway result inside data.status
-        ok = gstat in {"success", "captured", "success-verified"}
-    else:
-        # Some endpoints only set 'data.status'
-        ok = gstat in {"success", "captured", "success-verified"}
+    # Use data if dict; otherwise fall back to resp
+    data_obj = resp.get("data") if isinstance(resp.get("data"), dict) else resp
 
-    return (ok, gstat or str(top_status), ez_id)
+    # Pull any plausible "status" keys from the data object
+    gstat_raw = ""
+    if isinstance(data_obj, dict):
+        gstat_raw = (
+            data_obj.get("status")
+            or data_obj.get("txn_status")
+            or data_obj.get("response_status")
+            or data_obj.get("transaction_status")
+            or ""
+        )
+    gstat = _norm_str(gstat_raw)
+
+    # Payment ID can show up in several places
+    ez_id = None
+    if isinstance(data_obj, dict):
+        ez_id = data_obj.get("easebuzz_id") or data_obj.get("payment_id")
+    ez_id = ez_id or resp.get("easebuzz_id")
+
+    # Decide success:
+    # - Prefer semantic gateway statuses.
+    # - If only top-level flag exists and indicates success, allow it as fallback.
+    success_terms = {"success", "captured", "success-verified"}
+    ok = gstat in success_terms
+    if not ok and gstat == "" and top_status in {"1", "true", "success"}:
+        ok = True
+
+    gateway_status = gstat or top_status or ""
+    return (ok, gateway_status, ez_id)
 
 # ---------- Notification helpers ----------
 
@@ -431,7 +488,7 @@ def easebuzz_return(request):
     txnid = payload.get("txnid", "") or (order.easebuzz_txnid or "")
     easebuzz_id = payload.get("easebuzz_id", "") or (order.easebuzz_payment_id or "")
     status_val = (payload.get("status", "") or "").lower()
-
+    print("[EZ][RETURN][PAYLOAD]", json.dumps(payload, indent=2))
     # Persist raw gateway return + our reverse-hash flag if you already compute it elsewhere
     meta = order.payment_meta or {}
     meta.update({
@@ -440,8 +497,36 @@ def easebuzz_return(request):
     })
 
     # 1) Verify with Transaction Status API
+    # 0) Reverse-hash guard (if present)
+    resp_hash = payload.get("hash", "")
+    reverse_ok = False
+    try:
+        if resp_hash:
+            calc = _hash_response_reverse(payload, settings.EASEBUZZ_SALT)
+            reverse_ok = (resp_hash.lower() == calc.lower())
+
+            print("[EZ][RETURN][REVHASH] provided=%s calc=%s match=%s" % (
+                resp_hash[:12]+"..." if resp_hash else "",
+                calc[:12]+"..." if 'calc' in locals() else "",
+                str(reverse_ok)
+            ))
+            
+    except Exception:
+        reverse_ok = False
+        print("[EZ][RETURN][REVHASH] no hash in payload")
+
+    # 1) Status API (best-effort; don’t block UX if it’s flaky)
     verified_resp = _easebuzz_txn_status(txnid=txnid, easebuzz_id=easebuzz_id)
     ok, gateway_status, ez_id_from_status = _easebuzz_status_is_success(verified_resp)
+
+    # If the gateway says success OR reverse hash passes with success -> treat as paid
+    final_success = ok or (reverse_ok and (payload.get("status","").lower() in {"success","captured"}))
+    print("[EZ][VERIFY][RESP]", json.dumps(verified_resp, indent=2))
+    print("[EZ][VERIFY][PARSED] ok=%s gateway_status=%s ez_id=%s" % (ok, gateway_status, ez_id_from_status))
+
+    print("[EZ][DECIDE] reverse_ok=%s payload.status=%s final_success=%s" % (
+        reverse_ok, status_val, ok or (reverse_ok and status_val in {"success","captured"})
+    ))
 
     # Stash verification result for audit
     meta["easebuzz_verify"] = {
@@ -458,32 +543,39 @@ def easebuzz_return(request):
     order.easebuzz_payment_id = easebuzz_id or order.easebuzz_payment_id
 
     # 2) Update order + notifications if success
-    if ok:
-        # Idempotency: only transition if not already PAID
+    # 2) Update order + notifications if success (trust final_success which includes reverse-hash)
+    if final_success:
         if order.payment_status != "PAID":
             order.payment_status = "PAID"
             order.status = order_models.Order.OrderStatus.PROCESSING
             order.save(update_fields=["payment_meta", "easebuzz_payment_id", "payment_status", "status", "updated_at"])
 
-            # Fan-out notifications
             try:
                 if order.buyer:
                     _notify_buyer_order_paid(order)
             except Exception as e:
                 log.warning("Buyer notify failed: %s", e)
-
             try:
                 _notify_vendors_order_paid(order)
             except Exception as e:
                 log.warning("Vendor notify failed: %s", e)
-        # Redirect to success
+
         return redirect(reverse("payments:thank_you", kwargs={"order_id": order.order_id}))
     else:
-        # Failed (or not verified) — mark FAILED unless already PAID from prior flow
+        # Keep UX sane: if API gave a definitive failure, mark FAILED; else leave PENDING and wait for webhook.
+        nonjson = not isinstance(verified_resp, dict)
         if order.payment_status != "PAID":
-            order.payment_status = "FAILED"
+            hard_fail = (not nonjson) and status_val in {"failed", "tampered", "bounced"}
+            order.payment_status = "FAILED" if hard_fail else "PENDING"
             order.save(update_fields=["payment_meta", "easebuzz_payment_id", "payment_status", "updated_at"])
-        return redirect(reverse("payments:failed", kwargs={"order_id": order.order_id}))
+
+        # If you don't have a processing route, don't reverse it.
+        return redirect(
+            reverse("payments:failed", kwargs={"order_id": order.order_id})
+            if order.payment_status == "FAILED"
+            else reverse("payments:thank_you", kwargs={"order_id": order.order_id})  # or swap to a real 'processing' page if you add one
+        )
+
 
 # @csrf_exempt  # Easebuzz posts from their domain
 # def easebuzz_return(request):
