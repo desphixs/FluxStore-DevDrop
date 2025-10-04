@@ -1,9 +1,43 @@
 {% extends 'base/base.html' %}
 {% load static %}
 {% block content %}
-<div class="max-w-3xl mx-auto px-6 py-16 mt-32">
-  <h1 class="text-2xl font-bold mb-2">Payment successful 🎉</h1>
-  <p class="text-gray-600">Order #{{ order.order_id }} is now processing.</p>
-  <a href="/" class="inline-block mt-6 px-4 py-2 rounded-lg bg-gray-900 text-white">View Order</a>
+
+<!-- Page wrapper -->
+<div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 md:py-14 mt-32">
+
+  <!-- Success header -->
+  <div class="rounded-2xl border border-neutral-200/70  bg-white p-6 md:p-8 shadow-sm mb-8">
+    <div class="flex lg:flex-row flex-col  items-start lg:gap-4 gap-6">
+      <div class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100 ">
+        <!-- check icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.5 12.75l6 6 9-13.5"/>
+        </svg>
+      </div>
+      <div class="flex-1">
+        <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">
+          Payment successful 🎉
+        </h1>
+        <p class="mt-1 text-neutral-600 ">
+          Thanks, {{ order.buyer.get_full_name|default:order.buyer.username|default:"Customer" }}.
+          Your order <span class="font-medium">#{{ order.order_id }}</span> is now
+          <span class="font-semibold">{{ order.status|title }}</span>.
+        </p>
+        <p class="mt-1 text-neutral-500  text-sm">
+          Placed on {{ order.created_at|date:"M j, Y, g:i a" }} • Transaction ID: {{ order.easebuzz_txnid|default:"—" }}
+        </p>
+      </div>
+      <div class="">
+        <button onclick="window.print()" class="inline-flex items-center rounded-lg px-3.5 py-2.5 text-sm font-medium ring-1 ring-inset ring-neutral-200 hover:bg-neutral-50">
+          Print receipt
+        </button>
+        <a href="{% url 'customer:order_detail' order.order_id %}" class="inline-flex items-center rounded-lg px-3.5 py-2.5 text-sm font-medium bg-neutral-900 text-white hover:bg-black">
+          View order
+        </a>
+      </div>
+    </div>
+  </div>
+
 </div>
+
 {% endblock %}
