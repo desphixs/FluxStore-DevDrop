@@ -1,4 +1,28 @@
 {% load static %}
-<!-- <div id="preloader">
-    <img src="{% static 'assets/img/preloader.gif' %}" alt="Loading..." class="w-24 h-24">
-</div> -->
+<div id="preloader"
+     class="fixed inset-0 z-[9999] grid place-items-center bg-white dark:bg-neutral-950 transition-opacity duration-300">
+  <img src="{% static 'assets/img/preloader.gif' %}" alt="Loading..." class="w-24 h-24" />
+</div>
+
+<script defer>
+  (function () {
+    const preloader = document.getElementById("preloader");
+    if (!preloader) return;
+
+    const hide = () => {
+      // fade out, then remove from DOM so it can't intercept clicks
+      preloader.classList.add("opacity-0", "pointer-events-none");
+      setTimeout(() => preloader.remove(), 300);
+    };
+
+    if (document.readyState === "complete") {
+      // if the page is already fully loaded (bfcache / instant nav), hide immediately
+      hide();
+    } else {
+      window.addEventListener("load", () => setTimeout(hide, 300));
+    }
+
+    // emergency fallback (in case 'load' never fires due to a third-party hang)
+    setTimeout(hide, 6000);
+  })();
+</script>
