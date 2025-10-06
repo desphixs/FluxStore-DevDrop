@@ -34,6 +34,9 @@
 </head>
 
 <body class=" font-[inter]">
+    <!-- seeds the csrf cookie + makes the token discoverable by your JS -->
+    <form id="__csrf_seed" style="display:none">{% csrf_token %}</form>
+
     {% include 'partials/preloader.html' %}
     {% include 'partials/header.html' %}
     {% block content %} {% endblock %}
