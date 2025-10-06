@@ -35,7 +35,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY = 'django-insecure-guul@(b7x1(^-t!&k#f@u!sfd*v87%p(+-vnqs110g!@rmnpzy'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = [ 
@@ -48,21 +48,15 @@ CSRF_TRUSTED_ORIGINS = [
     'https://efashionbazaar.up.railway.app'
 ]
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
-CSRF_TRUSTED_ORIGINS = [
-   
-]
-
-
 # Application definition
 
 INSTALLED_APPS = [
-    'jazzmin', 
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    "django_browser_reload",
     'django.contrib.staticfiles',
 
     # Custom Apps
@@ -75,10 +69,12 @@ INSTALLED_APPS = [
     'vendor',
 
     # Third party apps
-    'whitenoise',
     'django_ckeditor_5',
     "django_summernote",
 ]
+
+if DEBUG:
+    INSTALLED_APPS.append("django_browser_reload")
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -89,8 +85,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_browser_reload.middleware.BrowserReloadMiddleware',
 ]
+
+if DEBUG:
+    MIDDLEWARE.append('django_browser_reload.middleware.BrowserReloadMiddleware')
 
 ROOT_URLCONF = 'project.urls'
 
@@ -162,6 +160,8 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+ADDON_GLOBAL_CONTEXT_CACHE_TIMEOUT = env.int("ADDON_GLOBAL_CONTEXT_CACHE_TIMEOUT", default=300)
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
