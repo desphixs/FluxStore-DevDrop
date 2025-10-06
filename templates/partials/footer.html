@@ -75,46 +75,51 @@
                 </div>
             </div>
 
+
             <div class="border-t border-gray-200">
-                <div class="container mx-auto py-6 px-5 flex flex-wrap flex-col sm:flex-row items-center">
-                    <p class="text-gray-500 text-sm text-center sm:text-left"><span class="text-[#991b1b]">{{site_config.site_name}}</span>
-                        <br>{{ site_config.footer_text }}</p>
+    <div class="container mx-auto py-6 px-5 flex flex-wrap flex-col lg:flex-row items-center">
+        <!-- Text Section -->
+        <p class="text-gray-500 text-sm text-center sm:text-left">
+            <span class="text-[#991b1b]">{{site_config.site_name}}</span>
+            <br>{{ site_config.footer_text }}
+        </p>
 
-                    <div class="flex-grow flex justify-center sm:justify-center my-4 sm:my-0 space-x-8">
-                        <div class="flex items-center">
-                            <i class="fa-solid fa-phone text-3xl text-gray-400"></i>
-                            <div class="ml-3">
-                                <p class="text-[#991b1b] font-bold text-xl">{{site_config.phone}}</p>
-                                <p class="text-xs text-gray-400">{{site_config.working_hours}}</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center">
-                            <i class="fas fa-headset text-3xl text-gray-400"></i>
-                            <div class="ml-3">
-                                <p class="text-[#991b1b] font-bold text-xl">{{site_config.email}}</p>
-                                <p class="text-xs text-gray-400">24/7 Support Center</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="inline-flex sm:ml-auto sm:mt-0 mt-4 justify-center sm:justify-start items-center">
-                        <div>
-                            <h3 class="font-bold text-md">Follow Us</h3>
-                            <p class="text-xs text-gray-400">Up to 15% discount on your first subscribe</p>
-                        </div>
-                        <div class="flex ml-4 space-x-2">
-                            
-                            {% for s in social_links %}
-                                    <a href="{{s.url}}"
-                                    class="text-white bg-[#991b1b] hover:bg-red-900 w-8 h-8 rounded-full inline-flex items-center justify-center">
-                                    <i class="{{s.icon_class}}"></i>
-                                </a>
-                        {% endfor %}
-                            
-                        </div>
-                    </div>
+        <!-- Contact Info Section -->
+        <div class="flex flex-col sm:flex-row sm:justify-center my-4 sm:my-0 space-y-4 sm:space-y-0 sm:space-x-8">
+            <div class="flex items-center">
+                <i class="fa-solid fa-phone text-3xl text-gray-400"></i>
+                <div class="ml-3">
+                    <p class="text-[#991b1b] font-bold text-xl">{{site_config.phone}}</p>
+                    <p class="text-xs text-gray-400">{{site_config.working_hours}}</p>
                 </div>
             </div>
+            <div class="flex items-center">
+                <i class="fas fa-headset text-3xl text-gray-400"></i>
+                <div class="ml-3">
+                    <p class="text-[#991b1b] font-bold text-xl">{{site_config.email}}</p>
+                    <p class="text-xs text-gray-400">24/7 Support Center</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Social Links Section -->
+        <div class="inline-flex flex-col sm:flex-row sm:ml-auto sm:mt-0 mt-4 justify-center sm:justify-start items-center">
+            <div class="text-center sm:text-left">
+                <h3 class="font-bold text-md">Follow Us</h3>
+                <p class="text-xs text-gray-400">Up to 15% discount on your first subscribe</p>
+            </div>
+            <div class="flex mt-3 sm:mt-0 space-x-2 justify-center sm:justify-start">
+                {% for s in social_links %}
+                    <a href="{{s.url}}" class="text-white bg-[#991b1b] hover:bg-red-900 w-8 h-8 rounded-full inline-flex items-center justify-center">
+                        <i class="{{s.icon_class}}"></i>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+           
 
             <button
                 class="fixed bottom-5 right-5 bg-[#991b1b] hover:bg-red-900 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
