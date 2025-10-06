@@ -57,7 +57,12 @@
 
       <div id="results-meta" class="mb-3 text-sm text-gray-600"></div>
 
-      <div id="products-grid" class="grid grid-cols-2 lg:grid-cols-3 gap-4"></div>
+     <div
+  id="products-grid"
+  class="grid grid-cols-2 lg:grid-cols-3 gap-4"
+  data-detail-template="{% url 'store:product_detail' slug='__slug__' %}">
+</div>
+
 
       <div id="pager" class="mt-6 flex items-center justify-center gap-3">
         <button id="prev-page" class="rounded-lg border px-3 py-2 text-sm disabled:opacity-40">Prev</button>
@@ -204,7 +209,10 @@ function stars(rInt) {
   for (let i=1; i<=5; i++) s += (i<=rInt ? '★' : '☆');
   return s;
 }
+
+
 function productCardHTML(p) {
+  const detailUrl = els.products.dataset.detailTemplate.replace('__slug__', p.slug);
   const labelColor = p.primary.label_color || "bg-gray-300 text-black";
   const discountTag = (p.primary.show_discount_type === "price")
     ? `<span class="absolute left-3 top-10 rounded-md bg-black px-2.5 py-1 text-xs font-semibold text-white">$${Math.round(p.primary.discount_amount)} OFF</span>`
@@ -220,13 +228,13 @@ function productCardHTML(p) {
 <div class="relative flex flex-col overflow-hidden rounded-xl h-fit border border-gray-200 bg-white transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-lg">
   <span class="absolute left-3 top-3 rounded-md ${labelColor} px-2.5 py-1 text-xs font-semibold text-white">${p.primary.label}</span>
   ${discountTag}
-  <a href="{% url 'store:product_detail' 'SLUG' %}".replace('SLUG', p.slug)>
+  <a href="${detailUrl}">
     <img src="${p.image_url || ''}" alt="${p.name}" class="h-[16rem] w-full object-contain"/>
   </a>
   <div class="p-4">
     <p class="text-xs text-gray-500">${p.category?.name || ''}</p>
     <h3 class="mb-2 text-sm font-semibold text-gray-800">
-      <a href="{% url 'store:product_detail' 'SLUG' %}".replace('SLUG', p.slug)>${p.name}</a>
+      <a href="${detailUrl}">${p.name}</a>
     </h3>
     <div class="mb-2 flex items-center text-sm">
       <span class="text-yellow-600">${stars(p.average_rating_int)}</span>
@@ -245,6 +253,8 @@ function productCardHTML(p) {
   </div>
 </div>`;
 }
+
+
 
 function render(items, meta) {
   if (!items.length) {

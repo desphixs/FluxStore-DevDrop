@@ -71,12 +71,12 @@
       <aside class="bg-white rounded-2xl shadow p-6 sticky top-6 mb-5">
   <div class="">
     <label class="text-sm font-medium">Have a coupon?</label>
-    <div class="mt-2 flex gap-2">
+    <div class="mt-2 flex flex-col sm:flex-row gap-2">
       <input id="coupon-code" class="flex-1 border rounded-lg px-3 py-2 text-sm" placeholder="Enter code">
-      <button id="apply-coupon" class="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm">Apply</button>
+      <button id="apply-coupon" class="mt-2 sm:mt-0 sm:ml-2 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm">Apply</button>
     </div>
 
-    <!-- shows when a coupon is applied -->
+    <!-- Shows when a coupon is applied -->
     <div id="coupon-active" class="hidden mt-3 flex items-center justify-between rounded-lg bg-green-50 px-3 py-2">
       <div class="text-sm text-green-800">
         Applied: <span id="coupon-active-code" class="font-medium"></span>
@@ -87,6 +87,7 @@
     <div id="coupon-msg" class="mt-2 text-sm"></div>
   </div>
 </aside>
+
 
 
       <aside class="bg-white rounded-2xl shadow p-6 sticky top-6">

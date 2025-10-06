@@ -35,53 +35,54 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- Items column -->
       <section class="lg:col-span-2 bg-white rounded-2xl shadow p-6">
-        <div class="space-y-6">
-          {% if items %}
-            {% for it in items %}
-              <article data-cart-item-id="{{ it.id }}" class="flex items-center gap-4 p-4 rounded-xl border border-gray-100">
-                <!-- optional image area -->
-                <div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
-                  <img src="{{ it.product_image.image.url }}">
+  <div class="space-y-6">
+    {% if items %}
+      {% for it in items %}
+        <article data-cart-item-id="{{ it.id }}" class="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-xl border border-gray-100">
+          <!-- optional image area -->
+          <div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
+            <img src="{{ it.product_image.image.url }}" alt="{{ it.product_name }}">
+          </div>
+
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-col sm:flex-row justify-start items-start sm:items-center">
+              <div class="flex flex-col sm:mr-4">
+                <div class="text-sm font-medium truncate">{{ it.product_name }}</div>
+                <div class="text-xs text-gray-500 truncate mt-1">{{ it.variation_str }}</div>
+                <div class="text-xs text-gray-400 mt-1">SKU: {{ it.sku }}</div>
+              </div>
+
+              <div class="text-left mt-3 sm:mt-0">
+                <div class="text-sm font-semibold">{{ site_config.currency_abbr }}<span class="item-price">{{ it.price }}</span></div>
+                <div class="text-xs text-gray-500">each</div>
+              </div>
+            </div>
+
+            <!-- quantity, subtotal -->
+            <div class="mt-4 flex flex-col sm:flex-row items-start justify-between sm:gap-4">
+              <div class="flex items-center gap-3">
+                <div class="inline-flex items-center rounded-full bg-gray-100 px-1">
+                  <button class="qty-btn px-3 py-1 text-lg font-bold" data-action="decrement">−</button>
+                  <input class="w-12 text-center bg-transparent outline-none quantity-input" value="{{ it.quantity }}" type="number" min="0" step="1" />
+                  <button class="qty-btn px-3 py-1 text-lg font-bold" data-action="increment">+</button>
                 </div>
+                <div class="text-xs text-gray-500">Stock: <span class="stock-count">{{ it.stock_quantity }}</span></div>
+              </div>
 
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-start justify-between">
-                    <div>
-                      <div class="text-sm font-medium truncate">{{ it.product_name }}</div>
-                      <div class="text-xs text-gray-500 truncate mt-1">{{ it.variation_str }}</div>
-                      <div class="text-xs text-gray-400 mt-1">SKU: {{ it.sku }}</div>
-                    </div>
+              <div class="text-left mt-3 sm:mt-0">
+                <div class="text-sm text-gray-500">Subtotal</div>
+                <div class="text-lg font-semibold">{{ site_config.currency_abbr }}<span class="item-subtotal">{{ it.subtotal }}</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    {% else %}
+      <div class="p-8 text-left text-gray-600">Your cart is empty.</div>
+    {% endif %}
+  </div>
+</section>
 
-                    <div class="text-right">
-                      <div class="text-sm font-semibold">{{site_config.currency_abbr}}<span class="item-price">{{ it.price }}</span></div>
-                      <div class="text-xs text-gray-500">each</div>
-                    </div>
-                  </div>
-
-                  <!-- quantity, subtotal -->
-                  <div class="mt-4 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                      <div class="inline-flex items-center rounded-full bg-gray-100 px-1">
-                        <button class="qty-btn px-3 py-1 text-lg font-bold" data-action="decrement">−</button>
-                        <input class="w-12 text-center bg-transparent outline-none quantity-input" value="{{ it.quantity }}" type="number" min="0" step="1" />
-                        <button class="qty-btn px-3 py-1 text-lg font-bold" data-action="increment">+</button>
-                      </div>
-                      <div class="text-xs text-gray-500">Stock: <span class="stock-count">{{ it.stock_quantity }}</span></div>
-                    </div>
-
-                    <div class="text-right">
-                      <div class="text-sm text-gray-500">Subtotal</div>
-                      <div class="text-lg font-semibold">{{site_config.currency_abbr}}<span class="item-subtotal">{{ it.subtotal }}</span></div>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            {% endfor %}
-          {% else %}
-            <div class="p-8 text-center text-gray-600">Your cart is empty.</div>
-          {% endif %}
-        </div>
-      </section>
 
       <!-- Summary column -->
       <aside class="bg-white rounded-2xl shadow p-6">
