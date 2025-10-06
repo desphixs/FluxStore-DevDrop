@@ -30,16 +30,63 @@ class Cart(models.Model):
         - If user is authenticated: cart is tied to user (OneToOne).
         - If guest: cart is tied to request.session.session_key.
         """
+        existing = cls.get_existing_for_request(request)
+        if existing is not None:
+            return existing
+
         if request.user.is_authenticated:
-            cart, _ = cls.objects.get_or_create(user=request.user)
+            cart, created = cls.objects.get_or_create(user=request.user)
+            cls._remember_in_session(request, cart, item_count=0 if created else None)
             return cart
 
         # ensure session exists
         if not request.session.session_key:
             request.session.create()
         session_key = request.session.session_key
-        cart, _ = cls.objects.get_or_create(session_key=session_key, user=None)
+        cart, created = cls.objects.get_or_create(session_key=session_key, user=None)
+        cls._remember_in_session(request, cart, item_count=0 if created else None)
         return cart
+
+    @classmethod
+    def get_existing_for_request(cls, request):
+        """Return an existing cart for this request without creating a new row."""
+        if request.user.is_authenticated:
+            try:
+                cart = request.user.cart
+                cls._remember_in_session(request, cart)
+                return cart
+            except cls.DoesNotExist:
+                pass
+
+        session = getattr(request, "session", None)
+        if session is None:
+            return None
+
+        session_key = session.session_key
+        if session_key:
+            cart = cls.objects.filter(session_key=session_key, user=None).first()
+            if cart is not None:
+                cls._remember_in_session(request, cart)
+                return cart
+
+        cart_id = session.get("cart_id")
+        if cart_id:
+            cart = cls.objects.filter(pk=cart_id).first()
+            if cart is not None:
+                cls._remember_in_session(request, cart)
+            return cart
+        return None
+
+    @staticmethod
+    def _remember_in_session(request, cart, *, item_count=None):
+        session = getattr(request, "session", None)
+        if session is None:
+            return
+        session["cart_id"] = cart.pk
+        if item_count is None:
+            item_count = cart.items.count()
+        session["cart_item_count"] = item_count
+        session.modified = True
 
     @transaction.atomic
     def add_item(self, product_variation, quantity=1, override_quantity=False):

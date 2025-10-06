@@ -38,6 +38,17 @@ getcontext().prec = 6
 
 logger = logging.getLogger(__name__)
 
+
+def _update_session_cart_count(request, cart):
+    session = getattr(request, "session", None)
+    if session is None or cart is None:
+        return 0
+    count = cart.items.count()
+    session["cart_item_count"] = count
+    session.modified = True
+    return count
+
+
 def index(request):
     Product = store_models.Product
     ProductVariation = store_models.ProductVariation
@@ -519,6 +530,8 @@ def add_to_cart(request):
         except Exception:
             subtotal = None
 
+    item_count = _update_session_cart_count(request, cart)
+
     resp = {
         "ok": True,
         "created": bool(created),
@@ -531,7 +544,7 @@ def add_to_cart(request):
             "subtotal": subtotal or (str(cart_item.quantity * cart_item.price) if getattr(cart_item, "price", None) is not None else None),
         },
         "cart": {
-            "item_count": order_models.CartItem.objects.filter(cart=cart).count(),
+            "item_count": item_count,
             "total_amount": str(cart.total_amount()) if hasattr(cart, "total_amount") else "0"
         }
     }
@@ -634,13 +647,15 @@ def update_cart_item_qty(request):
     if qty > 0:
         item_subtotal = (cart_item.price or Decimal('0.00')) * qty
 
+    item_count = _update_session_cart_count(request, cart)
+
     return JsonResponse({
         'ok': True,
         'cart_item_id': cart_item_id,
         'quantity': qty,
         'item_subtotal': str(item_subtotal),   # stringify decimals
         'cart_total': str(cart_total),
-        "item_count": order_models.CartItem.objects.filter(cart=cart).count(),
+        "item_count": item_count,
     })
 
 @login_required
