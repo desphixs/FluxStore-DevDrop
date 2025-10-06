@@ -73,8 +73,6 @@ INSTALLED_APPS = [
     "django_summernote",
 ]
 
-if DEBUG:
-    INSTALLED_APPS.append("django_browser_reload")
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -87,8 +85,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-if DEBUG:
-    MIDDLEWARE.append('django_browser_reload.middleware.BrowserReloadMiddleware')
 
 ROOT_URLCONF = 'project.urls'
 
