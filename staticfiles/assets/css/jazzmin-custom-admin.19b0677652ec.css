@@ -1,0 +1,8 @@
+.login-logo img {
+    max-width: 120px; /* adjust size */
+    height: auto;
+}
+
+.brand-link {
+    box-shadow: none;
+}

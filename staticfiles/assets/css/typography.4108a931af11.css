@@ -1,0 +1,143 @@
+/* static/css/typography.css */
+/* Prose-lite: bring back sane HTML typography under Tailwind Preflight */
+
+#pageContent {
+    color: inherit;
+    line-height: 1.8;
+    font-size: 1rem;
+}
+
+#pageContent h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 1.25em 0 0.6em;
+}
+#pageContent h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 1.2em 0 0.6em;
+}
+#pageContent h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 1.1em 0 0.5em;
+}
+#pageContent h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 1em 0 0.5em;
+}
+
+#pageContent p {
+    margin: 0 0 1em;
+}
+#pageContent a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+#pageContent strong {
+    font-weight: 700;
+}
+#pageContent em {
+    font-style: italic;
+}
+
+#pageContent ul,
+#pageContent ol {
+    margin: 0 0 1em 1.5em;
+    padding: 0;
+}
+#pageContent ul {
+    list-style: disc;
+}
+#pageContent ol {
+    list-style: decimal;
+}
+#pageContent li {
+    margin: 0.25em 0;
+}
+#pageContent li > ul,
+#pageContent li > ol {
+    margin-top: 0.4em;
+    margin-bottom: 0.4em;
+}
+
+#pageContent blockquote {
+    margin: 1em 0;
+    padding: 0.75em 1em;
+    border-left: 4px solid rgba(0, 0, 0, 0.15);
+    background: rgba(0, 0, 0, 0.03);
+}
+
+#pageContent code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    background: rgba(0, 0, 0, 0.06);
+    padding: 0.15em 0.35em;
+    border-radius: 0.25rem;
+}
+#pageContent pre {
+    background: rgba(0, 0, 0, 0.06);
+    padding: 1em;
+    overflow: auto;
+    border-radius: 0.5rem;
+}
+#pageContent pre code {
+    background: transparent;
+    padding: 0;
+}
+
+#pageContent hr {
+    border: 0;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.12);
+    margin: 2rem 0;
+}
+
+#pageContent table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.95rem;
+}
+#pageContent th,
+#pageContent td {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    padding: 0.6em 0.8em;
+    text-align: left;
+}
+#pageContent th {
+    background: rgba(0, 0, 0, 0.04);
+    font-weight: 600;
+}
+
+#pageContent img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+    display: block;
+    margin: 1rem 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    #pageContent blockquote {
+        background: rgba(255, 255, 255, 0.04);
+        border-left-color: rgba(255, 255, 255, 0.2);
+    }
+    #pageContent code,
+    #pageContent pre {
+        background: rgba(255, 255, 255, 0.06);
+    }
+    #pageContent th {
+        background: rgba(255, 255, 255, 0.06);
+    }
+    #pageContent hr {
+        background: rgba(255, 255, 255, 0.15);
+    }
+    #pageContent th,
+    #pageContent td {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+}
