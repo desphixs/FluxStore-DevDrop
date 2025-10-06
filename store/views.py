@@ -4,6 +4,8 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import ensure_csrf_cookie
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.conf import settings
@@ -48,7 +50,7 @@ def _update_session_cart_count(request, cart):
     session.modified = True
     return count
 
-
+@ensure_csrf_cookie
 def index(request):
     Product = store_models.Product
     ProductVariation = store_models.ProductVariation
@@ -120,6 +122,7 @@ def index(request):
     }
     return render(request, 'index.html', context)
 
+@ensure_csrf_cookie
 def product_detail_view(request, slug):
     Product = store_models.Product
     ProductVariation = store_models.ProductVariation
@@ -274,6 +277,7 @@ def category_detail(request, slug, pk):
     )
 
 
+@ensure_csrf_cookie
 @require_POST
 @csrf_protect
 def add_to_cart(request):
