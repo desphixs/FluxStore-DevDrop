@@ -137,7 +137,7 @@ class ProductVariation(models.Model):
     product = models.ForeignKey("Product", on_delete=models.CASCADE, related_name='variations')
     sale_price = models.DecimalField(max_digits=10, decimal_places=2)
     regular_price = models.DecimalField(max_digits=10, decimal_places=2)
-    shipping_price = models.DecimalField(max_digits=10, decimal_places=2)
+    shipping_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     show_regular_price = models.BooleanField(default=False)
     show_discount_type = models.CharField(choices=SHOW_DISCOUNT_TYPE, default="none", max_length=100)
     # Deal fields
