@@ -1,20 +1,20 @@
 <div class="card-hover group relative flex flex-col bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
   {% if p.primary_item.show_label %}
     {% if p.primary_item.label %}
-      <span class="product-badge absolute left-4 top-4 rounded-full {{p.primary_item.label_color}} px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+      <span class="product-badge lg:block hidden absolute left-4 top-4 rounded-full {{p.primary_item.label_color}} px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
         {{p.primary_item.label}}
       </span>
     {% endif %}
   {% endif %}
 
   {% if p.primary_item.show_discount_type == "price" %}
-    <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+    <span class="product-badge lg:block hidden absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
       {{site_config.currency_abbr}}{{p.primary_item.discount_amount|floatformat:0}} OFF
     </span>
   {% endif %}
 
   {% if p.primary_item.show_discount_type == "percentage" %}
-    <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+    <span class="product-badge lg:block hidden absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
       {{p.primary_item.discount_amount|floatformat:0}}% OFF
     </span>
   {% endif %}
