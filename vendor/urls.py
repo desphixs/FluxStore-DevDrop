@@ -39,10 +39,7 @@ urlpatterns = [
 ]
 
 
-
-
 urlpatterns += [
-    # LIST page you already had (keep your own):
     path("products/", products.product_list, name="products"),
 
     # Create + Edit workspace
@@ -73,9 +70,6 @@ urlpatterns += [
     path("products/<int:pk>/images/upload/", products.product_image_upload_ajax, name="product_image_upload_ajax"),
     path("images/<int:iid>/delete/", products.product_image_delete_ajax, name="product_image_delete_ajax"),
     path("images/<int:iid>/mark-primary/", products.product_image_mark_primary_ajax, name="product_image_mark_primary_ajax"),
-
-
-
 
     # --- PRODUCT EDIT PAGE ---
     path("products/<int:pk>/edit/", products.product_edit, name="product_edit"),
