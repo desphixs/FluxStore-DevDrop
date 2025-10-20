@@ -283,7 +283,7 @@ def _easebuzz_status_payload(txnid: str, easebuzz_id: str | None) -> dict:
 def _easebuzz_txn_status(txnid: str, easebuzz_id: str | None = None, timeout=10) -> dict | None:
     payload = _easebuzz_status_payload(txnid, easebuzz_id)
     headers = {
-        "User-Agent": "EfashionBazaar/1.0",
+        "User-Agent": "FluxStore/1.0",
         "Accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded",
     }
@@ -689,6 +689,35 @@ def easebuzz_webhook(request):
 
     order.save(update_fields=["payment_meta", "easebuzz_payment_id", "payment_status", "status", "updated_at"])
     return JsonResponse({"ok": True})
+
+
+@login_required
+@require_POST
+def confirm_payment(request, order_id: str):
+    order = get_object_or_404(order_models.Order, buyer=request.user, order_id=order_id)
+
+    # idempotency: if already paid, just go to thank-you
+    if (order.payment_status or "").upper() == "PAID":
+        return redirect("payments:thank_you", order_id=order.order_id)
+
+    # mark as paid
+    order.payment_provider = "STRIPE_MOCK"
+    order.payment_status = "PAID"
+    # optional: nudge status forward
+    try:
+        order.status = order_models.Order.OrderStatus.PROCESSING
+    except Exception:
+        pass
+
+    # keep a tiny audit trail in payment_meta
+    meta = (order.payment_meta or {}) if isinstance(order.payment_meta, dict) else {}
+    meta["mock_stripe_confirmed_at"] = timezone.now().isoformat()
+    meta["last4"] = (request.POST.get("card_number", "").replace(" ", "")[-4:] or "")
+    order.payment_meta = meta
+
+    order.save(update_fields=["payment_provider", "payment_status", "status", "payment_meta", "updated_at"])
+
+    return redirect("payments:thank_you", order_id=order.order_id)
 
 
 @login_required

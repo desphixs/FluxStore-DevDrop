@@ -45,7 +45,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000", 
     'http://127.0.0.1', 
     'https://*.ngrok-free.app', 
-    'https://efashionbazaar.up.railway.app'
+    'https://FluxStore.up.railway.app'
 ]
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 # Application definition
@@ -53,6 +53,7 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
+    'django.contrib.humanize',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -206,10 +207,10 @@ SINGLE_COUPON_PER_VENDOR = True
 
 
 JAZZMIN_SETTINGS = {
-    "site_title": "Efashionbazaar",
-    "site_header": "Efashionbazaar",
-    "site_brand": "Efashionbazaar",
-    "welcome_sign": "Welcome to Efashionbazaar",
+    "site_title": "FluxStore",
+    "site_header": "FluxStore",
+    "site_brand": "FluxStore",
+    "welcome_sign": "Welcome to FluxStore",
 
     # Favicon
     "site_icon": "assets/img/favicon.png",        # path relative to static/

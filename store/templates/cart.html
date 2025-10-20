@@ -3,7 +3,7 @@
 {% block content %}
 
 <body class="bg-gray-50 text-gray-900">
-  <main class="max-w-6xl mx-auto px-4 py-10 mt-32">
+  <main class="max-w-6xl mx-auto px-4 py-10 mt-15">
     
         {% if addresses.count < 1 %}
         <div class="mb-6 rounded-xl border border-yellow-300 bg-yellow-50 p-4 text-yellow-800 shadow-sm flex justify-between lg:flex-row flex-col flex-wrap">
@@ -96,7 +96,7 @@
     <a
       id="checkout-btn"
       href="{% url 'store:checkout_start' %}"
-      class="w-full block text-center py-3 rounded-xl bg-[#8C001A] text-white font-semibold hover:bg-[#7a0016] transition"
+      class="w-full block text-center py-3 rounded-xl bg-[#000] text-white font-semibold hover:bg-[#0d0017] transition"
       role="button"
     >
       Checkout
@@ -105,13 +105,13 @@
     <a
       id="checkout-btn"
       href="{% url 'userauths:login' %}?next={% url 'store:checkout_start' %}"
-      class="w-full block text-center py-3 rounded-xl bg-[#8C001A] text-white font-semibold hover:bg-[#7a0016] transition"
+      class="w-full block text-center py-3 rounded-xl bg-[#000] text-white font-semibold hover:bg-[#0d0017] transition"
     >
       Checkout
     </a>
   {% endif %}
 
-  <a href="/" class="block text-center text-sm text-gray-600">Continue shopping</a>
+  <a href="/shop/" class="block text-center text-sm text-gray-600">Continue shopping</a>
 </div>
 
       </aside>
@@ -259,6 +259,7 @@
       }, 3000);
     }
   </script>
+
 </body>
 </html>
 {% endblock content %}

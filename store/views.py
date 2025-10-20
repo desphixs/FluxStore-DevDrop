@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Prefetch, Sum, Avg, Case, When, IntegerField, F
+from django.db.models import Prefetch, Sum, Avg, Case, When, IntegerField, F, Q, Min, Value
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
@@ -19,6 +19,7 @@ import math
 import requests
 import uuid
 import logging
+import re
 
 from store import models as store_models
 from order import models as order_models
@@ -33,7 +34,7 @@ from django.utils import timezone
 
 from .shiprocket import get_serviceability_and_rates, create_shiprocket_order, ShiprocketError
 from userauths.models import Address  # adjust import
-from store.models import ProductVariation
+from store.models import ProductVariation, ProductImage
 
 getcontext().prec = 6
 
@@ -89,18 +90,18 @@ def index(request):
     # ---------- Trending Products ----------
     # Products that have at least one variation labeled "Trending"
     trending_products = list(
-        base_products_qs.filter(variations__label='Trending').distinct()[:2]
-    )
+        base_products_qs.filter(variations__label='Trending').distinct()
+    )[:12]
 
     # ---------- Recently Added ----------
-    recently_added = list(base_products_qs.order_by('-created_at')[:2])
+    recently_added = list(base_products_qs.order_by('-created_at'))[:12]
 
     # ---------- Top Rated ----------
     # Annotate avg rating and pick top 4 (ignore null-rated products)
     top_rated = list(
         base_products_qs.annotate(avg_rating=Avg('reviews__rating'))
                         .filter(avg_rating__isnull=False)
-                        .order_by('-avg_rating')[:2]
+                        .order_by('-avg_rating')[:12]
     )
 
     # ---------- Deals (existing) ----------
@@ -112,7 +113,7 @@ def index(request):
 
     context = {
         'products': base_products_qs,           # full list if you still need it elsewhere
-        'categories': store_models.Category.objects.filter(is_active=True, featured=True).order_by("id")[:2],
+        'categories': store_models.Category.objects.filter(is_active=True, featured=True).order_by("id"),
         'trending_categories': store_models.Category.objects.filter(is_active=True, trending=True)[:8],
         'deals': deals,
         'top_selling': top_selling,
@@ -276,6 +277,47 @@ def category_detail(request, slug, pk):
         },
     )
 
+
+def products_by_label(request, label):
+    """
+    /products/label/<label>/
+    - <label> comes from URL (e.g., 'hot', 'coming-soon', 'back-in-stock')
+    - We normalize and validate against ProductVariation.LABEL_CHOICES
+    - Filters published products that have at least one ACTIVE variation with that label
+    """
+    # normalize url segment: "coming-soon" -> "coming soon"
+    normalized = label.replace("-", " ").strip().lower()
+
+    # build a case-insensitive lookups dict from your choices
+    valid_labels_map = {choice.lower(): choice for choice, _ in ProductVariation.LABEL_CHOICES}
+
+
+
+    label_value = valid_labels_map[normalized]
+
+    qs = (
+        store_models.Product.objects
+        .filter(
+            status=store_models.Product.ProductStatus.PUBLISHED,
+            variations__is_active=True,
+            variations__label=label_value,
+        )
+        .select_related("category", "vendor")
+        .distinct()
+        .order_by("-updated_at")
+    )
+
+    page_obj = Paginator(qs, 24).get_page(request.GET.get("page") or 1)
+
+    return render(
+        request,
+        "product_list_by_label.html",
+        {
+            "products": page_obj,
+            "label": label_value,
+            "title": f"{label_value} Products",
+        },
+    )
 
 @ensure_csrf_cookie
 @require_POST
@@ -756,7 +798,7 @@ def _choose_shiprocket_surface(opts):
 
 @login_required
 @transaction.atomic
-def begin_checkout(request):
+def begin_checkout_shiprocket(request):
     profile = request.user.profile
     cart = order_models.Cart.get_for_request(request)
     if cart.items.count() == 0:
@@ -861,6 +903,104 @@ def begin_checkout(request):
         print("DEBUG: Unexpected exception; totals recomputed with shipping_fee fallback")
 
     # (optional) keep cart until payment succeeds; or clear now:
+    # cart.items.all().delete()
+
+    return redirect(reverse('store:checkout', kwargs={'order_id': order.order_id}))
+
+
+@login_required
+@transaction.atomic
+def begin_checkout(request):
+    """
+    Create an Order from the cart using product variation shipping_price.
+    - Shipping = sum(pv.shipping_price * quantity) across all cart items
+    - No Shiprocket, no rate lookups
+    """
+    profile = request.user.profile
+    cart = order_models.Cart.get_for_request(request)
+
+    if cart.items.count() == 0:
+        return redirect('store:cart')  # empty cart
+
+    # require a default SHIPPING address
+    addr = profile.addresses.filter(
+        address_type=Address.AddressType.SHIPPING,
+        is_default=True
+    ).first()
+    if not addr:
+        return redirect('store:address_list_create')
+
+    # Snapshot totals from the cart
+    item_total = Decimal('0.00')
+    shipping_total = Decimal('0.00')
+
+    cart_items_qs = cart.items.select_related(
+        'product_variation',
+        'product_variation__product'
+    )
+
+    for ci in cart_items_qs:
+        pv = ci.product_variation
+        unit_price = ci.price or pv.sale_price
+        item_total += (unit_price * ci.quantity)
+
+        # shipping = per-variation shipping_price * qty
+        shipping_total += (pv.shipping_price or Decimal('0.00')) * ci.quantity
+
+    # Create order with initial numbers (will recompute from items below)
+    order = order_models.Order(
+        buyer=request.user,
+        address=addr,
+        currency=getattr(settings, "DEFAULT_CURRENCY", "INR"),
+        item_total=item_total,                    # placeholder; recomputed below from items
+        shipping_fee=shipping_total,              # our computed shipping
+        total_amount=item_total + shipping_total, # placeholder; recalced below
+        shipping_address_snapshot={
+            "full_name": addr.full_name,
+            "phone": addr.phone,
+            "street_address": addr.street_address,
+            "city": addr.city,
+            "state": addr.state,
+            "postal_code": addr.postal_code,
+            "country": addr.country,
+        },
+    )
+    order.set_order_id_if_missing()
+    order.save()
+
+    # Create OrderItems from the cart snapshot
+    for ci in cart_items_qs:
+        pv = ci.product_variation
+        unit_price = ci.price or pv.sale_price
+
+        # vendor for payout/split reporting (fallback to buyer if missing)
+        try:
+            vendor_user = getattr(pv.product, "vendor", None) or request.user
+        except Exception:
+            vendor_user = request.user
+
+        oi = order_models.OrderItem.objects.create(
+            order=order,
+            product_variation=pv,
+            vendor=vendor_user,
+            quantity=ci.quantity,
+            price=unit_price,
+        )
+
+        if ci.variation_values.exists():
+            oi.variation_values.set(ci.variation_values.all())
+
+        # keep line net ready for any future discounts
+        oi.recompute_line_totals()
+        oi.save(update_fields=["line_subtotal_net"])
+
+    # Finalize totals from the actual items, keep our shipping_fee as-is
+    order.recompute_item_totals_from_items()
+    # ensure amount_payable = item_total_net + shipping_fee
+    order.recalc_total()
+    order.save()
+
+    # optionally: keep cart until payment success, or clear here
     # cart.items.all().delete()
 
     return redirect(reverse('store:checkout', kwargs={'order_id': order.order_id}))
@@ -1105,4 +1245,69 @@ def remove_coupon(request):
             "shipping_fee":        str(order.shipping_fee),
             "amount_payable":      str(order.amount_payable),
         }
+    })
+
+
+
+
+def search(request):
+    """
+    /search/?q=shoes
+    Filters published products by name, description, category, variation value, SKU.
+    Ranks hits: name > sku > category. Paginates.
+    """
+    q = (request.GET.get("q") or "").strip()
+
+    # start with nothing if query is empty (avoid dumping entire catalog)
+    products = store_models.Product.objects.none()
+
+    if q:
+        terms = [t for t in re.split(r"\s+", q) if t]
+
+        # Build AND of ORs (every term must hit at least one field)
+        combined = Q()
+        for t in terms:
+            per_term = (
+                Q(name__icontains=t) |
+                Q(description__icontains=t) |
+                Q(category__name__icontains=t) |
+                Q(variations__sku__icontains=t) |
+                Q(variations__variations__value__icontains=t)
+            )
+            combined &= per_term
+
+        # Prefetch primary image + active variations (cheapest first)
+        primary_images = ProductImage.objects.filter(is_primary=True)
+        active_vars = ProductVariation.objects.filter(is_active=True).order_by("sale_price")
+
+        # Rank: boost name hits the most, then SKU, then category
+        name_hit = Case(When(name__icontains=q, then=Value(3)), default=Value(0), output_field=IntegerField())
+        sku_hit  = Case(When(variations__sku__icontains=q, then=Value(2)), default=Value(0), output_field=IntegerField())
+        cat_hit  = Case(When(category__name__icontains=q, then=Value(1)), default=Value(0), output_field=IntegerField())
+
+        products = (
+            store_models.Product.objects
+            .filter(status=store_models.Product.ProductStatus.PUBLISHED)
+            .filter(combined)
+            .select_related("category", "vendor")
+            .prefetch_related(
+                Prefetch("images", queryset=primary_images, to_attr="primary_images_prefetch"),
+                Prefetch("variations", queryset=active_vars, to_attr="active_variations_prefetch"),
+            )
+            .annotate(
+                avg_rating=Avg("reviews__rating"),
+                reviews_count=Count("reviews", distinct=True),
+                _rank=name_hit + sku_hit + cat_hit,
+            )
+            .distinct()
+            .order_by("-_rank", "-updated_at")
+        )
+
+    # paginate
+    page = request.GET.get("page") or 1
+    page_obj = Paginator(products, 24).get_page(page)
+
+    return render(request, "search.html", {
+        "q": q,
+        "products": page_obj,
     })

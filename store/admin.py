@@ -87,7 +87,7 @@ class ProductImageInlineForVariation(admin.StackedInline):
 
 @admin.register(models.ProductVariation)
 class ProductVariationAdmin(admin.ModelAdmin):
-    list_display = ("product", "sale_price", "stock_quantity", "sku", "is_active")
+    list_display = ("product", "sale_price", "stock_quantity", "label", "sku", "is_active")
     list_filter = ("is_active", "product")
     search_fields = ("product__name", "sku")
     ordering = ("sale_price",)

@@ -1,130 +1,54 @@
 {% load static %}
-  <footer class="text-gray-600 lg:mt-52 mt-14">
-            <div class="container px-5 py-24 mx-auto">
-                <div class="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8 py-12">
-                    <div class="grid grid-cols-1 gap-10 md:grid-cols-4">
-                    <!-- Brand / Address -->
-                    <div>
-                        <img src="{{ site_config.site_logo.url }}" alt="Logo" class="w-40 md:w-56 object-contain" />
-                        <p class="mt-3 text-sm text-gray-600">{{ site_config.site_header }}</p>
-
-                        <ul class="mt-6 space-y-2 text-sm text-gray-700">
-                        <li class="flex items-start gap-2">
-                            <i class="fas fa-map-marker-alt text-[#991b1b] mt-0.5"></i>
-                            <span><strong>Address:</strong> {{ site_config.address }}</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i class="fas fa-phone-alt text-[#991b1b] mt-0.5"></i>
-                            <span><strong>Call Us:</strong> {{ site_config.phone }}</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i class="fas fa-envelope text-[#991b1b] mt-0.5"></i>
-                            <span><strong>Email:</strong> {{ site_config.email }}</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i class="fas fa-clock text-[#991b1b] mt-0.5"></i>
-                            <span><strong>Hours:</strong> {{ site_config.working_hours }}</span>
-                        </li>
-                        </ul>
-                    </div>
-
-                    <!-- Company -->
-                    <div>
-                        <h2 class="text-base font-semibold text-gray-900">Company</h2>
-                        <ul class="mt-4 space-y-2">
-                        <li>
-                            <a href="{% url 'addon:about' %}" class="text-gray-600 hover:text-[#991b1b]">About Us</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'addon:contact' %}" class="text-gray-600 hover:text-[#991b1b]">Contact Us</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'addon:faqs' %}" class="text-gray-600 hover:text-[#991b1b]">FAQs</a>
-                        </li>
-                        </ul>
-                    </div>
-
-                    <!-- Account -->
-                    <div>
-                        <h2 class="text-base font-semibold text-gray-900">Account</h2>
-                        <ul class="mt-4 space-y-2">
-                        {% if request.user.is_authenticated %}
-                        <li><a href="{% url 'userauths:logout' %}" class="text-gray-600 hover:text-[#991b1b]">Sign Out</a></li>
-                        {% else %}
-                        <li><a href="{% url 'userauths:login' %}" class="text-gray-600 hover:text-[#991b1b]">Sign In</a></li>
-                        {% endif %}
-                        <li><a href="{% url 'store:cart' %}" class="text-gray-600 hover:text-[#991b1b]">View Cart</a></li>
-                        <li><a href="{% url 'customer:wishlist' %}" class="text-gray-600 hover:text-[#991b1b]">My Wishlist</a></li>
-                        <li><a class="text-gray-600 hover:text-[#991b1b]">Track My Order</a></li>
-                        <li><a href="{% url 'addon:shipping_policy' %}" class="text-gray-600 hover:text-[#991b1b]">Shipping Details</a></li>
-                        </ul>
-                    </div>
-
-                    <!-- Policies -->
-                    <div>
-                        <h2 class="text-base font-semibold text-gray-900">Policies</h2>
-                        <ul class="mt-4 space-y-2">
-                        <li><a href="{% url 'addon:privacy_policy' %}" class="text-gray-600 hover:text-[#991b1b]">Privacy Policy</a></li>
-                        <li><a href="{% url 'addon:refund_policy' %}" class="text-gray-600 hover:text-[#991b1b]">Refund Policy</a></li>
-                        <li><a href="{% url 'addon:terms_and_conditions' %}" class="text-gray-600 hover:text-[#991b1b]">Terms &amp; Conditions</a></li>
-                        <li><a href="{% url 'addon:shipping_policy' %}" class="text-gray-600 hover:text-[#991b1b]">Shipping Policy</a></li>
-                        <li><a href="{% url 'addon:cookie_policy' %}" class="text-gray-600 hover:text-[#991b1b]">Cookie Policy</a></li>
-                        </ul>
-                    </div>
+<footer class="bg-black text-white py-12 md:py-16 px-4 sm:px-6 lg:px-8 mt-20">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                <div>
+                    <h3 class="text-2xl font-black mb-4">Store</h3>
+                    <p class="text-gray-400 text-sm">Premium products for the modern lifestyle.</p>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-4 text-sm uppercase tracking-wider">Shop</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">New Arrivals</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Best Sellers</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Deals</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Categories</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-4 text-sm uppercase tracking-wider">Support</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">FAQs</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Shipping Info</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Returns</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-4 text-sm uppercase tracking-wider">Follow Us</h4>
+                    <div class="flex gap-3">
+                        <a href="#" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors">
+                            <span class="text-xs">𝕏</span>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors">
+                            <span class="text-xs">IG</span>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors">
+                            <span class="text-xs">FB</span>
+                        </a>
                     </div>
                 </div>
             </div>
-
-
-            <div class="border-t border-gray-200">
-    <div class="container mx-auto py-6 px-5 flex flex-wrap flex-col lg:flex-row items-center">
-        <!-- Text Section -->
-        <p class="text-gray-500 text-sm text-center sm:text-left">
-            <span class="text-[#991b1b]">{{site_config.site_name}}</span>
-            <br>{{ site_config.footer_text }}
-        </p>
-
-        <!-- Contact Info Section -->
-        <div class="flex flex-col sm:flex-row sm:justify-center my-4 sm:my-0 space-y-4 sm:space-y-0 sm:space-x-8">
-            <div class="flex items-center">
-                <i class="fa-solid fa-phone text-3xl text-gray-400"></i>
-                <div class="ml-3">
-                    <p class="text-[#991b1b] font-bold text-xl">{{site_config.phone}}</p>
-                    <p class="text-xs text-gray-400">{{site_config.working_hours}}</p>
-                </div>
-            </div>
-            <div class="flex items-center">
-                <i class="fas fa-headset text-3xl text-gray-400"></i>
-                <div class="ml-3">
-                    <p class="text-[#991b1b] font-bold text-xl">{{site_config.email}}</p>
-                    <p class="text-xs text-gray-400">24/7 Support Center</p>
+            
+            <div class="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
+                <p>&copy; 2025 Store. All rights reserved.</p>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
+                    <a href="#" class="hover:text-white transition-colors">Terms of Service</a>
                 </div>
             </div>
         </div>
-
-        <!-- Social Links Section -->
-        <div class="inline-flex flex-col sm:flex-row sm:ml-auto sm:mt-0 mt-4 justify-center sm:justify-start items-center">
-            <div class="text-center sm:text-left">
-                <h3 class="font-bold text-md">Follow Us</h3>
-                <p class="text-xs text-gray-400">Up to 15% discount on your first subscribe</p>
-            </div>
-            <div class="flex mt-3 sm:mt-0 space-x-2 justify-center sm:justify-start">
-                {% for s in social_links %}
-                    <a href="{{s.url}}" class="text-white bg-[#991b1b] hover:bg-red-900 w-8 h-8 rounded-full inline-flex items-center justify-center">
-                        <i class="{{s.icon_class}}"></i>
-                    </a>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-
-           
-
-            <button
-                class="fixed bottom-5 right-5 bg-[#991b1b] hover:bg-red-900 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-                onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-                <i class="fas fa-arrow-up"></i>
-            </button>
-
-        </footer>
+    </footer>

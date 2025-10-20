@@ -1,7 +1,9 @@
 {% extends "base/base.html" %}
 {% load static %}
 {% block content %}
-<div class="max-w-6xl mx-auto px-6 py-10 mt-32">
+<div class="max-w-6xl mx-auto px-6 py-10 mt-15">
+    <h1 class="text-3xl font-bold mb-10">Checkout</h1>
+
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- LEFT: address + items -->
     <section class="lg:col-span-2 space-y-6">
@@ -116,14 +118,100 @@
     </div>
   </div>
 
+  {# Keep your original form/action. We'll intercept submit in JS to show the modal instead. #}
   <form id="pay-form" method="post" action="{% url 'payments:easebuzz_start' order.order_id %}">
     {% csrf_token %}
-    <button class="mt-4 w-full py-3 rounded-xl bg-[#8C001A] text-white font-semibold hover:bg-[#7a0016] transition">
+    <button class="mt-4 w-full py-3 rounded-xl bg-indigo-500 text-white font-semibold hover:bg-indi transition">
       Proceed to Payment
     </button>
   </form>
 
 </aside>
+    </div>
+  </div>
+</div>
+
+{# === Payment Modal (added) === #}
+<div id="payModal"
+     class="fixed inset-0 z-50 hidden"
+     aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="absolute inset-0 bg-black/50"></div>
+  <div class="relative mx-auto w-full max-w-lg mt-24 px-4">
+    <div class="bg-white rounded-2xl shadow-xl p-6">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-lg font-semibold">Pay with Card (Stripe Mock)</h3>
+
+        <div class="flex items-center gap-2">
+          <!-- NEW: Prefill dummy card -->
+          <button id="prefillDemo"
+                  type="button"
+                  class="px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-medium hover:bg-gray-50">
+            Use dummy card
+          </button>
+
+          <button id="closePayModal" class="p-2 rounded-lg hover:bg-gray-100" aria-label="Close">✕</button>
+        </div>
+      </div>
+
+      <form id="cardForm"
+            class="mt-4 space-y-4"
+            action="{% url 'payments:confirm_payment' order_id=order.order_id %}"
+            method="post">
+        {% csrf_token %}
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Cardholder Name</label>
+          <input id="cardName" name="card_name" type="text" required
+                 class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Card Number</label>
+          <input id="cardNumber" name="card_number" inputmode="numeric" autocomplete="cc-number"
+                 placeholder="4242 4242 4242 4242"
+                 pattern="[0-9 ]{12,23}" required
+                 class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 font-mono tracking-wider focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Expiry (MM/YY)</label>
+            <input id="cardExp" name="card_exp" placeholder="12/29" required
+                   class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 font-mono focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">CVC</label>
+            <input id="cardCvc" name="card_cvc" placeholder="123" required
+                   class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 font-mono focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+          </div>
+        </div>
+
+        <p class="text-xs text-gray-500">Tip: click “Use dummy card” to auto-fill <span class="font-mono">4242 4242 4242 4242</span>, <span class="font-mono">12/29</span>, <span class="font-mono">123</span>.</p>
+
+        <div class="flex items-center justify-between pt-2">
+          <p class="text-sm text-gray-600">Total: <span class="font-semibold">{{site_config.currency_abbr}}{{ grand_total }}</span></p>
+          <div class="flex gap-2">
+            <button type="button" id="cancelPay"
+                    class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50">
+              Cancel
+            </button>
+            <button id="payNow"
+                    class="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
+              Pay Now
+            </button>
+          </div>
+        </div>
+
+        <!-- Processing indicator -->
+        <div id="processing" class="hidden mt-4 flex items-center gap-3 text-sm text-gray-700">
+          <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          Processing payment…
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -137,7 +225,6 @@
 
   function updateTotals(amts){
     if(!amts) return;
-    // update your totals on page (IDs must exist)
     const el = (id) => document.getElementById(id);
     el('item-total').textContent = amts.items_subtotal_gross;
     const shipEl = document.getElementById('shipping-fee'); if (shipEl) shipEl.textContent = amts.shipping_fee;
@@ -191,17 +278,12 @@
   }
 
   function updateTotals(amts){
-    // amts: { item_total, item_discount_total, item_total_net, shipping_fee, amount_payable }
     if(!amts) return;
-
-    // Numbers
     el('item-total').textContent = fmt(amts.item_total);
     el('discount-amount').textContent = fmt(amts.item_discount_total);
     el('shipping-fee').textContent = fmt(amts.shipping_fee);
     const topShip = el('shipping-fee-top'); if (topShip) topShip.textContent = fmt(amts.shipping_fee);
     el('grand-total').textContent = fmt(amts.amount_payable);
-
-    // Toggle discount row
     const hasDiscount = Number(amts.item_discount_total) > 0;
     const discountRow = el('discount-row');
     if (hasDiscount) show(discountRow); else hide(discountRow);
@@ -239,11 +321,7 @@
     if(data.ok){
       msg.textContent = data.message || "Coupon applied.";
       msg.className = "mt-2 text-sm text-green-600";
-
-      // reflect new totals
       updateTotals(data.amounts);
-
-      // show active coupon UI
       activeCode.textContent = code;
       show(activeWrap);
     } else {
@@ -269,14 +347,9 @@
     if(data.ok){
       msg.textContent = data.message || "Coupon removed.";
       msg.className = "mt-2 text-sm text-green-600";
-
-      // reflect new totals
       updateTotals(data.amounts);
-
-      // clear active coupon UI
       activeCode.textContent = "";
       hide(activeWrap);
-      // keep the code in input so user can retry if they want
     } else {
       msg.textContent = data.message || "Could not remove coupon.";
       msg.className = "mt-2 text-sm text-red-600";
@@ -290,5 +363,75 @@
 })();
 </script>
 
+{# === Modal Script (added) === #}
+<script>
+(function () {
+  const payForm = document.getElementById('pay-form');
+  const modal = document.getElementById('payModal');
+  const closeBtn = document.getElementById('closePayModal');
+  const cancelBtn = document.getElementById('cancelPay');
+  const cardForm = document.getElementById('cardForm');
+  const payNow = document.getElementById('payNow');
+  const processing = document.getElementById('processing');
+  const prefillBtn = document.getElementById('prefillDemo');
+
+  const cardName = document.getElementById('cardName');
+  const cardNumber = document.getElementById('cardNumber');
+  const cardExp = document.getElementById('cardExp');
+  const cardCvc = document.getElementById('cardCvc');
+
+  function openModal() {
+    modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  }
+  function closeModal() {
+    modal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  // Intercept your original form submit and show modal instead
+  if (payForm) {
+    payForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      openModal();
+    });
+  }
+
+  closeBtn?.addEventListener('click', closeModal);
+  cancelBtn?.addEventListener('click', closeModal);
+
+  // NEW: Prefill dummy card
+  prefillBtn?.addEventListener('click', function () {
+    cardName.value = 'Test User';
+    cardNumber.value = '4242 4242 4242 4242';
+    cardExp.value = '12/29';
+    cardCvc.value = '123';
+    cardName.focus();
+  });
+
+  function valid() {
+    return cardNumber?.checkValidity() && cardExp?.checkValidity() && cardCvc?.checkValidity();
+  }
+
+  payNow?.addEventListener('click', function (e) {
+    e.preventDefault();
+    if (!valid()) {
+      cardForm.reportValidity();
+      return;
+    }
+    payNow.disabled = true;
+    processing.classList.remove('hidden');
+
+    // Fake 3s processing, then submit to payments:confirm_payment
+    setTimeout(function(){
+      cardForm.submit();
+    }, 3000);
+  });
+
+  // close on escape / backdrop
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+  modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+})();
+</script>
 
 {% endblock %}

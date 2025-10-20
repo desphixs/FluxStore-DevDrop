@@ -123,10 +123,3 @@ class Address(models.Model):
             Address.objects.filter(profile=self.profile, address_type=self.address_type).update(is_default=False)
         super().save(*args, **kwargs)
 
-
-
-# @receiver(post_save, sender=User)
-# def ensure_user_profile(sender, instance, created, **kwargs):
-#     if created:
-#         # Safe if something else already created it
-#         UserProfile.objects.get_or_create(user=instance)

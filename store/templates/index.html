@@ -2,582 +2,990 @@
 {% load static %}
 {% block content %}
 
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
-/>
-
-<section id="video-hero" class="sticky top-0 h-screen z-10">
-    
-    {% if hero_section.background_video %}
-        <video autoplay loop muted playsinline class="absolute z-0 w-full h-full object-cover">
-            <source src="{{hero_section.background_video.url}}" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-    {% endif %}
-    <div class="relative z-10 h-full flex flex-col justify-end items-center bg-black bg-opacity-50">
+    <style>
         
-        <!-- id="start-shopping-btn" add to element to make it scrol snap -->
-        <a  href="{{hero_section.cta_link}}"
-            class="absolute bottom-24 border-2 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:bg-red-800 transition-transform hover:scale-105">
-           {{hero_section.cta_text}}
-        </a>
-    </div>
-</section>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 50%, #f1f3f5 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        }
+        
+        .image-hover {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover .image-hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-primary {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary:before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn-primary:hover:before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .section-title {
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+        
+        .badge-label {
+            backdrop-filter: blur(8px);
+        }
+        
+        .product-badge {
+            animation: fadeInDown 0.5s ease-out;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .category-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .category-card:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 100%);
+            transition: opacity 0.4s;
+        }
+        
+        .category-card:hover:before {
+            opacity: 0.7;
+        }
+        
+        .stat-number {
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
 
-<main id="main-content" class="relative bg-white text-gray-800 z-20 px-4 md:px-32 pt-[10rem] ">
+    <style>
+        
+        
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-20px, 20px) rotate(5deg); }
+        }
+        
+        .btn-primary {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary:before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn-primary:hover:before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .category-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .category-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .slider-container {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .slider-track {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+        
+        .slider-slide {
+            min-width: 100%;
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        .search-bar-hero {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .search-bar-hero:focus-within {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .stat-card {
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+        }
+        
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .badge-float {
+            animation: badgeFloat 3s ease-in-out infinite;
+        }
+        
+        @keyframes badgeFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
 
-    <section id="promo-section" class="relative bg-white">
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div class="col-span-1 bg-white shadow rounded-2xl p-6 h-fit">
-                <h3 class="text-xl font-bold mb-4">Category</h3>
-                <ul class="space-y-4">
-
-                    {% for c in trending_categories %}
-                    <li
-                        class="flex items-center justify-between  rounded-lg px-4 py-2  shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)]">
-                        <div class="flex items-center space-x-3">
-                            <img src="{{c.image.url}}" class="w-10 h-10 rounded object-cover" alt="Kurta" />
-                            <span class="font-medium">{{c.name}}</span>
-                        </div>
-                        <span
-                            class="bg-red-100 text-red-600 px-2 py-1 rounded-full text-sm font-semibold">{{c.products.all.count}}</span>
-                    </li>
-                    {% endfor %}
-
-                </ul>
-            </div>
-
-            <div class="col-span-1 lg:col-span-3 bg-red-50 rounded-2xl relative flex items-center p-4 md:p-8">
-                <div class="flex-1">
-                    <section class="w-full">
-                        {% for c in categories %}
-                        <h2 class="lg:text-3xl text-2xl font-bold text-gray-800 mb-4">{{c.name}}</h2>
-                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
-                            {% for s in c.subcategories %}
-                            <div class="bg-white rounded-lg shadow hover:shadow-lg transition p-3">
-                                <img src="{{s.image.url}}" alt="Kurta"
-                                    class="w-full h-48 md:h-72 object-cover rounded-md">
-                                <p class="mt-3 text-base md:text-lg font-semibold text-gray-800">{{s.name}}</p>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endfor %}
-                    </section>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="mx-auto py-8">
-        <div class="flex flex-col md:flex-row md:items-center gap-5">
-            <h2 class="text-2xl font-bold mb-4 md:mb-0">Featured Categories</h2>
-        </div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-4 py-6">
-
-            {% for c in trending_categories %}
-            <div class="flex flex-col items-center">
-                <div class="border-2 rounded-full border-[#B01F00]">
-                    {% if c.image %}
-                    <img src="{{c.image.url}}" class="w-28 h-28 rounded-full object-cover border" alt="">
-                    {% endif %}
-                </div>
-                <p class="mt-2 text-sm font-medium">{{c.name}}</p>
-            </div>
-            {% endfor %}
-
-
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-6">
-            <div class="relative rounded-lg overflow-hidden">
-                <img src="https://i.pinimg.com/474x/0f/59/4a/0f594ab9b91f717cbb4c68ae4f34765e.jpg"
-                    class="w-full h-60 object-cover" alt="">
-                <div class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4">
-                    <div class="text-center text-white">
-                        <p class="text-xl font-semibold">What’s special today?</p>
-                        <button class="mt-3 px-4 py-2 bg-[#991B1B] text-white text-sm font-medium rounded">Planning
-                            a
-                            Wedding</button>
-                    </div>
-                </div>
-            </div>
-            <div class="relative rounded-lg overflow-hidden">
-                <img src="https://images.squarespace-cdn.com/content/v1/5cef59143a338800015c3e6d/1559276317048-LS4METP75FNP17IIL8SB/IMG_0726.jpg"
-                    class="w-full h-60 object-cover" alt="">
-                <div class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4">
-                    <div class="text-center text-white">
-                        <p class="text-xl font-semibold">What’s special today?</p>
-                        <button class="mt-3 px-4 py-2 bg-[#F9CB15] text-white text-sm font-medium rounded">Celebrating
-                            Festivals</button>
-                    </div>
-                </div>
-            </div>
-            <div class="relative rounded-lg overflow-hidden">
-                <img src="https://images.cbazaar.com/images/navy-blue-dupion-silk-embroidered-kurta-pyjama-kpmvs132-u.jpg"
-                    class="w-full h-60 object-cover" alt="">
-                <div class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4">
-                    <div class="text-center text-white">
-                        <p class="text-xl font-semibold">What’s special today?</p>
-                        <button class="mt-3 px-4 py-2 bg-[#991B1B] text-white text-sm rounded font-medium">In the
-                            Groom</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="mt-15">
-        <h2 class="text-2xl font-bold mb-4 md:mb-0">Popular Products</h2>
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 mt-[2rem]">
-            {% for p in products %}
-            {% include 'partials/product.html' %}
-            {% endfor %}
-        </div>
-    </section>
-
-    <section class="mt-[3rem]">
-        <h2 class="text-2xl font-bold mb-4 md:mb-0">Daily Best Sales</h2>
-
-        <!-- GLIDE JS -->
-        <div class="grid lg:grid-cols-[1fr_4fr] mt-5">
-            <div class="relative rounded-xl bg-pale-green overflow-hidden shadow-md w-full lg:block hidden">
-                <img src="https://cdn.pixabay.com/photo/2025/05/06/12/19/hut-9582608_640.jpg" alt="Green Leaf"
-                    class="absolute inset-0 w-full h-full object-cover" />
-                <div class="absolute top-0 left-0 p-6">
-                    <h2 class="text-2xl font-bold text-dark-teal mb-4 ">Bring nature into your home</h2>
-                    <button class="bg-teal-400 text-white font-semibold rounded-md py-2 px-4 flex items-center">
-                        Shop Now
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                            class="w-4 h-4 ml-2">
-                            <path fill-rule="evenodd"
-                                d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z"
-                                clip-rule="evenodd" />
+    <!-- Hero Section -->
+    <section class=" py-8 md:py-12 lg:py-16 px-4 sm:px-6 lg:px-8 relative">
+        <div class="max-w-7xl mx-auto relative z-10">
+            <!-- Main Hero Content -->
+            <div class="grid lg:grid-cols-2 gap-12 items-center mb-12">
+                <!-- Left Content -->
+                <div class="text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-black text-white text-xs font-semibold tracking-wider uppercase rounded-full mb-6 badge-float">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                         </svg>
-                    </button>
+                        <span>Free Shipping on Orders $50+</span>
+                    </div>
+                    
+                    <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 mb-6 leading-[1.1]">
+                        Everything You
+                        <span class="block text-indigo-500">
+                            Need, All in
+                        </span>
+                        <span class="block">One Place</span>
+                    </h1>
+                    
+                    <p class="text-lg md:text-xl text-gray-600 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                        From electronics to fashion, home essentials to beauty products. Shop millions of products with unbeatable prices and lightning-fast delivery.
+                    </p>
+                    
+                    <!-- Enhanced Search Bar -->
+                    <div class="search-bar-hero max-w-2xl mx-auto lg:mx-0 mb-8 bg-white rounded-2xl overflow-hidden">
+                        <form method="get" action="{% url 'store:search' %}" class="flex items-center">
+                            <div class="relative flex-1">
+                                <input 
+                                    type="search"
+    name="q"
+    value="{{ request.GET.q|default:'' }}"
+                                    placeholder="Search for products..." 
+                                    class="w-full px-6 py-4 text-sm font-medium focus:outline-none"
+                                />
+                                
+                            </div>
+                            <button class="px-8 py-4 bg-black text-white text-sm font-bold hover:bg-gray-900 transition-colors">
+                                Search
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- CTA Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
+                        <a href="#categories" class="btn-primary inline-flex items-center justify-center px-8 py-4 bg-black text-white text-sm font-semibold rounded-full hover:bg-gray-900 shadow-lg">
+                            <span class="relative z-10">Browse Categories</span>
+                            <svg class="w-5 h-5 ml-2 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                            </svg>
+                        </a>
+                        <a href="#deals" class="inline-flex items-center justify-center px-8 py-4 bg-white text-black text-sm font-semibold rounded-full border-2 border-gray-200 hover:border-gray-900 transition-all shadow-sm">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                            </svg>
+                            Today's Deals
+                        </a>
+                    </div>
+                    
+                    <!-- Trust Badges -->
+                    <div class="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-sm text-gray-600">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="font-medium">Secure Payment</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="font-medium">Fast Delivery</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="font-medium">Easy Returns</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <div class="swiper product-swiper container w-full px-4 min-w-0">
-    <div class="swiper-wrapper">
-        {% for p in products %}
-        <div class="swiper-slide p-2">
-            {% include 'partials/product.html' %}
-        </div>
-        {% endfor %}
-    </div>
-
-    <div class="swiper-pagination"></div>
-
-    <div class="swiper-button-prev"></div>
-    <div class="swiper-button-next"></div>
-</div>
-        </div>
-
-    </section>
-
-    <!-- <section class="mt-[3rem] relative lg:h-[35rem] ">
-        <h2 class="lg:text-3xl text-2xl font-bold mb-4 md:mb-0">Deals of the day</h2>
-
-        <div class="grid lg:grid-cols-4 gap-8 mt-3">
-
-            {% for item in deals %}
-            <div class="">
-                <div class="relative ">
-                    <img class="w-full h-[20rem] object-cover rounded-xl relative "
-                        src="{{item.product.primary_image.image.url}}" alt="Fresh vegetables and fruits">
-
-                    <div class="absolute bottom-0  left-1/2 -translate-x-1/2 translate-y-1/2">
-
-                        <div class="deal-countdown flex gap-2 items-center justify-center"
-                            data-deal-end="{{ item.deal_ends_at|date:'c' }}" {% if item.deal_starts_at %}
-                            data-deal-start="{{ item.deal_starts_at|date:'c' }}" {% endif %}
-                            data-deal-active="{{ item.deal_active|yesno:'true,false' }}">
-
-                            <div class="bg-white rounded-lg text-center p-3 w-16">
-                                <span class="days text-2xl font-bold text-gray-800">0</span>
-                                <span class="block text-xs text-gray-500">Days</span>
+                
+                <!-- Right Content - Featured Products/Banner -->
+                <div class="hidden lg:block">
+                    <div class="relative">
+                        <!-- Main Feature Card -->
+                        <div class="bg-gray-900 rounded-3xl p-8 text-white shadow-2xl transform hover:scale-[1.02] transition-transform duration-500">
+                            <span class="inline-block px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full mb-4">
+                                🔥 Hot Deal
+                            </span>
+                            <h3 class="text-3xl font-black mb-3">Mega Sale</h3>
+                            <p class="text-gray-300 mb-6">Up to 70% off on selected items</p>
+                            <div class="grid grid-cols-3 gap-4 mb-6">
+                                <div class="bg-white/10 rounded-2xl p-4 text-center backdrop-blur-sm">
+                                    <div class="text-2xl font-black">12</div>
+                                    <div class="text-xs text-gray-300">Hours</div>
+                                </div>
+                                <div class="bg-white/10 rounded-2xl p-4 text-center backdrop-blur-sm">
+                                    <div class="text-2xl font-black">34</div>
+                                    <div class="text-xs text-gray-300">Minutes</div>
+                                </div>
+                                <div class="bg-white/10 rounded-2xl p-4 text-center backdrop-blur-sm">
+                                    <div class="text-2xl font-black">56</div>
+                                    <div class="text-xs text-gray-300">Seconds</div>
+                                </div>
                             </div>
-                            <div class="bg-white rounded-lg text-center p-3 w-16">
-                                <span class="hours text-2xl font-bold text-gray-800">0</span>
-                                <span class="block text-xs text-gray-500">Hours</span>
-                            </div>
-                            <div class="bg-white rounded-lg text-center p-3 w-16">
-                                <span class="minutes text-2xl font-bold text-gray-800">0</span>
-                                <span class="block text-xs text-gray-500">Mins</span>
-                            </div>
-                            <div class="bg-white rounded-lg text-center p-3 w-16">
-                                <span class="seconds text-2xl font-bold text-gray-800">0</span>
-                                <span class="block text-xs text-gray-500">Sec</span>
+                            <button class="w-full py-3 bg-white text-black font-bold rounded-full hover:bg-gray-100 transition-colors">
+                                Shop Now
+                            </button>
+                        </div>
+                        
+                        <!-- Floating Cards -->
+                        <div class="absolute -bottom-6 -left-6 bg-white rounded-2xl p-4 shadow-xl feature-card">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-black text-gray-900">2M+</div>
+                                    <div class="text-xs text-gray-500">Products</div>
+                                </div>
                             </div>
                         </div>
-
-
-                        <div class="p-6  text-left bg-white shadow-lg rounded-lg mt-5 w-[21rem]">
-                            <p class="text-sm text-gray-500 mb-2">By <a href="#"
-                                    class="text-[#F9CB15] hover:underline">{{item.product.vendor.vendor_profile.business_name}}</a>
-                            </p>
-
-                            <h2
-                                class="text-lg font-semibold text-gray-800 hover:text-black cursor-pointer transition-colors">
-                                {{item.product.name}}
-                            </h2>
-
-                            <div class="mb-2 flex items-center text-sm">
-                                <span class="text-yellow-600">
-                                    {% for i in "12345" %}
-                                    {% if forloop.counter <= item.product.average_rating_int %}★{% else %}☆{% endif %}
-                                        {% endfor %} </span>
-                                        <span class="ml-1 text-gray-400">({{item.product.average_rating_int}})</span>
+                        
+                        <div class="absolute -top-6 -right-6 bg-white rounded-2xl p-4 shadow-xl feature-card">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-black text-gray-900">500K+</div>
+                                    <div class="text-xs text-gray-500">Happy Customers</div>
+                                </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-                            <div class="flex justify-between items-center mt-6">
-                                <div class="flex items-baseline">
-                                    <span class="text-2xl font-bold text-black">{{site_config.currency_abbr}}{{item.sale_price}}</span>
+    <div class="max-w-7xl mx-auto px-4 py-16">
+        <h2 class="text-3xl font-black text-gray-900 mb-4">Featured Categories</h2>
+        
+        <div class="mt-6 relative overflow-hidden">
+            
+            <div class="swiper category-swiper">
+              
+              <div class="swiper-wrapper">
+                
+                {% for c in categories %}
+                  <a href=""
+                    class="swiper-slide group relative rounded-2xl border border-neutral-200 bg-white hover:-translate-y-[2px] hover:shadow-lg transition-all duration-300"
+                    style="height: auto;" >
+                    <div class="aspect-[3/2] w-full overflow-hidden rounded-t-2xl">
+                      {% if c.image %}
+                        <img src="{{ c.image.url }}" alt="{{ c.name }}"
+                            class="h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
+                      {% else %}
+                        <div class="h-full w-full bg-neutral-100"></div>
+                      {% endif %}
+                    </div>
+                    <div class="p-4">
+                      <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-semibold">{{ c.name }}</h3>
+                        <span class="text-[11px] text-neutral-500">{{ c.products.count }} items</span>
+                      </div>
+                      {% if c.description %}
+                        <p class="mt-1 text-xs text-neutral-600 line-clamp-2">{{ c.description }}</p>
+                      {% endif %}
+                    </div>
+                  </a>
+                {% endfor %}
+                
+              </div>
+            </div>
 
-                                    {% if item.show_regular_price %}
+            <div class="swiper-button-next category-swiper-next hidden md:flex"></div>
+            <div class="swiper-button-prev category-swiper-prev hidden md:flex"></div>
 
+            <div class="swiper-pagination category-swiper-pagination"></div>
 
-                                    <span class="text-sm text-gray-400 line-through ml-2">{{site_config.currency_abbr}}{{item.regular_price}}</span>
+          </div>
+      <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const categorySwiper = new Swiper('.category-swiper', {
+          // Space between slides (16px, matches your original 'gap-4')
+          spaceBetween: 16,
+
+          // Show partial slides on the edges to encourage swiping
+          slidesPerView: 1.5,
+          
+          // Enable "flicking" the slider
+          freeMode: true,
+
+          // Responsive breakpoints
+          breakpoints: {
+            // Mobile-landscape
+            480: {
+              slidesPerView: 2.2,
+              spaceBetween: 16
+            },
+            // Tablet
+            768: {
+              slidesPerView: 3.2,
+              spaceBetween: 16
+            },
+            // Desktop
+            1024: {
+              slidesPerView: 4.2,
+              spaceBetween: 24 // A bit more space on desktop
+            },
+            // Large Desktop (matches your max-w-7xl)
+            1280: {
+              slidesPerView: 5.2,
+              spaceBetween: 24
+            }
+          },
+
+          // Link our custom navigation buttons
+          navigation: {
+            nextEl: '.category-swiper-next',
+            prevEl: '.category-swiper-prev',
+          },
+          
+          // Link our custom pagination
+          pagination: {
+            el: '.category-swiper-pagination',
+            clickable: true, // Allows clicking on the dots
+          },
+        });
+      });
+      </script>
+    </div>
+
+    <script>
+        // Countdown Timer
+        function startCountdown() {
+            const countdownElements = document.querySelectorAll('.countdown-timer');
+            
+            setInterval(() => {
+                const now = new Date().getTime();
+                const endOfDay = new Date();
+                endOfDay.setHours(23, 59, 59, 999);
+                const distance = endOfDay - now;
+                
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                // Update all countdown displays
+                const hoursEl = document.querySelector('.countdown-timer .text-2xl:nth-child(1)');
+                const minutesEl = document.querySelector('.countdown-timer .text-2xl:nth-child(2)');
+                const secondsEl = document.querySelector('.countdown-timer .text-2xl:nth-child(3)');
+                
+                if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
+                if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
+                if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
+            }, 1000);
+        }
+        
+        // Start countdown when page loads
+        window.addEventListener('DOMContentLoaded', startCountdown);
+    </script>
+
+    <!-- Trending Products -->
+    <section id="trending" class="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <span class="inline-block px-4 py-1.5 bg-orange-500 text-white text-xs font-semibold tracking-wider uppercase rounded-full mb-4">
+                    🔥 Trending Now
+                </span>
+                <h2 class="text-3xl md:text-5xl font-black text-gray-900 section-title">What's Hot</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-4 gap-6 md:gap-8">
+                {% for p in trending_products %}
+                <div class="card-hover group relative flex flex-col bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+                    {% if p.primary_item.label %}
+                    <span class="product-badge absolute left-4 top-4 rounded-full {{p.primary_item.label_color}} px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{p.primary_item.label}}
+                    </span>
+                    {% endif %}
+                    
+                    {% if p.primary_item.show_discount_type == "price" %}
+                    <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{site_config.currency_abbr}}{{p.primary_item.discount_amount|floatformat:0}} OFF
+                    </span>
+                    {% endif %}
+                    
+                    {% if p.primary_item.show_discount_type == "percentage" %}
+                    <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{p.primary_item.discount_amount|floatformat:0}}% OFF
+                    </span>
+                    {% endif %}
+                    
+                    <a href="{% url 'store:product_detail' p.slug %}" class="block relative overflow-hidden">
+                        <img src="{{p.primary_image.image.url}}" alt="{{p.name}}" class="image-hover h-72 w-full object-contain p-6" />
+                    </a>
+                    
+                    <div class="p-6 flex flex-col flex-grow">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                            <a href="">{{p.category.name}}</a>
+                        </p>
+                        
+                        <h3 class="text-base font-bold text-gray-900 mb-3 leading-tight min-h-[2.5rem]">
+                            <a href="{% url 'store:product_detail' p.slug %}" class="hover:text-gray-600 transition-colors">
+                                {{p.name}}
+                            </a>
+                        </h3>
+                        
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-yellow-400 text-sm">
+                                {% for i in "12345" %}{% if forloop.counter <= p.average_rating_int %}★{% else %}☆{% endif %}{% endfor %}
+                            </span>
+                            <span class="text-xs text-gray-500 font-medium">({{p.average_rating_int}})</span>
+                        </div>
+                        
+                        <p class="text-xs text-gray-500 mb-4">{{p.vendor.vendor_profile.business_name}}</p>
+                        
+                        <div class="mt-auto pt-4 border-t border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <span class="text-2xl font-black text-gray-900">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
+                                    {% if p.primary_item.show_regular_price %}
+                                    <span class="block text-sm text-gray-400 line-through mt-1">
+                                        {{site_config.currency_abbr}}{{p.primary_item.regular_price}}
+                                    </span>
                                     {% endif %}
                                 </div>
-                                <button
-                                    class="flex items-center justify-center bg-[#991B1B] text-[#fff] hover:bg-[#991B1B] hover:text-[#fff] font-semibold py-2 px-5 rounded-md transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    </svg>
-                                    Add
+                            </div>
+                            
+                            <button data-product-id="{{ p.id }}" data-variation-id="{{ p.primary_item.id }}" class="add-to-cart w-full rounded-full bg-black px-6 py-3.5 text-sm font-bold text-white transition-all hover:bg-gray-900 hover:shadow-xl active:scale-95">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Top Selling Products -->
+    <section class="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <span class="inline-block px-4 py-1.5 bg-purple-500 text-white text-xs font-semibold tracking-wider uppercase rounded-full mb-4">
+                    ⭐ Best Sellers
+                </span>
+                <h2 class="text-3xl md:text-5xl font-black text-gray-900 section-title">Fan Favorites</h2>
+                <p class="text-gray-600 mt-4 text-lg">Most loved by our community</p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-4 gap-6 md:gap-8">
+                {% for p in top_selling %}
+                <div class="card-hover group relative flex flex-col bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+                    {% if p.primary_item.label %}
+                    <span class="product-badge absolute left-4 top-4 rounded-full {{p.primary_item.label_color}} px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{p.primary_item.label}}
+                    </span>
+                    {% endif %}
+                    
+                    {% if p.primary_item.show_discount_type == "price" %}
+                    <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{site_config.currency_abbr}}{{p.primary_item.discount_amount|floatformat:0}} OFF
+                    </span>
+                    {% endif %}
+                    
+                    {% if p.primary_item.show_discount_type == "percentage" %}
+                    <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{p.primary_item.discount_amount|floatformat:0}}% OFF
+                    </span>
+                    {% endif %}
+                    
+                    <a href="{% url 'store:product_detail' p.slug %}" class="block relative overflow-hidden">
+                        <img src="{{p.primary_image.image.url}}" alt="{{p.name}}" class="image-hover h-72 w-full object-contain p-6" />
+                    </a>
+                    
+                    <div class="p-6 flex flex-col flex-grow">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                            <a href="">{{p.category.name}}</a>
+                        </p>
+                        
+                        <h3 class="text-base font-bold text-gray-900 mb-3 leading-tight min-h-[2.5rem]">
+                            <a href="{% url 'store:product_detail' p.slug %}" class="hover:text-gray-600 transition-colors">
+                                {{p.name}}
+                            </a>
+                        </h3>
+                        
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-yellow-400 text-sm">
+                                {% for i in "12345" %}{% if forloop.counter <= p.average_rating_int %}★{% else %}☆{% endif %}{% endfor %}
+                            </span>
+                            <span class="text-xs text-gray-500 font-medium">({{p.average_rating_int}})</span>
+                        </div>
+                        
+                        <p class="text-xs text-gray-500 mb-4">{{p.vendor.vendor_profile.business_name}}</p>
+                        
+                        <div class="mt-auto pt-4 border-t border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <span class="text-2xl font-black text-gray-900">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
+                                    {% if p.primary_item.show_regular_price %}
+                                    <span class="block text-sm text-gray-400 line-through mt-1">
+                                        {{site_config.currency_abbr}}{{p.primary_item.regular_price}}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <button data-product-id="{{ p.id }}" data-variation-id="{{ p.primary_item.id }}" class="add-to-cart w-full rounded-full bg-black px-6 py-3.5 text-sm font-bold text-white transition-all hover:bg-gray-900 hover:shadow-xl active:scale-95">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Split Section: Recently Added & Top Rated -->
+    <section class="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <!-- Recently Added -->
+            <div class="mb-20">
+                <div class="flex items-center justify-between mb-12">
+                    <div>
+                        <span class="inline-block px-4 py-1.5 bg-green-500 text-white text-xs font-semibold tracking-wider uppercase rounded-full mb-4">
+                            ✨ Fresh Arrivals
+                        </span>
+                        <h2 class="text-3xl md:text-5xl font-black text-gray-900 section-title">Just In</h2>
+                    </div>
+                    <a href="#" class="hidden md:inline-flex items-center text-sm font-semibold text-gray-900 hover:gap-3 gap-2 transition-all">
+                        View All
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                        </svg>
+                    </a>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-6 md:gap-8">
+                    {% for p in recently_added %}
+                    <div class="card-hover group relative flex flex-col bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+                        {% if p.primary_item.label %}
+                        <span class="product-badge absolute left-4 top-4 rounded-full {{p.primary_item.label_color}} px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                            {{p.primary_item.label}}
+                        </span>
+                        {% endif %}
+                        
+                        {% if p.primary_item.show_discount_type == "price" %}
+                        <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                            {{site_config.currency_abbr}}{{p.primary_item.discount_amount|floatformat:0}} OFF
+                        </span>
+                        {% endif %}
+                        
+                        {% if p.primary_item.show_discount_type == "percentage" %}
+                        <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                            {{p.primary_item.discount_amount|floatformat:0}}% OFF
+                        </span>
+                        {% endif %}
+                        
+                        <a href="{% url 'store:product_detail' p.slug %}" class="block relative overflow-hidden">
+                            <img src="{{p.primary_image.image.url}}" alt="{{p.name}}" class="image-hover h-80 w-full object-contain p-8" />
+                        </a>
+                        
+                        <div class="p-6 flex flex-col flex-grow">
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                                <a href="">{{p.category.name}}</a>
+                            </p>
+                            
+                            <h3 class="text-lg font-bold text-gray-900 mb-3 leading-tight">
+                                <a href="{% url 'store:product_detail' p.slug %}" class="hover:text-gray-600 transition-colors">
+                                    {{p.name}}
+                                </a>
+                            </h3>
+                            
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-yellow-400 text-sm">
+                                    {% for i in "12345" %}{% if forloop.counter <= p.average_rating_int %}★{% else %}☆{% endif %}{% endfor %}
+                                </span>
+                                <span class="text-xs text-gray-500 font-medium">({{p.average_rating_int}})</span>
+                            </div>
+                            
+                            <p class="text-xs text-gray-500 mb-4">{{p.vendor.vendor_profile.business_name}}</p>
+                            
+                            <div class="mt-auto pt-4 border-t border-gray-100">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <span class="text-2xl font-black text-gray-900">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
+                                        {% if p.primary_item.show_regular_price %}
+                                        <span class="block text-sm text-gray-400 line-through mt-1">
+                                            {{site_config.currency_abbr}}{{p.primary_item.regular_price}}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <button data-product-id="{{ p.id }}" data-variation-id="{{ p.primary_item.id }}" class="add-to-cart w-full rounded-full bg-black px-6 py-3.5 text-sm font-bold text-white transition-all hover:bg-gray-900 hover:shadow-xl active:scale-95">
+                                    Add to Cart
                                 </button>
                             </div>
                         </div>
                     </div>
-
-                </div>
-            </div>
-            {% endfor %}
-
-
-        </div>
-
-    </section> -->
-
-    <section class="lg:mt-[3rem] mt-[5rem]">
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-
-            <div class="w-full">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Top Selling</h2>
-                    <div class="w-full bg-gray-100 rounded-full h-1 mt-3">
-                        <div class="w-16 h-1 bg-[#3FB6F1] mt-2 rounded"></div>
-                    </div>
-                </div>
-                <div class="space-y-4">
-
-                    {% for p in top_selling %}
-                    <div class="flex items-center space-x-4">
-                        <div class="flex-shrink-0">
-                            <img class="w-20 h-20 object-cover rounded-lg bg-gray-50"
-                                src="{{p.primary_image.image.url}}" alt="Carrots"
-                                onerror="this.onerror=null;this.src='https://placehold.co/80x80/fef2f2/ef4444?text=Carrots';">
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p
-                                class="text-sm font-semibold text-gray-800 truncate hover:text-yellow-500 cursor-pointer">
-                                {{p.name}}</p>
-                            <div class="flex items-center mt-1 text-xs text-gray-500">({{p.average_rating_int}})</div>
-                            <div class="flex items-baseline mt-1">
-                                <span class="text-md font-bold text-[#F9CB15]">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
-
-                                {% if p.primary_item.show_regular_price %}
-                                <span
-                                    class="text-xs text-gray-400 line-through ml-2">{{site_config.currency_abbr}}{{p.primary_item.regular_price}}</span>
-                                {% endif %}
-
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <p>No products yet</p>
-                    {% endfor %}
-
-
-                </div>
-            </div>
-
-            <div class="w-full">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Trending Products</h2>
-                    <div class="w-full bg-gray-100 rounded-full h-1 mt-3">
-                        <div class="w-16 h-1 bg-[#F9CB15] mt-2 rounded"></div>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    {% for p in trending_products %}
-                    <div class="flex items-center space-x-4">
-                        <div class="flex-shrink-0">
-                            <img class="w-20 h-20 object-cover rounded-lg bg-gray-50"
-                                src="{{p.primary_image.image.url}}" alt="Carrots"
-                                onerror="this.onerror=null;this.src='https://placehold.co/80x80/fef2f2/ef4444?text=Carrots';">
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p
-                                class="text-sm font-semibold text-gray-800 truncate hover:text-yellow-500 cursor-pointer">
-                                {{p.name}}</p>
-                            <div class="flex items-center mt-1 text-xs text-gray-500">({{p.average_rating_int}})</div>
-                            <div class="flex items-baseline mt-1">
-                                <span class="text-md font-bold text-[#F9CB15]">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
-
-                                {% if p.primary_item.show_regular_price %}
-                                <span
-                                    class="text-xs text-gray-400 line-through ml-2">{{site_config.currency_abbr}}{{p.primary_item.regular_price}}</span>
-                                {% endif %}
-
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <p>No products yet</p>
                     {% endfor %}
                 </div>
             </div>
 
-            <div class="w-full">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Recently added</h2>
-                    <div class="w-full bg-gray-100 rounded-full h-1 mt-3">
-                        <div class="w-16 h-1 bg-[#991b1b] mt-2 rounded"></div>
+            <!-- Top Rated -->
+            <div>
+                <div class="flex items-center justify-between mb-12">
+                    <div>
+                        <span class="inline-block px-4 py-1.5 bg-yellow-500 text-white text-xs font-semibold tracking-wider uppercase rounded-full mb-4">
+                            ⭐ Top Rated
+                        </span>
+                        <h2 class="text-3xl md:text-5xl font-black text-gray-900 section-title">Highest Rated</h2>
                     </div>
+                    <a href="#" class="hidden md:inline-flex items-center text-sm font-semibold text-gray-900 hover:gap-3 gap-2 transition-all">
+                        View All
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                        </svg>
+                    </a>
                 </div>
-                <div class="space-y-4">
-                    {% for p in recently_added %}
-                    <div class="flex items-center space-x-4">
-                        <div class="flex-shrink-0">
-                            <img class="w-20 h-20 object-cover rounded-lg bg-gray-50"
-                                src="{{p.primary_image.image.url}}" alt="Carrots"
-                                onerror="this.onerror=null;this.src='https://placehold.co/80x80/fef2f2/ef4444?text=Carrots';">
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p
-                                class="text-sm font-semibold text-gray-800 truncate hover:text-yellow-500 cursor-pointer">
-                                {{p.name}}</p>
-                            <div class="flex items-center mt-1 text-xs text-gray-500">({{p.average_rating_int}})</div>
-                            <div class="flex items-baseline mt-1">
-                                <span class="text-md font-bold text-[#F9CB15]">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
-
-                                {% if p.primary_item.show_regular_price %}
-                                <span
-                                    class="text-xs text-gray-400 line-through ml-2">{{site_config.currency_abbr}}{{p.primary_item.regular_price}}</span>
-                                {% endif %}
-
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <p>No products yet</p>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div class="w-full">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Top Rated</h2>
-                    <div class="w-full bg-gray-100 rounded-full h-1 mt-3">
-                        <div class="w-16 h-1 bg-[#F9CB15] mt-2 rounded"></div>
-                    </div>
-                </div>
-                <div class="space-y-4">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-6 md:gap-8">
                     {% for p in top_rated %}
-                    <div class="flex items-center space-x-4">
-                        <div class="flex-shrink-0">
-                            <img class="w-20 h-20 object-cover rounded-lg bg-gray-50"
-                                src="{{p.primary_image.image.url}}" alt="Carrots"
-                                onerror="this.onerror=null;this.src='https://placehold.co/80x80/fef2f2/ef4444?text=Carrots';">
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p
-                                class="text-sm font-semibold text-gray-800 truncate hover:text-yellow-500 cursor-pointer">
-                                {{p.name}}</p>
-                            <div class="flex items-center mt-1 text-xs text-gray-500">({{p.average_rating_int}})</div>
-                            <div class="flex items-baseline mt-1">
-                                <span class="text-md font-bold text-[#F9CB15]">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
-
-                                {% if p.primary_item.show_regular_price %}
-                                <span
-                                    class="text-xs text-gray-400 line-through ml-2">{{site_config.currency_abbr}}{{p.primary_item.regular_price}}</span>
-                                {% endif %}
-
+                    <div class="card-hover group relative flex flex-col bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+                        {% if p.primary_item.label %}
+                        <span class="product-badge absolute left-4 top-4 rounded-full {{p.primary_item.label_color}} px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                            {{p.primary_item.label}}
+                        </span>
+                        {% endif %}
+                        
+                        {% if p.primary_item.show_discount_type == "price" %}
+                        <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                            {{site_config.currency_abbr}}{{p.primary_item.discount_amount|floatformat:0}} OFF
+                        </span>
+                        {% endif %}
+                        
+                        {% if p.primary_item.show_discount_type == "percentage" %}
+                        <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                            {{p.primary_item.discount_amount|floatformat:0}}% OFF
+                        </span>
+                        {% endif %}
+                        
+                        <a href="{% url 'store:product_detail' p.slug %}" class="block relative overflow-hidden">
+                            <img src="{{p.primary_image.image.url}}" alt="{{p.name}}" class="image-hover h-80 w-full object-contain p-8" />
+                        </a>
+                        
+                        <div class="p-6 flex flex-col flex-grow">
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                                <a href="">{{p.category.name}}</a>
+                            </p>
+                            
+                            <h3 class="text-lg font-bold text-gray-900 mb-3 leading-tight">
+                                <a href="{% url 'store:product_detail' p.slug %}" class="hover:text-gray-600 transition-colors">
+                                    {{p.name}}
+                                </a>
+                            </h3>
+                            
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-yellow-400 text-sm">
+                                    {% for i in "12345" %}{% if forloop.counter <= p.average_rating_int %}★{% else %}☆{% endif %}{% endfor %}
+                                </span>
+                                <span class="text-xs text-gray-500 font-medium">({{p.average_rating_int}})</span>
+                            </div>
+                            
+                            <p class="text-xs text-gray-500 mb-4">{{p.vendor.vendor_profile.business_name}}</p>
+                            
+                            <div class="mt-auto pt-4 border-t border-gray-100">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <span class="text-2xl font-black text-gray-900">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
+                                        {% if p.primary_item.show_regular_price %}
+                                        <span class="block text-sm text-gray-400 line-through mt-1">
+                                            {{site_config.currency_abbr}}{{p.primary_item.regular_price}}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <button data-product-id="{{ p.id }}" data-variation-id="{{ p.primary_item.id }}" class="add-to-cart w-full rounded-full bg-black px-6 py-3.5 text-sm font-bold text-white transition-all hover:bg-gray-900 hover:shadow-xl active:scale-95">
+                                    Add to Cart
+                                </button>
                             </div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
-
         </div>
     </section>
 
-    <section class="mt-[5rem]">
-        <div class="container p-2 lg:px-8 ">
-            <div class=" bg-[#FEF2F2] rounded-2xl lg:px-8 lg:pb-0 p-3 relative overflow-hidden h-fit">
-                <div class="flex flex-col md:flex-row items-center justify-center py-10 gap-8 ">
-                    <!-- Text and Form Content -->
-                    <div class="md:w-1/2 text-strat  z-10">
-                        <h1 class="text-2xl lg:text-5xl font-bold text-gray-800 leading-tight text-center">
-                            Get 30% OFF Todays
-                        </h1>
-                        <p class="mt-4 text-gray-600 text-center">
-                            Turn up your fashion with efashionbazaar
+    <!-- Trending Categories -->
+    <section class="py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-black text-gray-900 section-title mb-4">Shop by Category</h2>
+                <p class="text-gray-600">Explore our curated collections</p>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                {% for category in trending_categories %}
+                <a href="#" class="group flex flex-col items-center p-6 bg-white rounded-2xl border border-gray-100 hover:border-gray-900 transition-all hover:shadow-lg">
+                    <div class="w-16 h-16 mb-4 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform">
+                                        {% if category.image %}
+                                        
+                                        <img src="{{category.image.url}}" alt="{{category.name}}" class="w-full h-full object-contain" />
+                                        {% endif %}
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900 text-center group-hover:text-gray-600 transition-colors">
+                        {{category.name}}
+                    </span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Deals Section -->
+    <section id="deals" class="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gray-100">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <span class="inline-block px-4 py-1.5 bg-red-500 text-white text-xs font-semibold tracking-wider uppercase rounded-full mb-4">
+                    ⚡ Limited Time
+                </span>
+                <h2 class="text-3xl md:text-5xl section-title mb-4 text-black font-bold">Exclusive Deals</h2>
+                <p class="text-gray-300 text-lg">Don't miss out on these incredible offers</p>
+            </div>
+
+            
+            <div class="grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-4 gap-6 md:gap-8">
+                {% for variation in deals %}
+                <div class="card-hover group relative flex flex-col  backdrop-blur-sm rounded-3xl border shadow bg-white overflow-hidden">
+                    {% if variation.label %}
+                    <span class="product-badge absolute left-4 top-4 rounded-full {{variation.label_color}} px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{variation.label}}
+                    </span>
+                    {% endif %}
+                    
+                    {% if variation.show_discount_type == "price" %}
+                    <span class="product-badge absolute left-4 top-14 rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{site_config.currency_abbr}}{{variation.discount_amount|floatformat:0}} OFF
+                    </span>
+                    {% endif %}
+                    
+                    {% if variation.show_discount_type == "percentage" %}
+                    <span class="product-badge absolute left-4 top-14 rounded-full bg-red-500 px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{variation.discount_amount|floatformat:0}}% OFF
+                    </span>
+                    {% endif %}
+                    
+                    <a href="{% url 'store:product_detail' variation.product.slug %}" class="block relative overflow-hidden bg-white rounded-t-3xl">
+                        <img src="{{variation.product.primary_image.image.url}}" alt="{{variation.product.name}}" class="image-hover h-72 w-full object-contain p-6" />
+                    </a>
+                    
+                    <div class="p-6 flex flex-col flex-grow">
+                        <p class="text-xs font-medium  uppercase tracking-wider mb-2">
+                            {{variation.product.category.name}}
                         </p>
-                        <div class="flex items-center justify-center mt-8 flex max-w-md mx-auto md:mx-0 rounded-full bg-white shadow-md p-2">
-                            <div class="flex items-center flex-1 lg:pl-4 pl-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="lg:h-6 h-5 lg:w-6 w-5 text-gray-400"
-                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                </svg>
-                                <input type="email" placeholder="Your email address"
-                                    class="w-full bg-transparent p-2 text-gray-700 lg:text-[17px] text-sm  focus:outline-none">
+                        
+                        <h3 class="text-base font-bold  mb-3 leading-tight min-h-[2.5rem]">
+                            <a href="{% url 'store:product_detail' variation.product.slug %}" class="hover:text-gray-300 transition-colors">
+                                {{variation.product.name}}
+                            </a>
+                        </h3>
+                        
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-yellow-400 text-sm">
+                                {% for i in "12345" %}{% if forloop.counter <= variation.product.average_rating_int %}★{% else %}☆{% endif %}{% endfor %}
+                            </span>
+                            <span class="text-xs text-gray-400 font-medium">({{variation.product.average_rating_int}})</span>
+                        </div>
+                        
+                        <p class="text-xs text-gray-400 mb-4">{{variation.product.vendor.vendor_profile.business_name}}</p>
+                        
+                        <div class="mt-auto pt-4 border-t border-white/10">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <span class="text-2xl font-black">{{site_config.currency_abbr}}{{variation.sale_price}}</span>
+                                    {% if variation.show_regular_price %}
+                                    <span class="block text-sm text-gray-400 line-through mt-1">
+                                        {{site_config.currency_abbr}}{{variation.regular_price}}
+                                    </span>
+                                    {% endif %}
+                                </div>
                             </div>
-                            <button
-                                class=" sm:ml-2 flex-shrink-0 bg-[#991B1B] hover:bg-emerald-600 text-white lg:text-[17px] text-sm font-semibold py-3 lg:px-8 px-4 rounded-full transition-colors">
-                                Subscribe
+                            
+                            <button data-product-id="{{ variation.product.id }}" data-variation-id="{{ variation.id }}" class="add-to-cart w-full rounded-full bg-black px-6 py-3.5 text-sm font-bold text-white transition-all hover:bg-gray-950 hover:shadow-xl active:scale-95">
+                                Add to Cart
                             </button>
                         </div>
                     </div>
-
-                    
                 </div>
+                {% endfor %}
             </div>
+        </div>
+    </section>
 
-            <!-- Feature Boxes Section -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-8">
-                <div class="bg-yellow-50 p-4 rounded-lg flex items-center">
-                    <div class="bg-yellow-100 p-2 rounded-lg">
-                        <svg class="w-6 h-6 text-[#F9CB15]" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01">
-                            </path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M17.657 18.657A8 8 0 0112 20a8 8 0 01-5.657-2.343m11.314 0a3 3 0 00-4.243-4.243m4.243 4.243L12 12m0 0a3 3 0 00-4.243-4.243m4.243 4.243L12 12m0 0L6.343 6.343m-4.243 4.243a3 3 0 000 4.243m11.314 0a3 3 0 000-4.243">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <h3 class="font-semibold text-sm text-gray-800">Best prices & offers</h3>
-                        <p class="text-xs text-gray-500">Orders $50 or more</p>
-                    </div>
+    <!-- Stats Section -->
+    <section class="py-16 md:py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <div class="text-4xl md:text-5xl font-black text-gray-900 mb-2 stat-number">50K+</div>
+                    <p class="text-sm text-gray-600 font-medium">Happy Customers</p>
                 </div>
-                <div class="bg-sky-50 p-4 rounded-lg flex items-center">
-                    <div class="bg-sky-100 p-2 rounded-lg">
-                        <svg class="w-6 h-6 text-[#3FB6F1]" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 10V3L4 14h7v7l9-11h-7z">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <h3 class="font-semibold text-sm text-gray-800">Free delivery</h3>
-                        <p class="text-xs text-gray-500">24/7 amazing services</p>
-                    </div>
+                <div class="text-center">
+                    <div class="text-4xl md:text-5xl font-black text-gray-900 mb-2 stat-number">10K+</div>
+                    <p class="text-sm text-gray-600 font-medium">Products</p>
                 </div>
-                <div class="bg-purple-50 p-4 rounded-lg flex items-center">
-                    <div class="bg-purple-100 p-2 rounded-lg">
-                        <svg class="w-6 h-6 text-[#A315AA]" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M5 3v4M3 5h4M19 3v4M17 5h4M12 21a9 9 0 110-18 9 9 0 010 18z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <h3 class="font-semibold text-sm text-gray-800">Great daily deal</h3>
-                        <p class="text-xs text-gray-500">When you sign up</p>
-                    </div>
+                <div class="text-center">
+                    <div class="text-4xl md:text-5xl font-black text-gray-900 mb-2 stat-number">4.9★</div>
+                    <p class="text-sm text-gray-600 font-medium">Average Rating</p>
                 </div>
-                <div class="bg-red-50 p-4 rounded-lg flex items-center">
-                    <div class="bg-red-100 p-2 rounded-lg">
-                        <svg class="w-6 h-6 text-[#991b1b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <h3 class="font-semibold text-sm text-gray-800">Wide assortment</h3>
-                        <p class="text-xs text-gray-500">Mega Discounts</p>
-                    </div>
-                </div>
-                <div class="bg-sky-50 p-4 rounded-lg flex items-center">
-                    <div class="bg-sky-100 p-2 rounded-lg">
-                        <svg class="w-6 h-6 text-[#3FB6F1]" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M16 15v-1a4 4 0 00-4-4H8m0 0l-3 3m3-3l3 3m0 0v-1a4 4 0 00-4-4H8m0 0l-3 3m3-3l3 3m0 0v-1a4 4 0 00-4-4H8m0 0l-3 3m3-3l3 3">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <h3 class="font-semibold text-sm text-gray-800">Easy returns</h3>
-                        <p class="text-xs text-gray-500">Within 30 days</p>
-                    </div>
+                <div class="text-center">
+                    <div class="text-4xl md:text-5xl font-black text-gray-900 mb-2 stat-number">24/7</div>
+                    <p class="text-sm text-gray-600 font-medium">Support</p>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- Newsletter CTA -->
+    <section class="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div class="max-w-4xl mx-auto text-center">
+            <div class="floating inline-block mb-6">
+                <div class="w-20 h-20 bg-black rounded-full flex items-center justify-center">
+                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <h2 class="text-3xl md:text-5xl font-black text-gray-900 mb-4 section-title">Stay in the Loop</h2>
+            <p class="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+                Subscribe to get exclusive deals, early access to new products, and style inspiration.
+            </p>
+            
+            <form class="flex flex-col sm:flex-row gap-4 max-w-xl mx-auto">
+                <input type="email" placeholder="Enter your email" class="flex-1 px-6 py-4 rounded-full border-2 border-gray-200 focus:border-gray-900 focus:outline-none text-sm font-medium" required />
+                <button type="submit" class="btn-primary px-8 py-4 bg-black text-white text-sm font-bold rounded-full hover:bg-gray-900 shadow-lg whitespace-nowrap">
+                    <span class="relative z-10">Subscribe Now</span>
+                </button>
+            </form>
+            
+            <p class="text-xs text-gray-500 mt-4">Join 50,000+ subscribers. Unsubscribe anytime.</p>
+        </div>
+    </section>
 
-</main>
-
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-<script>
-    const swiper = new Swiper('.product-swiper', {
-    // Optional parameters
-    direction: 'horizontal',
-    loop: true,
-    spaceBetween: 20, // Space between slides in px
-    autoplay: {
-        delay: 2500,
-        disableOnInteraction: false,
-    },
-
-    // Responsive breakpoints
-    breakpoints: {
-        // when window width is >= 640px
-        640: {
-            slidesPerView: 2,
-            spaceBetween: 20
-        },
-        // when window width is >= 768px
-        768: {
-            slidesPerView: 3,
-            spaceBetween: 30
-        },
-        // when window width is >= 1024px
-        1024: {
-            slidesPerView: 4,
-            spaceBetween: 30
-        }
-    },
-
-    // If we need pagination
-    pagination: {
-        el: '.swiper-pagination',
-        clickable: true,
-    },
-
-    // Navigation arrows
-    navigation: {
-        nextEl: '.swiper-button-next',
-        prevEl: '.swiper-button-prev',
-    },
-});
-</script>
 {% endblock content %}

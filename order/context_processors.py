@@ -1,5 +1,5 @@
 from .models import Cart
-
+from customer import models as customer_models
 
 def _get_cart_item_count(request):
     session = getattr(request, "session", None)
@@ -25,4 +25,5 @@ def _get_cart_item_count(request):
 def global_context(request):
     return {
         'cart_item_count': _get_cart_item_count(request),
+        'wishlist_count': customer_models.Wishlist.objects.filter(user=request.user).count() if request.user else 0,
     }

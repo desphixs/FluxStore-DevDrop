@@ -1,0 +1,86 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block content %}
+
+   
+
+    <!-- Trending Products -->
+    <section id="trending" class="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <span class="inline-block px-4 py-1.5 bg-red-500 text-white text-xs font-semibold tracking-wider uppercase rounded-full mb-4">
+                     Big Discount Todays Only
+                </span>
+                <h2 class="text-3xl md:text-5xl font-black text-gray-900 section-title">Hot Deals & Offers</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                {% for p in products %}
+                <div class="card-hover group relative shadow-lg flex flex-col bg-white rounded-3xl border border-gray-100 overflow-hidden">
+                    {% if p.primary_item.label %}
+                    <span class="product-badge absolute left-4 top-4 rounded-full {{p.primary_item.label_color}} px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{p.primary_item.label}}
+                    </span>
+                    {% endif %}
+                    
+                    {% if p.primary_item.show_discount_type == "price" %}
+                    <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{site_config.currency_abbr}}{{p.primary_item.discount_amount|floatformat:0}} OFF
+                    </span>
+                    {% endif %}
+                    
+                    {% if p.primary_item.show_discount_type == "percentage" %}
+                    <span class="product-badge absolute left-4 top-14 rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white z-10 shadow-lg">
+                        {{p.primary_item.discount_amount|floatformat:0}}% OFF
+                    </span>
+                    {% endif %}
+                    
+                    <a href="{% url 'store:product_detail' p.slug %}" class="block relative overflow-hidden">
+                        <img src="{{p.primary_image.image.url}}" alt="{{p.name}}" class="image-hover h-72 w-full object-contain p-6" />
+                    </a>
+                    
+                    <div class="p-6 flex flex-col flex-grow">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                            <a href="">{{p.category.name}}</a>
+                        </p>
+                        
+                        <h3 class="text-base font-bold text-gray-900 mb-3 leading-tight min-h-[2.5rem]">
+                            <a href="{% url 'store:product_detail' p.slug %}" class="hover:text-gray-600 transition-colors">
+                                {{p.name}}
+                            </a>
+                        </h3>
+                        
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-yellow-400 text-sm">
+                                {% for i in "12345" %}{% if forloop.counter <= p.average_rating_int %}★{% else %}☆{% endif %}{% endfor %}
+                            </span>
+                            <span class="text-xs text-gray-500 font-medium">({{p.average_rating_int}})</span>
+                        </div>
+                        
+                        <p class="text-xs text-gray-500 mb-4">{{p.vendor.vendor_profile.business_name}}</p>
+                        
+                        <div class="mt-auto pt-4 border-t border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <span class="text-2xl font-black text-gray-900">{{site_config.currency_abbr}}{{p.primary_item.sale_price}}</span>
+                                    {% if p.primary_item.show_regular_price %}
+                                    <span class="block text-sm text-gray-400 line-through mt-1">
+                                        {{site_config.currency_abbr}}{{p.primary_item.regular_price}}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <button data-product-id="{{ p.id }}" data-variation-id="{{ p.primary_item.id }}" class="add-to-cart w-full rounded-full bg-black px-6 py-3.5 text-sm font-bold text-white transition-all hover:bg-gray-900 hover:shadow-xl active:scale-95">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+
+{% endblock content %}

@@ -29,6 +29,10 @@ urlpatterns = [
     path("shop/", shoppage.shop, name="shop"),
     path("api/products/", shoppage.product_list_api, name="product_list_api"),
 
+    path("shop/label/<slug:label>/", views.products_by_label, name="products_by_label"),
+    path("search/", views.search, name="search"),
+
+
     path("categories/", views.category_list, name="category_list"),
     path("categories/<slug:slug>-<int:pk>/", views.category_detail, name="category_detail"),
    
