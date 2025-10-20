@@ -25,5 +25,5 @@ def _get_cart_item_count(request):
 def global_context(request):
     return {
         'cart_item_count': _get_cart_item_count(request),
-        'wishlist_count': customer_models.Wishlist.objects.filter(user=request.user).count() if request.user else 0,
+        'wishlist_count': customer_models.Wishlist.objects.filter(user=request.user).count() if request.user.is_authenticated else 0,
     }

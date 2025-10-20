@@ -45,7 +45,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000", 
     'http://127.0.0.1', 
     'https://*.ngrok-free.app', 
-    'https://FluxStore.up.railway.app'
+    'https://fluxstore-devdrop.up.railway.app'
 ]
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 # Application definition
