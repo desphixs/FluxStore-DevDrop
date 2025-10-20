@@ -200,7 +200,7 @@ def EASEBUZZ_BASE():
     return "https://pay.easebuzz.in" if EASEBUZZ_ENV == "prod" else "https://testpay.easebuzz.in"
 
 LOGIN_URL = "userauths:login"
-
+LOGIN_REDIRECT_URL = "store:index"
 # settings.py
 SINGLE_COUPON_PER_ORDER = True 
 SINGLE_COUPON_PER_VENDOR = True 

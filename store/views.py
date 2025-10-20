@@ -33,7 +33,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from .shiprocket import get_serviceability_and_rates, create_shiprocket_order, ShiprocketError
-from userauths.models import Address  # adjust import
+from userauths.models import Address 
 from store.models import ProductVariation, ProductImage
 
 getcontext().prec = 6
@@ -58,18 +58,13 @@ def index(request):
     OrderItem = order_models.OrderItem
     ProductImage = store_models.ProductImage
 
-    # Base published products queryset (with some eager loading)
     base_products_qs = Product.objects.filter(
         status=Product.ProductStatus.PUBLISHED
     ).select_related('vendor', 'category').prefetch_related(
-        # primary image prefetched as .primary_images (list, usually 0/1)
         Prefetch('images', queryset=ProductImage.objects.filter(is_primary=True), to_attr='primary_images'),
-        # active variations prefetched as .active_variations
         Prefetch('variations', queryset=ProductVariation.objects.filter(is_active=True), to_attr='active_variations'),
     )
 
-    # ---------- Top Selling (by quantity sold) ----------
-    # Get top product ids by summing quantities from OrderItem
     top_selling_agg = OrderItem.objects.filter(
         product_variation__product__status=Product.ProductStatus.PUBLISHED
     ).values('product_variation__product').annotate(
@@ -79,7 +74,6 @@ def index(request):
     top_selling_ids = [item['product_variation__product'] for item in top_selling_agg]
 
     if top_selling_ids:
-        # preserve ordering returned by the aggregation
         preserved_order = Case(*[
             When(pk=pid, then=pos) for pos, pid in enumerate(top_selling_ids)
         ], output_field=IntegerField())
@@ -87,24 +81,19 @@ def index(request):
     else:
         top_selling = []
 
-    # ---------- Trending Products ----------
-    # Products that have at least one variation labeled "Trending"
     trending_products = list(
         base_products_qs.filter(variations__label='Trending').distinct()
     )[:12]
 
-    # ---------- Recently Added ----------
     recently_added = list(base_products_qs.order_by('-created_at'))[:12]
 
-    # ---------- Top Rated ----------
-    # Annotate avg rating and pick top 4 (ignore null-rated products)
+    
     top_rated = list(
         base_products_qs.annotate(avg_rating=Avg('reviews__rating'))
                         .filter(avg_rating__isnull=False)
                         .order_by('-avg_rating')[:12]
     )
 
-    # ---------- Deals (existing) ----------
     deals = store_models.ProductVariation.objects.filter(
         product__status=Product.ProductStatus.PUBLISHED,
         is_active=True,
@@ -112,7 +101,7 @@ def index(request):
     )[:4]
 
     context = {
-        'products': base_products_qs,           # full list if you still need it elsewhere
+        'products': base_products_qs,           
         'categories': store_models.Category.objects.filter(is_active=True, featured=True).order_by("id"),
         'trending_categories': store_models.Category.objects.filter(is_active=True, trending=True)[:8],
         'deals': deals,
@@ -131,13 +120,11 @@ def product_detail_view(request, slug):
 
     product = get_object_or_404(
         Product.objects.prefetch_related(
-            # Prefetch active variations and their images + variation values & categories
             Prefetch(
                 'variations',
                 queryset=ProductVariation.objects.filter(is_active=True).prefetch_related('variations', 'images'),
-                to_attr='active_variations'   # -> product.active_variations (list)
+                to_attr='active_variations'  
             ),
-            # Prefetch general product images (not tied to a variation)
             Prefetch(
                 'images',
                 queryset=ProductImage.objects.filter(product_variation__isnull=True),
@@ -149,26 +136,20 @@ def product_detail_view(request, slug):
         status=Product.ProductStatus.PUBLISHED
     )
 
-    # Build variation options grouped by VariationCategory to render selectors
     variation_options = {}
     for variation in getattr(product, 'active_variations', []):
         for vval in variation.variations.all():
             cat = vval.category.name
             variation_options.setdefault(cat, set()).add(vval)
-    # convert sets -> sorted lists for deterministic UI
     variation_options = {k: sorted(list(v), key=lambda x: x.value) for k, v in variation_options.items()}
 
 
-    # Build a variation_map -> key is deterministic string: "Color:Red|Size:M" (sorted by category)
-    # value contains id, sale_price, regular_price, stock, is_primary, images (urls), deal info, label, etc.
     variation_map = {}
     for var in getattr(product, 'active_variations', []):
-        # collect (category, value) for each variation value
         pairs = [(vv.category.name, vv.value) for vv in var.variations.all()]
-        # sort by category name to make key deterministic
         pairs_sorted = sorted(pairs, key=lambda x: x[0].lower())
         key = "|".join([f"{cat}:{val}" for cat, val in pairs_sorted])
-        images = [img.image.url for img in var.images.all()]  # variation-specific images
+        images = [img.image.url for img in var.images.all()]  
         variation_map[key] = {
             "id": var.id,
             "sale_price": float(var.sale_price),
@@ -185,11 +166,9 @@ def product_detail_view(request, slug):
             "deal_ends_at": var.deal_ends_at.isoformat() if var.deal_ends_at else None,
         }
 
-    # Average rating & reviews
     reviews = product.reviews.all()
     average_rating = reviews.aggregate(avg=Avg('rating'))['avg'] or 0
 
-    # Related products (same category)
     related_products = []
     if product.category:
         related_products = Product.objects.filter(
@@ -200,7 +179,7 @@ def product_detail_view(request, slug):
     context = {
         'product': product,
         'variation_options': variation_options,
-        'variation_map_json': json.dumps(variation_map),  # will be embedded via json_script
+        'variation_map_json': json.dumps(variation_map),  
         'reviews': reviews,
         'average_rating': round(average_rating, 1),
         'related_products': related_products,
@@ -208,11 +187,7 @@ def product_detail_view(request, slug):
     return render(request, 'product_detail.html', context)
 
 def category_list(request):
-    """
-    Top-level categories with product counts.
-    Count = direct products in this category + products in immediate children.
-    (Keeps it fast; if you need deep recursion later, we can add a CTE.)
-    """
+    
     cats = (
         store_models.Category.objects.filter(is_active=True, parent__isnull=True)
         .annotate(
@@ -239,10 +214,6 @@ def category_list(request):
 
 
 def category_detail(request, slug, pk):
-    """
-    Category detail: shows this category, its immediate subcategories,
-    and all published products in this category OR any of its children.
-    """
     category = get_object_or_404(
         store_models.Category.objects.filter(is_active=True).select_related("parent"),
         pk=pk,
@@ -279,20 +250,8 @@ def category_detail(request, slug, pk):
 
 
 def products_by_label(request, label):
-    """
-    /products/label/<label>/
-    - <label> comes from URL (e.g., 'hot', 'coming-soon', 'back-in-stock')
-    - We normalize and validate against ProductVariation.LABEL_CHOICES
-    - Filters published products that have at least one ACTIVE variation with that label
-    """
-    # normalize url segment: "coming-soon" -> "coming soon"
     normalized = label.replace("-", " ").strip().lower()
-
-    # build a case-insensitive lookups dict from your choices
     valid_labels_map = {choice.lower(): choice for choice, _ in ProductVariation.LABEL_CHOICES}
-
-
-
     label_value = valid_labels_map[normalized]
 
     qs = (
@@ -333,9 +292,7 @@ def add_to_cart(request):
     print("payload:", payload)
     variation_id = payload.get('variation_id')
     product_id = payload.get('product_id')
-    # either a dict {"Color":"Black", "Size":"XL"} OR None
     selected_variations = payload.get('selected_variations') or {}
-    # prefer explicit ids when client sends them
     selected_value_ids = payload.get('selected_value_ids') or payload.get('selected_value_ids[]') or None
 
     print("selected_value_ids ====", selected_value_ids)
@@ -383,7 +340,6 @@ def add_to_cart(request):
         print("No variation_id or product_id provided")
         return JsonResponse({"detail": "Provide variation_id or product_id"}, status=400)
 
-    # final validations
     if not getattr(variation, "is_active", False):
         print("Variant not active:", getattr(variation, "id", None))
         return JsonResponse({"detail": "Variant not active"}, status=400)
@@ -392,7 +348,6 @@ def add_to_cart(request):
         print("Insufficient stock for variation:", variation.id, "requested:", qty, "available:", getattr(variation, "stock_quantity", 0))
         return JsonResponse({"detail": "Insufficient stock"}, status=400)
 
-    # get/create cart
     print("Attempting to get cart via order_models.Cart.get_for_request")
     cart = None
     try:
@@ -428,16 +383,12 @@ def add_to_cart(request):
     cart_item = None
     created = False
 
-    # ---- NEW: resolve VariationValue objects from payload ----
     resolved_vv_qs = store_models.VariationValue.objects.none()
     resolved_value_ids = []
     try:
         if selected_value_ids:
-            # if client sent ids (preferred)
             print("Client provided selected_value_ids:", selected_value_ids)
-            # ensure list of ints
             if isinstance(selected_value_ids, str):
-                # client might send JSON-string, try to parse
                 try:
                     selected_value_ids = json.loads(selected_value_ids)
                 except Exception:
@@ -481,7 +432,6 @@ def add_to_cart(request):
                     add_item_error = e
                     print("cart.add_item raised, will fallback to manual create. Error:", e)
 
-            # manual fallback
             if cart_item is None:
                 print("Manual fallback: detecting CartItem FK to ProductVariation")
                 fk_field_name = None
@@ -519,19 +469,16 @@ def add_to_cart(request):
                     print("IntegrityError creating CartItem:", ie)
                     raise
 
-            # SANITY: ensure item references cart
             print("cart_item.cart_id after create:", getattr(cart_item, "cart_id", None))
             if getattr(cart_item, "cart_id", None) is None:
                 raise RuntimeError("cart_item.cart_id is None after creation")
 
-            # persist price (defensive)
             try:
                 cart_item.price = price_snapshot
                 cart_item.save()
             except Exception as e:
                 print("Failed to save cart_item.price:", e)
 
-            # ---- NEW: attach resolved VariationValue M2M and save selected_variations_json backup ----
             try:
                 # attach M2M if field exists and we resolved any ids
                 if hasattr(cart_item, "variation_values"):
@@ -544,13 +491,11 @@ def add_to_cart(request):
                 else:
                     print("CartItem model does not have 'variation_values' M2M field; skipping.")
 
-                # always save a JSON backup (if field exists)
                 backup = {}
                 if resolved_value_ids:
                     backup['value_ids'] = resolved_value_ids
                 if isinstance(selected_variations, dict) and selected_variations:
                     backup['display'] = {str(k): str(v) for k, v in selected_variations.items()}
-                # if nothing resolved, you may still want to store display
                 if hasattr(cart_item, "selected_variations_json"):
                     cart_item.selected_variations_json = backup or None
                     cart_item.save()
@@ -568,7 +513,6 @@ def add_to_cart(request):
         print(traceback.format_exc())
         return JsonResponse({"detail": "Could not add to cart"}, status=500)
 
-    # build response (safely convert decimals)
     subtotal = None
     if hasattr(cart_item, "subtotal") and callable(getattr(cart_item, "subtotal")):
         try:
@@ -601,7 +545,6 @@ def add_to_cart(request):
 def cart_detail(request):
     
     cart = order_models.Cart.get_for_request(request)
-    # Prefetch related product / variation to avoid n+1
     items = cart.items.select_related('product_variation', 'product_variation__product')\
             .prefetch_related('variation_values').all()
     
@@ -609,15 +552,11 @@ def cart_detail(request):
         addresses = userauths_model.Address.objects.filter(profile__user=request.user)
     else:
         addresses = None
-
-    # compute subtotal for each item (CartItem.subtotal handles Decimal math)
-    # and compute cart total
+ 
     item_list = []
     total = Decimal('0.00')
     for it in items:
-        # ensure price on item reflects current variation sale_price (optional)
         current_price = it.product_variation.sale_price
-        # if you want to keep cart_item.price as the historically locked price, omit setting it here
         it.price = current_price
         subtotal = (it.price or Decimal('0.00')) * it.quantity
         total += subtotal
@@ -631,8 +570,6 @@ def cart_detail(request):
             'subtotal': subtotal,
             'sku': it.product_variation.sku,
             'stock_quantity': it.product_variation.stock_quantity,
-            # if you have images, add thumbnail url here:
-            # 'image_url': it.product_variation.product.primary_image.url if it.product_variation.product.primary_image else None
         })
 
     context = {
@@ -762,7 +699,6 @@ def _normalize_resp(raw):
 
 def _extract_rate_list(resp):
     if isinstance(resp, dict):
-        # top-level lists
         for k in ("available_couriers", "couriers", "result", "results"):
             v = resp.get(k)
             if isinstance(v, list):
@@ -854,17 +790,11 @@ def begin_checkout_shiprocket(request):
         )
         if ci.variation_values.exists():
             oi.variation_values.set(ci.variation_values.all())
-
-    # -------------------------
-    # IMPORTANT: recompute item totals now that OrderItems exist
-    # -------------------------
     order.recompute_item_totals_from_items()
-    # ensure amount_payable & total_amount include current shipping_fee (0 for now)
     order.recalc_total()
     order.save()
     print(f"DEBUG: after creating items -> item_total={order.item_total}, item_total_net={order.item_total_net}, shipping_fee={order.shipping_fee}, amount_payable={order.amount_payable}")
 
-    # Fetch & lock shipping NOW
     pickup_pincode = getattr(settings, "SHIPROCKET_PICKUP_PINCODE", "")
     ship_weight = float(total_weight_kg) if total_weight_kg > 0 else 0.5
     try:
@@ -878,7 +808,6 @@ def begin_checkout_shiprocket(request):
                 fallback_currency=order.currency,
                 chargeable_weight=ship_weight,
             )
-            # recompute totals now that shipping_fee has been set on the order
             order.recompute_item_totals_from_items()
             order.recalc_total()
             order.save()
@@ -902,8 +831,6 @@ def begin_checkout_shiprocket(request):
         order.save()
         print("DEBUG: Unexpected exception; totals recomputed with shipping_fee fallback")
 
-    # (optional) keep cart until payment succeeds; or clear now:
-    # cart.items.all().delete()
 
     return redirect(reverse('store:checkout', kwargs={'order_id': order.order_id}))
 
@@ -911,11 +838,6 @@ def begin_checkout_shiprocket(request):
 @login_required
 @transaction.atomic
 def begin_checkout(request):
-    """
-    Create an Order from the cart using product variation shipping_price.
-    - Shipping = sum(pv.shipping_price * quantity) across all cart items
-    - No Shiprocket, no rate lookups
-    """
     profile = request.user.profile
     cart = order_models.Cart.get_for_request(request)
 
@@ -947,14 +869,13 @@ def begin_checkout(request):
         # shipping = per-variation shipping_price * qty
         shipping_total += (pv.shipping_price or Decimal('0.00')) * ci.quantity
 
-    # Create order with initial numbers (will recompute from items below)
     order = order_models.Order(
         buyer=request.user,
         address=addr,
         currency=getattr(settings, "DEFAULT_CURRENCY", "INR"),
-        item_total=item_total,                    # placeholder; recomputed below from items
-        shipping_fee=shipping_total,              # our computed shipping
-        total_amount=item_total + shipping_total, # placeholder; recalced below
+        item_total=item_total,                 
+        shipping_fee=shipping_total,            
+        total_amount=item_total + shipping_total,
         shipping_address_snapshot={
             "full_name": addr.full_name,
             "phone": addr.phone,
@@ -968,12 +889,10 @@ def begin_checkout(request):
     order.set_order_id_if_missing()
     order.save()
 
-    # Create OrderItems from the cart snapshot
     for ci in cart_items_qs:
         pv = ci.product_variation
         unit_price = ci.price or pv.sale_price
 
-        # vendor for payout/split reporting (fallback to buyer if missing)
         try:
             vendor_user = getattr(pv.product, "vendor", None) or request.user
         except Exception:
@@ -999,10 +918,6 @@ def begin_checkout(request):
     # ensure amount_payable = item_total_net + shipping_fee
     order.recalc_total()
     order.save()
-
-    # optionally: keep cart until payment success, or clear here
-    # cart.items.all().delete()
-
     return redirect(reverse('store:checkout', kwargs={'order_id': order.order_id}))
 
 
@@ -1010,7 +925,6 @@ def begin_checkout(request):
 def checkout_view(request, order_id: str):
     order = get_object_or_404(order_models.Order, buyer=request.user, order_id=order_id)
 
-    # Build display items from OrderItems (already price-frozen)
     items_qs = order.items.select_related('product_variation', 'product_variation__product').all()
     display_items = []
     for it in items_qs:
@@ -1024,18 +938,16 @@ def checkout_view(request, order_id: str):
             "subtotal": it.price * it.quantity,
         })
 
-    # Ensure totals are up-to-date (safe-guard)
     order.recompute_item_totals_from_items()
     order.recalc_total()
-    # optionally save to persist any changes
     order.save()
 
     context = {
         "order": order,
         "items": display_items,
-        "item_total": order.item_total,            # gross items total
-        "shipping_fee": order.shipping_fee,       # shipping
-        "grand_total": order.amount_payable or order.total_amount,  # item_total_net + shipping_fee
+        "item_total": order.item_total,            
+        "shipping_fee": order.shipping_fee,      
+        "grand_total": order.amount_payable or order.total_amount, 
         "default_address": order.address,
         "courier_name": order.courier_name,
         "etd_text": order.etd_text,
@@ -1114,17 +1026,14 @@ def _apply_coupon_to_order(order, coupon: order_models.Coupon, user):
                 allocation[it.id] = _q(discount - running)
 
     with transaction.atomic():
-        # remove any old allocations for this coupon
         order_models.OrderItemDiscount.objects.filter(
             order_item__in=[it.id for it in vendor_items],
             coupon=coupon
         ).delete()
-        # upsert redemption
         red, _ = order_models.CouponRedemption.objects.update_or_create(
             coupon=coupon, order=order, user=user, vendor_id=vendor_id,
             defaults={"discount_amount": discount}
         )
-        # apply item allocations
         for it in vendor_items:
             add_amt = allocation.get(it.id, Decimal('0.00'))
             if add_amt > 0:
@@ -1135,7 +1044,6 @@ def _apply_coupon_to_order(order, coupon: order_models.Coupon, user):
                 it.recompute_line_totals()
                 it.save(update_fields=["line_discount_total", "line_subtotal_net"])
 
-        # recompute order totals
         order.recompute_item_totals_from_items()
         order.recalc_total()
         order.save(update_fields=[
@@ -1160,12 +1068,10 @@ def apply_coupon(request):
     if not coupon:
         return JsonResponse({"ok": False, "message": "Invalid coupon code."})
     
-    # >>> NEW: global one-coupon-per-order rule
     if getattr(settings, "SINGLE_COUPON_PER_ORDER", False):
         if order.has_any_coupon_applied():
             return JsonResponse({"ok": False, "message": "You’ve already applied a coupon to this order."})
 
-    # >>> NEW: one-coupon-per-vendor rule (if enabled)
     if getattr(settings, "SINGLE_COUPON_PER_VENDOR", False):
         if order.has_coupon_for_vendor(coupon.vendor_id):
             return JsonResponse({"ok": False, "message": "A coupon is already applied for this vendor."})
@@ -1251,11 +1157,7 @@ def remove_coupon(request):
 
 
 def search(request):
-    """
-    /search/?q=shoes
-    Filters published products by name, description, category, variation value, SKU.
-    Ranks hits: name > sku > category. Paginates.
-    """
+    
     q = (request.GET.get("q") or "").strip()
 
     # start with nothing if query is empty (avoid dumping entire catalog)
@@ -1303,7 +1205,6 @@ def search(request):
             .order_by("-_rank", "-updated_at")
         )
 
-    # paginate
     page = request.GET.get("page") or 1
     page_obj = Paginator(products, 24).get_page(page)
 

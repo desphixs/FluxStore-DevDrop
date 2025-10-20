@@ -43,11 +43,15 @@ class Product(models.Model):
 
     vendor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='products', limit_choices_to={'role': 'VENDOR'})
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')
+    show_category = models.BooleanField(default=True)
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     description = CKEditor5Field('Text', config_name='default')
     status = models.CharField(max_length=10, choices=ProductStatus.choices, default=ProductStatus.DRAFT)
     is_featured = models.BooleanField(default=False)
+    show_rating = models.BooleanField(default=True, help_text="Turn on if you want to show rating on product list page")
+    show_vendor_name = models.BooleanField(default=True, help_text="Turn on if you want to show vendor store name on product list page")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     uuid = ShortUUIDField(length=12, max_length=50, alphabet="1234567890")
@@ -153,12 +157,13 @@ class ProductVariation(models.Model):
     height = models.DecimalField(max_digits=6, decimal_places=2, help_text="Height in CM")
     width = models.DecimalField(max_digits=6, decimal_places=2, help_text="Width in CM")
 
-    # NEW: product label (Hot, New, Sale, etc.)
     label = models.CharField(
         max_length=50,
         choices=LABEL_CHOICES,
         default='New'
     )
+    show_label = models.BooleanField(default=True)
+
 
     class Meta:
         ordering = ['sale_price']
