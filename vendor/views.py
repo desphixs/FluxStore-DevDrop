@@ -53,7 +53,7 @@ from django.db.models.functions import Coalesce
 from django.core.paginator import Paginator
 
 from userauths.models import VendorProfile
-from store.models import Product  # uses your Product.ProductStatus enums
+from store.models import Product  
 
 
 def vendors_list(request):
@@ -470,7 +470,6 @@ def coupon_to_dict(c: order_models.Coupon, with_stats=False):
 
 
 def coupon_to_dict(c, with_stats=False):
-    """Serialize a Coupon to JSON for the front-end."""
     def _str(x):
         return None if x is None else str(x)
 
@@ -498,19 +497,15 @@ def coupon_to_dict(c, with_stats=False):
     return data
 
 
-# ---------- page (server-render list) ----------
 
 @login_required
 @vendor_required
 def coupons_page(request):
-    """
-    Server renders the list via `{% for c in coupons %}`.
-    JSON is only used by the modal actions.
-    """
+   
     vendor = request.user
 
     q = (request.GET.get("q") or "").strip()
-    state = (request.GET.get("state") or "").lower()  # '', 'active', 'inactive', 'live', 'scheduled', 'expired'
+    state = (request.GET.get("state") or "").lower() 
 
     qs = order_models.Coupon.objects.filter(vendor=vendor)
 
@@ -693,13 +688,7 @@ def _review_to_dict(r):
 @login_required
 @vendor_required
 def reviews_page(request):
-    """
-    List reviews for products owned by this vendor.
-    Filters:
-      - q: search product name, buyer email/username, comment
-      - rating: 1..5
-      - status: '', 'replied', 'unreplied'
-    """
+    
     vendor = request.user
     q = (request.GET.get("q") or "").strip()
     rating = request.GET.get("rating")
@@ -748,10 +737,7 @@ def reviews_page(request):
 @vendor_required
 @require_POST
 def review_reply_ajax(request, pk: int):
-    """
-    JSON endpoint: create/update/clear a vendor reply on a review.
-    Body: { "reply": "text..." }  (empty/whitespace clears the reply)
-    """
+   
     if not _is_ajax(request):
         return HttpResponseBadRequest("Invalid request")
 
@@ -902,11 +888,7 @@ def orders(request):
 @login_required
 @vendor_required
 def notifications_page(request):
-    """
-    List notifications for the logged-in vendor (server-rendered).
-    Filters via query params: q, state (''|'unread'|'read'), ntype, level.
-    Paginate with your existing `paginate` helper (20 per page).
-    """
+    
     user = request.user
 
     q = (request.GET.get("q") or "").strip()
@@ -955,9 +937,7 @@ def notifications_page(request):
 @vendor_required
 @require_POST
 def notification_mark_read_ajax(request, pk: int):
-    """
-    JSON: Mark a single notification as read.
-    """
+    
     if not _is_ajax(request):
         return HttpResponseBadRequest("Invalid request")
 
@@ -972,10 +952,7 @@ def notification_mark_read_ajax(request, pk: int):
 @vendor_required
 @require_POST
 def notification_mark_all_read_ajax(request):
-    """
-    JSON: Mark all current vendor's notifications as read.
-    (Optional filter on state=unread already lives in UI, we just mark all regardless)
-    """
+    
     if not _is_ajax(request):
         return HttpResponseBadRequest("Invalid request")
 
