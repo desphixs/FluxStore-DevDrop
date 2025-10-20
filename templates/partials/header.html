@@ -272,21 +272,47 @@
 
                 <!-- User Info -->
                 <div class="mb-8">
+                    {% if request.user.is_authenticated %}
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-900">{{request.user.profile.full_name}}</p>
+                                <p class="text-xs text-gray-500">{{request.user.email}}</p>
+                            </div>
+                        </div>
+                    {% else %}
                     <div class="flex items-center gap-3 mb-6">
-                        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                            </svg>
+                            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-900">Login for more info</p>
+                                <p class="text-xs text-gray-500">flux****@gmail.com</p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="font-bold text-gray-900">John Doe</p>
-                            <p class="text-xs text-gray-500">john@example.com</p>
-                        </div>
-                    </div>
+                    {% endif %}
 
-                    <a href="#" class="block w-full px-6 py-3 bg-black text-white text-sm font-semibold rounded-full text-center hover:bg-gray-900 transition-all">
+                    
+                    {% if request.user.is_authenticated %}
+                    <a href="{% url 'userauths:logout' %}" class="block w-full px-6 py-3 bg-black text-white text-sm font-semibold rounded-full text-center hover:bg-gray-900 transition-all">
+                        Sign Out
+                    </a>
+                    {% else %}
+                    <a href="{% url 'userauths:login' %}" class="block w-full px-6 py-3 bg-black text-white text-sm font-semibold rounded-full text-center hover:bg-gray-900 transition-all mb-6">
                         Sign In
                     </a>
+
+                    <a href="{% url 'userauths:register' %}" class="block w-full px-6 py-3 bg-black text-white text-sm font-semibold rounded-full text-center hover:bg-gray-900 transition-all">
+                        Register
+                    </a>
+                    {% endif %}
+                        
                 </div>
 
                 <!-- Mobile Navigation Links -->
@@ -328,28 +354,19 @@
                         </button>
                     </div>
 
-                    <div class="relative mb-6">
+                    <form method="get" action="{% url 'store:search' %}" class="relative mb-6 flex items-center">
                         <input 
-                            type="text" 
+                            type="search"
+    name="q"
+    value="{{ request.GET.q|default:'' }}"
                             placeholder="What are you looking for?" 
                             autofocus
-                            class="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-gray-900 transition-all"
+                            class="w-full pl-4 pr-4 py-4 bg-gray-50 border-2 border-gray-200 text-black rounded-2xl text-sm font-medium focus:outline-none focus:border-gray-900 transition-all"
                         />
-                        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                    </div>
+                    </form>
+                    <p class="text-xs text-gray-400 mt-4">Press Enter to start searching</p>
 
-                    <div>
-                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Popular Searches</p>
-                        <div class="flex flex-wrap gap-2">
-                            <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded-full transition-colors">Sneakers</button>
-                            <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded-full transition-colors">Watches</button>
-                            <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded-full transition-colors">Backpacks</button>
-                            <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded-full transition-colors">Headphones</button>
-                            <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 rounded-full transition-colors">Sunglasses</button>
-                        </div>
-                    </div>
+                    
                 </div>
             </div>
         </div>
