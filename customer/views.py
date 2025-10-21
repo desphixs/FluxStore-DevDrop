@@ -26,7 +26,7 @@ from decimal import Decimal
 from typing import Iterable
 
 
-PAID_STATUSES = {"PAID", "SUCCESS", "CAPTURED"}  # bro, the reason I added this was because i want d system to lenient to future gateway values
+PAID_STATUSES = {"PAID", "SUCCESS", "CAPTURED"}  
 EXCLUDE_ORDER_STATES_FROM_SPEND = {"CANCELED", "REFUNDED"}
 ADDR_REQ_FIELDS = ("address_type","street_address","city","state","postal_code","country")
 
@@ -62,7 +62,7 @@ def dashboard(request):
     unpaid_count = unpaid_qs.count()
     unpaid_amount = (unpaid_qs.aggregate(x=Sum("amount_payable"))["x"] or Decimal("0.00"))
 
-    # latest 5 paid orders for quick table
+    
     latest_paid = paid_qs.select_related("address").prefetch_related("items__product_variation__product")[:5]
 
     wl = Wishlist.for_user(user)
@@ -142,7 +142,7 @@ def _resolve_product_variation(product_id=None, variation_id=None):
 @login_required
 def wishlist_page(request):
     wl = Wishlist.for_user(request.user)
-    # show both product-level and variation-level items
+    
     items = (
         wl.items
           .select_related("product", "product_variation", "product_variation__product")
@@ -156,12 +156,12 @@ def wishlist_page(request):
 @csrf_protect
 def wishlist_toggle(request):
     
-    # read payload (works with form or JSON)
+    
     product_id = request.POST.get("product_id")
     variation_id = request.POST.get("variation_id")
 
     if not product_id and not variation_id:
-        # try JSON
+        
         try:
             import json
             data = json.loads(request.body.decode("utf-8"))
@@ -179,7 +179,7 @@ def wishlist_toggle(request):
 
     wl = Wishlist.for_user(request.user)
 
-    # Toggle add/remove
+    
     try:
         with transaction.atomic():
             existing = wl.items.filter(
@@ -203,7 +203,7 @@ def wishlist_toggle(request):
                     "item_id": created.id,
                 })
     except IntegrityError:
-        # In case of race conditions, just report current state
+        
         has_now = wl.items.filter(product=product, product_variation=pv).exists()
         return JsonResponse({
             "ok": True,
@@ -234,7 +234,7 @@ def pending_reviews(request):
         p = it.product_variation.product
         if p is None or p.id in seen_product_ids:
             continue
-        # already reviewed?
+        
         if store_models.ProductReview.objects.filter(product=p, user=user).exists():
             continue
         pending_items.append(it)
@@ -267,7 +267,7 @@ def submit_review(request):
 
     product = get_object_or_404(store_models.Product, pk=product_id)
 
-    # Eligibility: must have DELIVERED + paid order that contains this product
+    
     eligible = order_model.OrderItem.objects.filter(
         order__buyer=request.user,
         order__status=order_model.Order.OrderStatus.DELIVERED,
@@ -278,7 +278,7 @@ def submit_review(request):
     if not eligible:
         return HttpResponseForbidden("You’re not eligible to review this product yet")
 
-    # Create or update (unique_together on ProductReview ensures one per user per product)
+    
     review, created = store_models.ProductReview.objects.update_or_create(
         product=product,
         user=request.user,
@@ -318,7 +318,7 @@ def _serialize_address(a: userauths_models.Address):
 
 @login_required
 def addresses_page(request):
-    # The page shell; data loads via JS
+    
     return render(request, "addresses.html", {
         "view": "customer:addresses",
     })
@@ -338,7 +338,7 @@ def address_create_api(request):
     profile = _profile_or_404(request.user)
     payload = request.POST
 
-    # validate
+    
     missing = [f for f in ADDR_REQ_FIELDS if not payload.get(f)]
     if missing:
         return HttpResponseBadRequest(f"Missing fields: {', '.join(missing)}")
@@ -357,7 +357,7 @@ def address_create_api(request):
         is_default=is_default,
     )
     with transaction.atomic():
-        addr.save()  # model save() already clears other defaults of same type if is_default==True
+        addr.save()  
 
     return JsonResponse({"ok": True, "item": _serialize_address(addr)})
 
@@ -373,7 +373,7 @@ def address_update_api(request, uuid):
         if f in payload and payload.get(f) == "":
             return HttpResponseBadRequest(f"{f} cannot be empty")
 
-    # update fields if present
+    
     for f in ("address_type","full_name","phone","street_address","city","state","postal_code","country"):
         if f in payload:
             setattr(addr, f, payload.get(f))
@@ -403,7 +403,7 @@ def address_set_default_api(request, uuid):
     addr = get_object_or_404(userauths_models.Address, uuid=uuid, profile=profile)
 
     with transaction.atomic():
-        # Clear others of same type; then set this one default
+        
         userauths_models.Address.objects.filter(
             profile=profile, address_type=addr.address_type
         ).update(is_default=False)
@@ -425,11 +425,11 @@ def settings_page(request):
     try:
         profile = request.user.profile
     except userauths_models.UserProfile.DoesNotExist:
-        # auto-create if somehow missing
+        
         profile = userauths_models.UserProfile.objects.create(user=request.user)
 
     return render(request, "settings.html", {
-        "view": "customer:settings",   # highlight in sidebar
+        "view": "customer:settings",   
         "profile": profile,
     })
 
@@ -447,7 +447,7 @@ def profile_update_api(request):
     phone     = (request.POST.get("phone_number") or "").strip()
     remove_image = (request.POST.get("remove_image") in ("1","true","True","on","yes"))
 
-    # basic validations (keep it chill)
+    
     if len(full_name) > 100:
         return HttpResponseBadRequest("Full name is too long (max 100 chars).")
     if len(phone) > 20:
@@ -457,7 +457,7 @@ def profile_update_api(request):
     if file_obj and not isinstance(file_obj, (InMemoryUploadedFile, TemporaryUploadedFile)):
         return HttpResponseBadRequest("Bad file upload.")
 
-    # mutate
+    
     profile.full_name = full_name
     profile.phone_number = phone
 
@@ -466,7 +466,7 @@ def profile_update_api(request):
             profile.image.delete(save=False)
         profile.image = None
     elif file_obj:
-        # replace existing
+        
         if profile.image:
             profile.image.delete(save=False)
         profile.image = file_obj
@@ -490,8 +490,8 @@ def password_change_view(request):
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
-            update_session_auth_hash(request, user)  # keep session alive
-            # redirect with a query flag so refreshes don't re-POST
+            update_session_auth_hash(request, user)  
+            
             return redirect(f"{reverse('customer:password_change')}?changed=1")
     else:
         form = PasswordChangeForm(request.user)

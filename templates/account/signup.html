@@ -1,0 +1,30 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block account_content %}
+  <h1 class="text-2xl font-bold text-center">Finish account setup</h1>
+  <p class="mt-2 text-center text-sm text-gray-600 dark:text-zinc-300">
+    We pulled your email from {{ account.get_provider().name }}. Confirm details and continue.
+  </p>
+
+  <form method="post" action="{% url 'socialaccount_signup' %}" class="mt-6 space-y-3">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <div>
+        <label class="text-sm">{{ field.label }}</label>
+        {{ field|add_class:"w-full mt-1 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2" }}
+        {% if field.errors %}<p class="text-xs text-red-600 mt-1">{{ field.errors|striptags }}</p>{% endif %}
+      </div>
+    {% endfor %}
+
+    <button type="submit"
+            class="w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5">
+      Continue
+    </button>
+    <a href="{% url 'account_login' %}"
+       class="w-full inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-zinc-700 py-2.5 text-sm mt-2">
+      Cancel
+    </a>
+  </form>
+{% endblock %}

@@ -8,12 +8,11 @@ class SiteConfiguration(models.Model):
     site_header = models.CharField(max_length=255, default="My Website Admin")
     site_brand = models.CharField(max_length=255, default="My Website Brand")
 
-    # Logos / favicon
+    
     site_logo = models.ImageField(upload_to="branding/", null=True, blank=True)
     login_logo = models.ImageField(upload_to="branding/", null=True, blank=True)
     favicon = models.ImageField(upload_to="branding/", null=True, blank=True)
 
-    # Optional extras
     welcome_text = models.CharField(max_length=255, default="Welcome to My Website")
     footer_text = models.CharField(max_length=255, default="© 2025 My Website")
 
@@ -22,7 +21,6 @@ class SiteConfiguration(models.Model):
     email = models.EmailField(blank=True, null=True, help_text="Support or sales email")
     working_hours = models.CharField(max_length=100, blank=True, null=True, help_text="e.g. 10:00 - 18:00, Mon - Sat")
 
-    # Only allow one config row
     singleton = models.BooleanField(default=True, editable=False)
     currency_abbr = models.CharField(max_length=255, blank=True, null=True, default="$", help_text="$")
     currency_symbol = models.CharField(max_length=255, blank=True, null=True, default="USD", help_text="USD")
@@ -35,7 +33,6 @@ class SiteConfiguration(models.Model):
         return "Site Configuration"
 
     def save(self, *args, **kwargs):
-        # Enforce singleton: only one config object
         self.pk = 1
         super().save(*args, **kwargs)
 
@@ -73,7 +70,7 @@ class ThemeSettings(models.Model):
         return "Theme Settings"
 
     def save(self, *args, **kwargs):
-        self.pk = 1  # singleton
+        self.pk = 1 
         super().save(*args, **kwargs)
 
     @classmethod

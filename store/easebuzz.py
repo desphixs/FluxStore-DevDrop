@@ -17,10 +17,10 @@ def generate_easebuzz_form_data(order):
         "phone": order.address.phone if hasattr(order.address, 'phone') else "",
         "surl": settings.SITE_URL + f"/payments/success/{order.uuid}/",
         "furl": settings.SITE_URL + f"/payments/failure/{order.uuid}/",
-        # Optional EMI param
+        
         "offer_type": "EMI",
     }
-    # Generate hash as per Easebuzz doc
+    
     hash_str = "|".join([
         data["key"], data["txnid"], data["amount"], data["productinfo"],
         data["firstname"], data["email"], '', '', '', '', '', '', '', '', '', settings.EASEBUZZ_SALT

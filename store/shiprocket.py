@@ -9,7 +9,7 @@ EMAIL = getattr(settings, "SHIPROCKET_API_USER_EMAIL", None)
 PASSWORD = getattr(settings, "SHIPROCKET_API_USER_PASSWORD", None)
 
 CACHE_KEY = "shiprocket_token_v1"
-CACHE_TTL = 60 * 50  # 50 minutes (token TTL usually ~1hr)
+CACHE_TTL = 60 * 50  
 
 class ShiprocketError(Exception):
     pass
@@ -28,11 +28,11 @@ def _get_token():
         raise ShiprocketError(f"Auth failed: {resp.status_code} {resp.text}")
 
     data = resp.json()
-    # docs show token in response, sometimes under 'token' or 'data' — check and adapt
+    
     token = data.get("token") or data.get("data", {}).get("token") or data.get("data", {}).get("token")
     if not token:
-        # some accounts return {"token": "xxx"} or {"data": {"token": "xxx"}}
-        # fallback to raw 'message' if present
+        
+        
         raise ShiprocketError(f"Token not found in response: {data}")
 
     cache.set(CACHE_KEY, token, CACHE_TTL)
@@ -56,9 +56,9 @@ def get_serviceability_and_rates(pickup_pincode, delivery_pincode, weight_kg, co
         "pickup_postcode": str(pickup_pincode),
         "delivery_postcode": str(delivery_pincode),
         "weight": float(weight_kg),
-        "cod": int(cod),  # 0 or 1
+        "cod": int(cod),  
     }
-    # Some docs use GET, others use POST. We'll try GET with params.
+    
     resp = requests.get(url, headers=_headers(), params=params, timeout=12)
     if resp.status_code != 200:
         raise ShiprocketError(f"Serviceability failed: {resp.status_code} {resp.text}")
@@ -88,7 +88,7 @@ def create_shiprocket_order(order_payload):
       "height": 10,
       "weight": 0.5,
       "channel_id": "",
-      "payment_method": "Prepaid"  # or "COD"
+      "payment_method": "Prepaid"  
     }
     """
     url = f"{API_BASE}/orders/create/adhoc"

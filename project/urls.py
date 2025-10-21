@@ -23,10 +23,10 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # Django browser reload
+    
     path("__reload__/", include("django_browser_reload.urls")),
 
-    # Django CKEditor
+    
     path("ckeditor5/", include('django_ckeditor_5.urls')),
     path("summernote/", include("django_summernote.urls")),
 
@@ -37,6 +37,8 @@ urlpatterns = [
     path("account/", include("customer.urls", namespace="customer")),
     path("pages/", include("addon.urls", namespace="addon")),
     path('', include('store.urls')),
+    path('accounts/', include('allauth.urls')),  
+
 
 ]
 

@@ -28,7 +28,7 @@ class CouponForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.vendor = vendor
 
-        # Make most fields optional so we can do custom validation
+        
         for name in ["percent_off", "amount_off", "max_discount_amount", "min_order_amount"]:
             self.fields[name].required = False
 
@@ -38,7 +38,7 @@ class CouponForm(forms.ModelForm):
         percent_off = cleaned.get("percent_off")
         amount_off = cleaned.get("amount_off")
 
-        # Ensure one discount input depending on type
+        
         if dtype == order_models.Coupon.DiscountType.PERCENT:
             if percent_off is None:
                 raise forms.ValidationError({"percent_off": "Percent off is required."})
@@ -52,12 +52,12 @@ class CouponForm(forms.ModelForm):
         else:
             raise forms.ValidationError({"discount_type": "Invalid discount type."})
 
-        # Normalize empty strings (when sent as strings) to None
+        
         for fld in ["max_discount_amount", "min_order_amount"]:
             if cleaned.get(fld) == "":
                 cleaned[fld] = None
 
-        # Date sanity (optional)
+        
         starts_at, ends_at = cleaned.get("starts_at"), cleaned.get("ends_at")
         if starts_at and ends_at and starts_at > ends_at:
             raise forms.ValidationError("Start date cannot be after end date.")
@@ -86,7 +86,7 @@ class ProductCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         vendor = kwargs.pop("vendor", None)
         super().__init__(*args, **kwargs)
-        # Only pick existing categories; vendor cannot create new
+        
         self.fields["category"].queryset = store_models.Category.objects.filter(is_active=True).order_by("name")
 
     def clean_name(self):
@@ -96,7 +96,7 @@ class ProductCreateForm(forms.ModelForm):
         return name
 
 from django import forms
-from store import models as store_models  # Adjust if needed
+from store import models as store_models  
 
 class ProductDetailsForm(forms.ModelForm):
     class Meta:
@@ -157,14 +157,14 @@ class VariationValueForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         vendor = kwargs.pop("vendor", None)
         super().__init__(*args, **kwargs)
-        # Limit categories to this vendor
+        
         if vendor:
             self.fields["category"].queryset = store_models.VariationCategory.objects.filter(vendor=vendor).order_by("name")
 
 
 class ProductVariationForm(forms.ModelForm):
-    # We'll accept an array of variation_value_ids from JS for the M2M
-    variation_value_ids = forms.CharField(required=False)  # JSON or CSV handled in view
+    
+    variation_value_ids = forms.CharField(required=False)  
 
     class Meta:
         model = store_models.ProductVariation

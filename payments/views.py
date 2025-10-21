@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 
 
 def _ez_base():
-    # Sandbox vs Prod base
+    
     return settings.EASEBUZZ_BASE()
 
 
@@ -38,9 +38,9 @@ def _hosted_checkout_url_from_data(access_key: str) -> str:
     return f"{_ez_checkout_base()}/pay/{access_key}"
 
 # def _hosted_checkout_url_from_data(access_key: str) -> str:
-#     # Easebuzz Hosted Checkout: append access key to /pay/<access_key>
-#     # UAT:  https://testpay.easebuzz.in/pay/<access_key>
-#     # PROD: https://pay.easebuzz.in/pay/<access_key>
+#     
+#     
+#     
 #     return f"{_ez_base()}/pay/{access_key}"
 
 def _hash_request(params: dict, salt: str) -> str:
@@ -56,7 +56,7 @@ def _hash_request(params: dict, salt: str) -> str:
     ]
     seq = [str(params.get(f, "") or "") for f in fields]
     raw = "|".join(seq + [salt])
-    # optional: quick sanity
+    
     print("[EASEBUZZ][HASH][REQ] pipes=", raw.count("|"), "len=", len(raw))
     return hashlib.sha512(raw.encode("utf-8")).hexdigest()
 
@@ -69,7 +69,7 @@ def _hash_response_reverse(payload: dict, salt: str) -> str:
     seq = [
         salt,
         payload.get("status", ""),
-        "", "", "", "", "",  # 6 empties as per reverse sequence variants
+        "", "", "", "", "",  
         payload.get("udf5", ""),
         payload.get("udf4", ""),
         payload.get("udf3", ""),
@@ -108,9 +108,9 @@ def easebuzz_start(request, order_id: str):
         print("[EASEBUZZ] Missing key/salt")
         return HttpResponseBadRequest("Easebuzz key/salt missing.")
 
-    # ===== Build values safely =====
+    
     amount_dec = (order.amount_payable or order.total_amount or Decimal("0.00"))
-    # PGs are picky about formatting: 2 decimals, >= 1 paisa
+    
     amount_str = f"{amount_dec:.2f}"
     if Decimal(amount_str) <= 0:
         messages.error(request, "Amount must be greater than 0.")
@@ -119,24 +119,24 @@ def easebuzz_start(request, order_id: str):
     user = request.user
     firstname = (getattr(user, "first_name", "") or user.get_full_name() or "Customer").strip() or "Customer"
     email = (getattr(user, "email", "") or "").strip()
-    # Fallback email if empty/invalid (some gateways reject empty)
+    
     if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email or ""):
         email = f"noemail+{order.order_id}@example.com"
 
-    # India gateways often validate phone as 10-12 digit numeric; trim non-digits and clamp length
+    
     phone_src = ""
     try:
         phone_src = (order.shipping_address_snapshot or {}).get("phone", "") or getattr(user.profile, "phone", "") or ""
     except Exception:
         phone_src = ""
     digits = re.sub(r"\D", "", phone_src or "")
-    if len(digits) < 6:  # if nothing meaningful, send generic test-safe numeric
+    if len(digits) < 6:  
         digits = "9999999999"
     phone = digits[:12]
 
-    # txnid: keep simple, alphanumeric, <= 25
+    
     base_txn = f"ORD{order.order_id}"
-    base_txn = re.sub(r"[^A-Za-z0-9]", "", base_txn)[:18]  # leave room for suffix
+    base_txn = re.sub(r"[^A-Za-z0-9]", "", base_txn)[:18]  
     txnid = f"{base_txn}{secrets.token_hex(3)}"[:25]
 
     surl = request.build_absolute_uri(reverse("payments:easebuzz_return"))
@@ -145,8 +145,8 @@ def easebuzz_start(request, order_id: str):
     params = {
         "key": key,
         "txnid": txnid,
-        "amount": amount_str,               # "123.45"
-        "productinfo": f"Order {order.order_id}",  # keep short & plain text
+        "amount": amount_str,               
+        "productinfo": f"Order {order.order_id}",  
         "firstname": firstname[:50],
         "email": email,
         "phone": phone,
@@ -162,22 +162,22 @@ def easebuzz_start(request, order_id: str):
         "udf8": "",
         "udf9": "",
         "udf10": "",
-        # IMPORTANT: for Hosted Checkout we DO NOT force request_flow=SEAMLESS.
-        # That flag is for merchant-hosted/iFrame flows. For hosted, the docs say:
-        # use Initiate Payment API to get an "access_key" and open hosted URL with it. :contentReference[oaicite:0]{index=0}
+        
+        
+        
     }
 
-    # Hash (PayU/Easebuzz style)
+    
     params["hash"] = _hash_request(params, salt)
 
-    # ----- DEBUG: print outgoing (mask secrets) -----
+    
     safe_params = dict(params)
     safe_params["key"] = "***" + (key[-4:] if key else "")
-    safe_params["hash"] = params["hash"][:8] + "..."  # don’t log full hash
+    safe_params["hash"] = params["hash"][:8] + "..."  
     print("[EASEBUZZ][INIT][REQUEST]", json.dumps(safe_params, indent=2))
 
     try:
-        url = f"{_ez_checkout_base()}/payment/initiateLink"  # test: https://testpay.easebuzz.in ; prod: https://pay.easebuzz.in  :contentReference[oaicite:1]{index=1}
+        url = f"{_ez_checkout_base()}/payment/initiateLink"  
         resp = requests.post(url, data=params, headers={"Content-Type": "application/x-www-form-urlencoded"}, timeout=30)
         content_type = resp.headers.get("content-type", "")
         raw_text = (resp.text or "")[:1000]
@@ -186,7 +186,7 @@ def easebuzz_start(request, order_id: str):
         try:
             data = resp.json()
         except Exception:
-            # some stacks send plain text or HTML when failing validation
+            
             data = {"status": 0, "data": raw_text}
     except Exception as e:
         print("[EASEBUZZ][INIT][ERROR]", repr(e))
@@ -196,7 +196,7 @@ def easebuzz_start(request, order_id: str):
     status = int(data.get("status", 0)) if isinstance(data, dict) else 0
     print("[EASEBUZZ][INIT][PARSED]", json.dumps(data, indent=2))
 
-    # Persist init meta
+    
     try:
         meta = order.payment_meta or {}
         meta.update({"easebuzz_init": data, "init_params_sanitized": safe_params})
@@ -209,13 +209,13 @@ def easebuzz_start(request, order_id: str):
         print("[EASEBUZZ][INIT][ORDER_SAVE_WARN]", repr(_e))
 
     if status != 1:
-        # Show the real reason to you (console) and a friendly toast to user
+        
         reason = data.get("data") or data.get("error") or data
         print("[EASEBUZZ][INIT][VALIDATION_FAIL]", json.dumps(reason, indent=2))
         messages.error(request, f"Payment init failed: {reason}")
         return redirect(reverse("store:checkout", kwargs={"order_id": order.order_id}))
 
-    # success -> get access key or full URL
+    
     access_or_url = data.get("data")
     hosted_url = _hosted_checkout_url_from_data(access_or_url)
     print("[EASEBUZZ][INIT][REDIRECT]", hosted_url)
@@ -253,7 +253,7 @@ def _ez_api_base() -> str:
 
 def _easebuzz_status_urls() -> list[str]:
     base = _ez_api_base().rstrip("/")
-    # v2 first, optionally fall back to v1 if your account expects it
+    
     return [f"{base}/transaction/v2/retrieve", f"{base}/transaction/v1/retrieve"]
 
 def _sha512_pipe(*parts) -> str:
@@ -274,7 +274,7 @@ def _easebuzz_status_payload(txnid: str, easebuzz_id: str | None) -> dict:
 
     salt = getattr(settings, "EASEBUZZ_SALT", "")
     if salt:
-        # Common scheme in Easebuzz status APIs; adjust if your docs specify differently.
+        
         payload["hash"] = _sha512_pipe(payload["key"], payload["txnid"], salt)
 
     return payload
@@ -300,10 +300,10 @@ def _easebuzz_txn_status(txnid: str, easebuzz_id: str | None = None, timeout=10)
             log.info("[EZ][STATUS][HTTP] code=%s ctype=%s", status, ctype)
             log.info("[EZ][STATUS][BODY] %s", raw)
 
-            # If it's not JSON-ish, show me
+            
             if "application/json" not in ctype and not raw.strip().startswith(("{", "[")):
                 log.error("[EASEBUZZ][STATUS][NONJSON] %s %s %s :: %s", status, ctype, url, raw)
-                # try next candidate (or return None)
+                
                 continue
 
             log.info("[EZ][STATUS][REQ] url=%s payload=%s", url, payload)
@@ -329,24 +329,24 @@ def _easebuzz_status_is_success(resp: dict | None) -> tuple[bool, str, str | Non
         return (False, "no-response", None)
 
     def _norm_str(v) -> str:
-        # Convert anything to a lowercase string, safely.
+        
         if v is None:
             return ""
-        if isinstance(v, (dict, list)):  # not a status token
+        if isinstance(v, (dict, list)):  
             return ""
         try:
             return str(v).strip().lower()
         except Exception:
             return ""
 
-    # Top-level status sometimes comes as 1/0/true/false/"success"
+    
     top_status_raw = resp.get("status")
     top_status = _norm_str(top_status_raw)
 
-    # Use data if dict; otherwise fall back to resp
+    
     data_obj = resp.get("data") if isinstance(resp.get("data"), dict) else resp
 
-    # Pull any plausible "status" keys from the data object
+    
     gstat_raw = ""
     if isinstance(data_obj, dict):
         gstat_raw = (
@@ -358,15 +358,15 @@ def _easebuzz_status_is_success(resp: dict | None) -> tuple[bool, str, str | Non
         )
     gstat = _norm_str(gstat_raw)
 
-    # Payment ID can show up in several places
+    
     ez_id = None
     if isinstance(data_obj, dict):
         ez_id = data_obj.get("easebuzz_id") or data_obj.get("payment_id")
     ez_id = ez_id or resp.get("easebuzz_id")
 
-    # Decide success:
-    # - Prefer semantic gateway statuses.
-    # - If only top-level flag exists and indicates success, allow it as fallback.
+    
+    
+    
     success_terms = {"success", "captured", "success-verified"}
     ok = gstat in success_terms
     if not ok and gstat == "" and top_status in {"1", "true", "success"}:
@@ -447,9 +447,9 @@ def _notify_vendors_order_paid(order):
         if not vendor_id:
             continue
         try:
-            vendor_user = order_models.settings.AUTH_USER_MODEL.objects.get(pk=vendor_id)  # won’t work
+            vendor_user = order_models.settings.AUTH_USER_MODEL.objects.get(pk=vendor_id)  
         except Exception:
-            # Better: fetch via your User model directly
+            
             from django.contrib.auth import get_user_model
             User = get_user_model()
             vendor_user = User.objects.filter(pk=vendor_id).first()
@@ -472,7 +472,7 @@ def _notify_vendors_order_paid(order):
 
 # ---------- Your return view (drop-in) ----------
 
-@csrf_exempt  # Easebuzz posts from their domain
+@csrf_exempt  
 def easebuzz_return(request):
     """
     Verify with Easebuzz Transaction API BEFORE marking paid.
@@ -489,15 +489,15 @@ def easebuzz_return(request):
     easebuzz_id = payload.get("easebuzz_id", "") or (order.easebuzz_payment_id or "")
     status_val = (payload.get("status", "") or "").lower()
     print("[EZ][RETURN][PAYLOAD]", json.dumps(payload, indent=2))
-    # Persist raw gateway return + our reverse-hash flag if you already compute it elsewhere
+    
     meta = order.payment_meta or {}
     meta.update({
         "easebuzz_return": payload,
         "return_received_at": timezone.now().isoformat(),
     })
 
-    # 1) Verify with Transaction Status API
-    # 0) Reverse-hash guard (if present)
+    
+    
     resp_hash = payload.get("hash", "")
     reverse_ok = False
     try:
@@ -515,11 +515,11 @@ def easebuzz_return(request):
         reverse_ok = False
         print("[EZ][RETURN][REVHASH] no hash in payload")
 
-    # 1) Status API (best-effort; don’t block UX if it’s flaky)
+    
     verified_resp = _easebuzz_txn_status(txnid=txnid, easebuzz_id=easebuzz_id)
     ok, gateway_status, ez_id_from_status = _easebuzz_status_is_success(verified_resp)
 
-    # If the gateway says success OR reverse hash passes with success -> treat as paid
+    
     final_success = ok or (reverse_ok and (payload.get("status","").lower() in {"success","captured"}))
     print("[EZ][VERIFY][RESP]", json.dumps(verified_resp, indent=2))
     print("[EZ][VERIFY][PARSED] ok=%s gateway_status=%s ez_id=%s" % (ok, gateway_status, ez_id_from_status))
@@ -528,22 +528,22 @@ def easebuzz_return(request):
         reverse_ok, status_val, ok or (reverse_ok and status_val in {"success","captured"})
     ))
 
-    # Stash verification result for audit
+    
     meta["easebuzz_verify"] = {
         "ok": ok,
         "gateway_status": gateway_status,
         "raw": verified_resp,
     }
 
-    # Keep any new easebuzz_id we learn
+    
     if ez_id_from_status and not easebuzz_id:
         easebuzz_id = ez_id_from_status
 
     order.payment_meta = meta
     order.easebuzz_payment_id = easebuzz_id or order.easebuzz_payment_id
 
-    # 2) Update order + notifications if success
-    # 2) Update order + notifications if success (trust final_success which includes reverse-hash)
+    
+    
     if final_success:
         if order.payment_status != "PAID":
             order.payment_status = "PAID"
@@ -562,93 +562,20 @@ def easebuzz_return(request):
 
         return redirect(reverse("payments:thank_you", kwargs={"order_id": order.order_id}))
     else:
-        # Keep UX sane: if API gave a definitive failure, mark FAILED; else leave PENDING and wait for webhook.
+        
         nonjson = not isinstance(verified_resp, dict)
         if order.payment_status != "PAID":
             hard_fail = (not nonjson) and status_val in {"failed", "tampered", "bounced"}
             order.payment_status = "FAILED" if hard_fail else "PENDING"
             order.save(update_fields=["payment_meta", "easebuzz_payment_id", "payment_status", "updated_at"])
 
-        # If you don't have a processing route, don't reverse it.
+        
         return redirect(
             reverse("payments:failed", kwargs={"order_id": order.order_id})
             if order.payment_status == "FAILED"
-            else reverse("payments:thank_you", kwargs={"order_id": order.order_id})  # or swap to a real 'processing' page if you add one
+            else reverse("payments:thank_you", kwargs={"order_id": order.order_id})  
         )
 
-
-# @csrf_exempt  # Easebuzz posts from their domain
-# def easebuzz_return(request):
-#     """
-#     Easebuzz posts the payment result to SURL/FURL.
-#     We'll:
-#       - identify the order via udf1
-#       - verify reverse hash if present
-#       - set payment_status
-#     """
-#     payload = request.POST.dict() if request.method == "POST" else request.GET.dict()
-#     order_id = payload.get("udf1")
-#     if not order_id:
-#         return HttpResponseBadRequest("Missing udf1 (order id).")
-
-#     order = get_object_or_404(order_models.Order, order_id=order_id)
-#     key = payload.get("key", "")
-#     txnid = payload.get("txnid", "")
-#     status_val = (payload.get("status", "") or "").lower()
-#     easebuzz_id = payload.get("easebuzz_id", "")
-
-#     # Optional: reverse-hash validation if 'hash' present
-#     verified = False
-#     try:
-#         resp_hash = payload.get("hash")
-#         if resp_hash:
-#             calc = _hash_response_reverse(payload, settings.EASEBUZZ_SALT)
-#             verified = (resp_hash.lower() == calc.lower())
-#     except Exception:
-#         verified = False
-
-#     # persist raw return
-#     meta = order.payment_meta or {}
-#     meta.update({"easebuzz_return": payload, "return_verified": verified})
-#     order.payment_meta = meta
-#     order.easebuzz_payment_id = easebuzz_id or order.easebuzz_payment_id
-
-#     if status_val in ("success", "captured") and (verified or True):
-#         # If you're strict, require verified == True. In practice, many merchants also cross-check via Transaction API or webhook.
-#         order.payment_status = "PAID"
-
-#         order_models.Notification.objects.create(
-#             recipient=order.buyer,
-#             actor=None,  # or request.user/system
-#             ntype=order_models.Notification.NType.ORDER,
-#             level=order_models.Notification.Level.SUCCESS,
-#             title="Order placed",
-#             message=f"Thanks! Your order #{order.order_id} has been placed.",
-#             content_type=ContentType.objects.get_for_model(order),
-#             object_id=order.pk,
-#             target_url=f"/customer/orders/{order.order_id}/",
-#         )
-
-#         # # Create for a vendor when a review is posted
-#         # order_models.Notification.objects.create(
-#         #     recipient=vendor_user,
-#         #     ntype=order_models.Notification.NType.REVIEW,
-#         #     level=order_models.Notification.Level.INFO,
-#         #     title="New product review",
-#         #     message=f"{order.buy.email} rated {review.product.name} {review.rating}/5",
-#         #     content_type=ContentType.objects.get_for_model(review),
-#         #     object_id=review.pk,
-#         #     target_url=f"/vendor/reviews/?q={review.product.name}",
-#         # )
-
-#         order.status = order_models.Order.OrderStatus.PROCESSING
-#     else:
-#         order.payment_status = "FAILED"
-
-#     order.save(update_fields=["payment_meta", "easebuzz_payment_id", "payment_status", "status", "updated_at"])
-#     if order.payment_status == "PAID":
-#         return redirect(reverse("payments:thank_you", kwargs={"order_id": order.order_id}))
-#     return redirect(reverse("payments:failed", kwargs={"order_id": order.order_id}))
 
 
 @csrf_exempt
@@ -696,20 +623,20 @@ def easebuzz_webhook(request):
 def confirm_payment(request, order_id: str):
     order = get_object_or_404(order_models.Order, buyer=request.user, order_id=order_id)
 
-    # idempotency: if already paid, just go to thank-you
+    
     if (order.payment_status or "").upper() == "PAID":
         return redirect("payments:thank_you", order_id=order.order_id)
 
-    # mark as paid
+    
     order.payment_provider = "STRIPE_MOCK"
     order.payment_status = "PAID"
-    # optional: nudge status forward
+    
     try:
         order.status = order_models.Order.OrderStatus.PROCESSING
     except Exception:
         pass
 
-    # keep a tiny audit trail in payment_meta
+    
     meta = (order.payment_meta or {}) if isinstance(order.payment_meta, dict) else {}
     meta["mock_stripe_confirmed_at"] = timezone.now().isoformat()
     meta["last4"] = (request.POST.get("card_number", "").replace(" ", "")[-4:] or "")

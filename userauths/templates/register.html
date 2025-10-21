@@ -1,5 +1,5 @@
 {% extends 'base/base.html' %}
-
+{% load socialaccount %}
 {% block title %}Register{% endblock %}
 
 {% block content %}
@@ -14,6 +14,16 @@
             <p>{{ error }}</p>
             {% endfor %}
         </div>
+        {% endif %}
+
+
+        {% if SEND_AUTH_EMAIL == True %}
+            <a href="{% provider_login_url 'google' process='login' %}"
+            class="w-full inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="h-5 w-5">
+            Continue with Google
+            </a>
+            <div class="my-4 text-center text-sm text-gray-500">or</div>
         {% endif %}
 
         <form method="post" class="space-y-6" x-data="{ isSubmitting: false }" @submit="isSubmitting = true">

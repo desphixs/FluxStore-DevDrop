@@ -21,7 +21,7 @@ from store.models import (
     VariationCategory,
     VariationValue,
     ProductVariation,
-    ProductImage,     # not used; kept for completeness
+    ProductImage,     
     ProductReview,
 )
 from order.models import (
@@ -141,7 +141,7 @@ class Command(BaseCommand):
     help = "Seed categories, users (buyers & vendors), products, variations, reviews, orders, and wishlists."
 
     def add_arguments(self, parser):
-        # NOTE: hyphenated flags are fine here; Django will expose them in opts with underscores.
+        
         parser.add_argument("--users", type=int, default=20,
                             help="Total users to create (min 15). Roughly 40% will be vendors.")
         parser.add_argument("--orders", type=int, default=30,
@@ -158,9 +158,9 @@ class Command(BaseCommand):
                             help="Skip creating wishlists & wishlist items.")
 
     def handle(self, *args, **opts):
-        random.seed(42)  # deterministic-ish
+        random.seed(42)  
 
-        # IMPORTANT: hyphens become underscores in opts
+        
         users_target = max(15, int(opts["users"]))
         orders_target = max(15, int(opts["orders"]))
         products_target = max(24, int(opts["products"]))
@@ -172,33 +172,33 @@ class Command(BaseCommand):
         self.stdout.write(self.style.WARNING("⚙️  Starting seed..."))
         self.stdout.write(f"Users target: {users_target}, Products target: {products_target}, Orders target: {orders_target}")
 
-        # 1) Categories
+        
         categories = self._seed_categories()
         self.stdout.write(self.style.SUCCESS(f"✅ Categories ready: {len(categories)}"))
 
-        # 2) Users (buyers + vendors)
+        
         buyers, vendors = self._seed_users(users_target)
         self.stdout.write(self.style.SUCCESS(f"✅ Users created: buyers={len(buyers)}, vendors={len(vendors)}"))
 
-        # 3) Products (+ primary ProductVariation per product)
+        
         products = self._seed_products(
             categories, vendors, target=products_target,
             per_cat_min=per_cat_min, per_cat_cap=per_cat_cap,
         )
         self.stdout.write(self.style.SUCCESS(f"✅ Products created: {len(products)} (with primary variations)"))
 
-        # 4) Reviews (optional small sprinkle)
+        
         if reviews_max > 0:
             total_reviews = self._seed_reviews(products, buyers, reviews_max)
             self.stdout.write(self.style.SUCCESS(f"✅ Reviews created: {total_reviews}"))
         else:
             self.stdout.write("⏭️  Skipping reviews (reviews-max=0)")
 
-        # 5) Orders
+        
         orders = self._seed_orders(orders_target, buyers, products)
         self.stdout.write(self.style.SUCCESS(f"✅ Orders created: {len(orders)}"))
 
-        # 6) Wishlists (optional)
+        
         if make_wishlist:
             wl_count = self._seed_wishlists(buyers, products)
             self.stdout.write(self.style.SUCCESS(f"✅ Wishlists updated: {wl_count} users added items"))
@@ -207,11 +207,11 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.WARNING("🏁 Seeding complete."))
 
-    # ------------------------------
-    # Category seeding
-    # ------------------------------
+    
+    
+    
     def _seed_categories(self) -> List[Category]:
-        # Dedup from any accidental repeats in the provided list
+        
         unique_names: List[str] = []
         for nm in CATEGORIES:
             if nm not in unique_names:
@@ -233,15 +233,15 @@ class Command(BaseCommand):
             self.stdout.write(f"  • Category: {name} ({'created' if created else 'existing'})")
         return out
 
-    # ------------------------------
-    # User & profiles seeding
-    # ------------------------------
+    
+    
+    
     def _seed_users(self, total_users: int) -> Tuple[List[object], List[object]]:
         User = get_user_model()
         buyers: List[object] = []
         vendors: List[object] = []
 
-        target_vendors = max(6, int(total_users * 0.4))  # ~40% vendors; at least 6
+        target_vendors = max(6, int(total_users * 0.4))  
         target_buyers = total_users - target_vendors
 
         self.stdout.write("👤 Creating users...")
@@ -255,10 +255,10 @@ class Command(BaseCommand):
                 if email not in used_emails:
                     used_emails.add(email)
                     return email
-            # Fallback
+            
             return f"{base}.{random.randint(1000,9999)}@example.com"
 
-        # Vendors first
+        
         while len(vendors) < target_vendors:
             first = random.choice(FIRST_NAMES)
             last = random.choice(LAST_NAMES)
@@ -275,7 +275,7 @@ class Command(BaseCommand):
                     )
                     UserProfile.objects.get_or_create(user=u)
 
-                    # Make sure business_name is globally unique
+                    
                     base_name = f"{last} {first} Store"
                     business_name = unique_business_name(base_name)
 
@@ -298,7 +298,7 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"    × Vendor create failed: {e}"))
 
-        # Buyers
+        
         while len(buyers) < target_buyers:
             first = random.choice(FIRST_NAMES)
             last = random.choice(LAST_NAMES)
@@ -314,7 +314,7 @@ class Command(BaseCommand):
                         last_name=last,
                     )
                     prof, _ = UserProfile.objects.get_or_create(user=u)
-                    # a default shipping address
+                    
                     Address.objects.get_or_create(
                         profile=prof,
                         address_type=Address.AddressType.SHIPPING,
@@ -336,9 +336,9 @@ class Command(BaseCommand):
 
         return buyers, vendors
 
-    # ------------------------------
-    # Products + primary variation
-    # ------------------------------
+    
+    
+    
     def _seed_products(
         self,
         categories: List[Category],
@@ -349,7 +349,7 @@ class Command(BaseCommand):
     ) -> List[Product]:
         self.stdout.write("🛒 Creating products...")
 
-        # Distribute target across categories with min + cap
+        
         n_cat = len(categories)
         base_each = max(per_cat_min, target // n_cat)
         remainder = max(0, target - (base_each * n_cat))
@@ -379,9 +379,9 @@ class Command(BaseCommand):
                             is_featured=random.choice([True, False, False]),
                         )
 
-                        # Primary variation
+                        
                         sale = rand_money(15, 120)
-                        reg = sale + rand_money(3, 25)  # ensure reg >= sale
+                        reg = sale + rand_money(3, 25)  
                         pv = ProductVariation.objects.create(
                             product=p,
                             sale_price=sale,
@@ -402,7 +402,7 @@ class Command(BaseCommand):
                             width=Decimal("%.2f" % random.uniform(3.0, 50.0)),
                             label=random.choice(LABEL_CHOICES),
                         )
-                        # Attach two variation values (Color & Size)
+                        
                         try:
                             ensure_vendor_variation_taxonomy(vendor)
                             for vv in pick_two_variation_values(vendor):
@@ -418,9 +418,9 @@ class Command(BaseCommand):
 
         return created_products
 
-    # ------------------------------
-    # Reviews
-    # ------------------------------
+    
+    
+    
     def _seed_reviews(self, products: List[Product], buyers: List[object], reviews_max: int) -> int:
         self.stdout.write("💬 Creating reviews…")
         total = 0
@@ -445,13 +445,13 @@ class Command(BaseCommand):
                         )
                         total += 1
                 except Exception as e:
-                    # uniqueness (product,user) might trip; ignore
+                    
                     self.stdout.write(self.style.WARNING(f"    ! Review skipped: {e}"))
         return total
 
-    # ------------------------------
-    # Orders
-    # ------------------------------
+    
+    
+    
     def _seed_orders(self, orders_target: int, buyers: List[object], products: List[Product]) -> List[Order]:
         self.stdout.write("📦 Creating orders…")
         out: List[Order] = []
@@ -468,7 +468,7 @@ class Command(BaseCommand):
             buyer = random.choice(buyers)
             try:
                 with transaction.atomic():
-                    # pick a shipping address (or make one if missing)
+                    
                     profile = buyer.profile
                     addr = profile.addresses.filter(address_type=Address.AddressType.SHIPPING).first()
                     if not addr:
@@ -492,7 +492,7 @@ class Command(BaseCommand):
                         payment_status=random.choice(["UNPAID", "PAID", "FAILED"]),
                     )
 
-                    # items: 1..4
+                    
                     n_items = random.randint(1, 4)
                     chosen_vars = random.sample(pvars, k=min(n_items, len(pvars)))
                     for pv in chosen_vars:
@@ -504,13 +504,13 @@ class Command(BaseCommand):
                             quantity=qty,
                             price=pv.sale_price,
                         )
-                        # carry variation values for display
+                        
                         for vv in pv.variations.all():
                             oi.variation_values.add(vv)
                         oi.recompute_line_totals()
                         oi.save(update_fields=["line_subtotal_net"])
 
-                    # compute totals
+                    
                     order.set_order_id_if_missing()
                     order.recompute_item_totals_from_items()
                     order.shipping_fee = rand_money(2, 20)
@@ -524,16 +524,16 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f"    × Order failed: {e}"))
         return out
 
-    # ------------------------------
-    # Wishlists (optional)
-    # ------------------------------
+    
+    
+    
     def _seed_wishlists(self, buyers: List[object], products: List[Product]) -> int:
         self.stdout.write("📝 Creating wishlists…")
         count = 0
         for u in buyers:
             try:
                 wl, _ = Wishlist.objects.get_or_create(user=u)
-                if random.random() < 0.55:  # ~55% of buyers will have wishlist items
+                if random.random() < 0.55:  
                     for p in random.sample(products, k=min(3, len(products))):
                         pv = p.variations.filter(is_primary=True).first()
                         if not pv:

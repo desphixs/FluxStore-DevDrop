@@ -5,10 +5,10 @@ from django.utils.html import format_html
 
 class WishlistItemInline(admin.StackedInline):
     model = WishlistItem
-    extra = 1  # Number of empty forms to display
+    extra = 1  
     fields = ['product', 'added_at', 'uuid']
     readonly_fields = [ 'added_at', 'uuid']
-    show_change_link = True  # Add a link to change the item directly from the Wishlist
+    show_change_link = True  
 
     def get_extra(self, request, obj=None, **kwargs):
         """Limit extra fields based on user role, for example."""
@@ -41,7 +41,7 @@ class WishlistItemAdmin(admin.ModelAdmin):
     
     def display_name(self, obj):
         return obj.display_name
-    display_name.admin_order_field = 'product__name'  # Allows ordering by product name
+    display_name.admin_order_field = 'product__name'  
     display_name.short_description = "Product Name"
 
     def get_queryset(self, request):

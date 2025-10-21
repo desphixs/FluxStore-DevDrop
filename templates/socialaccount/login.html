@@ -1,0 +1,27 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block account_content %}
+  <h1 class="text-2xl font-bold text-center">Continue with {{ provider.name }}</h1>
+  <p class="mt-2 text-center text-sm text-gray-600 dark:text-zinc-300">
+    You’re about to sign in using your {{ provider.name }} account.
+  </p>
+
+  <form class="mt-6 space-y-3"
+      method="post"
+      action="{{ request.path }}{% if process %}?process={{ process }}{% endif %}">
+
+    {% csrf_token %}
+    {{ form.as_p }} {# usually empty/hidden, keep it #}
+
+    <button type="submit"
+            class="w-full inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5">
+      Continue
+    </button>
+
+    <a href="{% url 'userauths:login' %}"
+       class="w-full inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-zinc-700 py-2.5 text-sm">
+      Back to login
+    </a>
+  </form>
+{% endblock %}

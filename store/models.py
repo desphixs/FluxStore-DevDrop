@@ -82,7 +82,7 @@ class Product(models.Model):
 
     def average_rating(self):
         avg = self.reviews.aggregate(avg=Avg('rating'))['avg'] or 0
-        return round(avg, 1)  # 4.0 etc.
+        return round(avg, 1)  
 
     def average_rating_int(self):
         return int(round(self.average_rating()))
@@ -140,7 +140,7 @@ class ProductVariation(models.Model):
     shipping_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     show_regular_price = models.BooleanField(default=False)
     show_discount_type = models.CharField(choices=SHOW_DISCOUNT_TYPE, default="none", max_length=100)
-    # Deal fields
+    
     deal_active = models.BooleanField(default=False)
     deal_starts_at = models.DateTimeField(null=True, blank=True)
     deal_ends_at = models.DateTimeField(null=True, blank=True)
