@@ -1,0 +1,42 @@
+{% extends "account/base.html" %}
+{% load i18n socialaccount %}
+
+{% block account_content %}
+  <h1 class="text-2xl font-bold text-center">{% trans "Log in to your account" %}</h1>
+
+  <a href="{% provider_login_url 'google' process='login' %}"
+     class="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 dark:border-zinc-700 py-2.5">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="h-5 w-5">
+    Continue with Google
+  </a>
+
+  <div class="my-4 text-center text-xs text-gray-500">or</div>
+
+  <form method="post" action="{% url 'account_login' %}" class="space-y-3">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+      <label class="text-sm">Email</label>
+      {{ form.login|add_class:"w-full mt-1 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2" }}
+    </div>
+    <div>
+      <label class="text-sm">Password</label>
+      {{ form.password|add_class:"w-full mt-1 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2" }}
+    </div>
+    <div class="flex items-center justify-between text-sm">
+      <label class="inline-flex items-center gap-2">
+        {{ form.remember }} <span>Remember me</span>
+      </label>
+      <a href="{% url 'account_reset_password' %}" class="text-indigo-600 hover:underline">Forgot?</a>
+    </div>
+    <button type="submit"
+            class="w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5">
+      Log In
+    </button>
+  </form>
+
+  <p class="mt-4 text-center text-sm">
+    Don’t have an account?
+    <a href="{% url 'account_signup' %}" class="text-indigo-600 hover:underline">Register</a>
+  </p>
+{% endblock %}

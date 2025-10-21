@@ -233,7 +233,7 @@ def category_detail(request, slug, pk):
     paginator = Paginator(products_qs, 12)
     page_obj = paginator.get_page(request.GET.get("page"))
 
-    # counts for UI
+    
     total_products = products_qs.count()
 
     return render(
@@ -309,7 +309,7 @@ def add_to_cart(request):
 
     variation = None
 
-    # resolve variation (unchanged)
+    
     if variation_id:
         print("Resolving by variation_id:", variation_id)
         variation = get_object_or_404(
@@ -397,7 +397,7 @@ def add_to_cart(request):
             resolved_vv_qs = store_models.VariationValue.objects.filter(id__in=selected_value_ids)
             resolved_value_ids = list(resolved_vv_qs.values_list('id', flat=True))
         elif selected_variations and isinstance(selected_variations, dict):
-            # fallback: resolve by category name + value (case-insensitive)
+            
             print("Resolving VariationValue by category/value pairs:", selected_variations)
             found_ids = []
             for cat, val in selected_variations.items():
@@ -480,13 +480,13 @@ def add_to_cart(request):
                 print("Failed to save cart_item.price:", e)
 
             try:
-                # attach M2M if field exists and we resolved any ids
+                
                 if hasattr(cart_item, "variation_values"):
                     if resolved_vv_qs.exists():
                         cart_item.variation_values.set(resolved_vv_qs)
                         print("Set cart_item.variation_values ->", list(resolved_vv_qs.values_list('id', flat=True)))
                     else:
-                        # If no vv resolved, clear if you want or keep existing (we'll keep existing if present)
+                        
                         print("No resolved variation values to set (keeping existing).")
                 else:
                     print("CartItem model does not have 'variation_values' M2M field; skipping.")
@@ -611,7 +611,7 @@ def update_cart_item_qty(request):
         if qty == 0:
             cart_item.delete()
         else:
-            # check stock
+            
             if qty > variation.stock_quantity:
                 return JsonResponse({
                     'ok': False,
@@ -625,7 +625,7 @@ def update_cart_item_qty(request):
     agg = cart.items.aggregate(total=Sum(F('quantity') * F('price')))
     cart_total = agg['total'] or Decimal('0.00')
 
-    # if item deleted, item_subtotal = 0
+    
     item_subtotal = Decimal('0.00')
     if qty > 0:
         item_subtotal = (cart_item.price or Decimal('0.00')) * qty
@@ -636,7 +636,7 @@ def update_cart_item_qty(request):
         'ok': True,
         'cart_item_id': cart_item_id,
         'quantity': qty,
-        'item_subtotal': str(item_subtotal),   # stringify decimals
+        'item_subtotal': str(item_subtotal),   
         'cart_total': str(cart_total),
         "item_count": item_count,
     })
@@ -645,7 +645,7 @@ def update_cart_item_qty(request):
 def address_list_create(request):
     profile = request.user.profile  
 
-    # Handle form submit
+    
     if request.method == "POST":
         form = store_forms.AddressForm(request.POST)
         if form.is_valid():
@@ -668,10 +668,10 @@ def set_default_address(request, uuid):
     profile = request.user.profile
     address = get_object_or_404(userauths_model.Address, uuid=uuid, profile=profile)
 
-    # reset others
+    
     profile.addresses.filter(address_type=address.address_type).update(is_default=False)
 
-    # set new default
+    
     address.is_default = True
     address.save()
 
@@ -703,7 +703,7 @@ def _extract_rate_list(resp):
             v = resp.get(k)
             if isinstance(v, list):
                 return v
-        # nested under data
+        
         data = resp.get("data")
         if isinstance(data, list):
             return data
@@ -719,16 +719,16 @@ def _extract_rate_list(resp):
 
 def _choose_shiprocket_surface(opts):
     if not opts: return None
-    # prefer both 'shiprocket' and 'surface'
+    
     for o in opts:
         name = (o.get('courier_name') or o.get('name') or o.get('courier') or "").lower()
         if "shiprocket" in name and "surface" in name:
             return o
-    # else any 'surface'
+    
     for o in opts:
         if "surface" in (o.get('courier_name') or o.get('name') or o.get('courier') or "").lower():
             return o
-    # else fallback first
+    
     return opts[0]
 
 
@@ -738,13 +738,13 @@ def begin_checkout_shiprocket(request):
     profile = request.user.profile
     cart = order_models.Cart.get_for_request(request)
     if cart.items.count() == 0:
-        return redirect('store:cart')  # or handle empty
+        return redirect('store:cart')  
 
     addr = profile.addresses.filter(address_type=Address.AddressType.SHIPPING, is_default=True).first()
     if not addr:
         return redirect('store:address_list_create')
 
-    # Compute item_total
+    
     item_total = Decimal('0.00')
     total_weight_kg = Decimal('0.00')
     for ci in cart.items.select_related('product_variation', 'product_variation__product'):
@@ -753,7 +753,7 @@ def begin_checkout_shiprocket(request):
         pv_w = ci.product_variation.weight or Decimal('0.0')
         total_weight_kg += (pv_w * ci.quantity)
 
-    # Create order (shipping_fee 0 for now; we'll update after fetching rates)
+    
     order = order_models.Order(
         buyer=request.user,
         address=addr,
@@ -774,7 +774,7 @@ def begin_checkout_shiprocket(request):
     order.set_order_id_if_missing()
     order.save()
 
-    # Create OrderItems
+    
     for ci in cart.items.select_related('product_variation', 'product_variation__product').all():
         unit_price = ci.price or ci.product_variation.sale_price
         try:
@@ -813,14 +813,14 @@ def begin_checkout_shiprocket(request):
             order.save()
             print(f"DEBUG: after applying shipping -> shipping_fee={order.shipping_fee}, amount_payable={order.amount_payable}")
         else:
-            # No shipping chosen: ensure totals still correct (shipping_fee likely 0)
+            
             order.recompute_item_totals_from_items()
             order.recalc_total()
             order.save()
             print("DEBUG: no shipping chosen; totals recomputed")
 
     except ShiprocketError as e:
-        # You may want to redirect back to cart with a flash message
+        
         order.recompute_item_totals_from_items()
         order.recalc_total()
         order.save()
@@ -842,9 +842,9 @@ def begin_checkout(request):
     cart = order_models.Cart.get_for_request(request)
 
     if cart.items.count() == 0:
-        return redirect('store:cart')  # empty cart
+        return redirect('store:cart')  
 
-    # require a default SHIPPING address
+    
     addr = profile.addresses.filter(
         address_type=Address.AddressType.SHIPPING,
         is_default=True
@@ -852,7 +852,7 @@ def begin_checkout(request):
     if not addr:
         return redirect('store:address_list_create')
 
-    # Snapshot totals from the cart
+    
     item_total = Decimal('0.00')
     shipping_total = Decimal('0.00')
 
@@ -866,7 +866,7 @@ def begin_checkout(request):
         unit_price = ci.price or pv.sale_price
         item_total += (unit_price * ci.quantity)
 
-        # shipping = per-variation shipping_price * qty
+        
         shipping_total += (pv.shipping_price or Decimal('0.00')) * ci.quantity
 
     order = order_models.Order(
@@ -909,13 +909,13 @@ def begin_checkout(request):
         if ci.variation_values.exists():
             oi.variation_values.set(ci.variation_values.all())
 
-        # keep line net ready for any future discounts
+        
         oi.recompute_line_totals()
         oi.save(update_fields=["line_subtotal_net"])
 
-    # Finalize totals from the actual items, keep our shipping_fee as-is
+    
     order.recompute_item_totals_from_items()
-    # ensure amount_payable = item_total_net + shipping_fee
+    
     order.recalc_total()
     order.save()
     return redirect(reverse('store:checkout', kwargs={'order_id': order.order_id}))
@@ -1007,7 +1007,7 @@ def _apply_coupon_to_order(order, coupon: order_models.Coupon, user):
         discount = vendor_gross * pct
         if coupon.max_discount_amount:
             discount = min(discount, coupon.max_discount_amount)
-    else:  # FIXED
+    else:  
         discount = min(Decimal(str(coupon.amount_off or 0)), vendor_gross)
 
     discount = _q(discount)
@@ -1112,7 +1112,7 @@ def remove_coupon(request):
     vendor_items = list(order.items.filter(vendor_id=vendor_id))
 
     with transaction.atomic():
-        # sum allocations to undo
+        
         allocs = list(order_models.OrderItemDiscount.objects.filter(
             order_item__in=[it.id for it in vendor_items], coupon=coupon
         ))
@@ -1160,13 +1160,13 @@ def search(request):
     
     q = (request.GET.get("q") or "").strip()
 
-    # start with nothing if query is empty (avoid dumping entire catalog)
+    
     products = store_models.Product.objects.none()
 
     if q:
         terms = [t for t in re.split(r"\s+", q) if t]
 
-        # Build AND of ORs (every term must hit at least one field)
+        
         combined = Q()
         for t in terms:
             per_term = (
@@ -1178,11 +1178,11 @@ def search(request):
             )
             combined &= per_term
 
-        # Prefetch primary image + active variations (cheapest first)
+        
         primary_images = ProductImage.objects.filter(is_primary=True)
         active_vars = ProductVariation.objects.filter(is_active=True).order_by("sale_price")
 
-        # Rank: boost name hits the most, then SKU, then category
+        
         name_hit = Case(When(name__icontains=q, then=Value(3)), default=Value(0), output_field=IntegerField())
         sku_hit  = Case(When(variations__sku__icontains=q, then=Value(2)), default=Value(0), output_field=IntegerField())
         cat_hit  = Case(When(category__name__icontains=q, then=Value(1)), default=Value(0), output_field=IntegerField())

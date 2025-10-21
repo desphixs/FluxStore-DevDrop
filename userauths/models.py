@@ -26,7 +26,7 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ['username']
 
     def save(self, *args, **kwargs):
-        # If no username is set, fallback to email as username
+        
         if not self.username and self.email:
             self.username = self.email
         super().save(*args, **kwargs)
@@ -50,9 +50,9 @@ class VendorProfile(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='vendor_profile',
-        limit_choices_to={'role': User.Role.VENDOR},  # <-- FIXED
+        limit_choices_to={'role': User.Role.VENDOR},  
     )
-    # Core business info
+    
     business_name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(max_length=255, null=True, blank=True) 
     contact_email = models.EmailField(unique=True)
@@ -60,25 +60,25 @@ class VendorProfile(models.Model):
     business_address = models.CharField(max_length=255)
     business_description = models.TextField(blank=True, null=True)
 
-    # Branding
+    
     logo = models.ImageField(upload_to='vendor/logo/', blank=True, null=True)
     banner = models.ImageField(upload_to='vendor/banner/', blank=True, null=True)
 
-    # Meta / policies
+    
     website_url = models.URLField(blank=True, null=True)
-    socials = models.JSONField(blank=True, null=True)  # {"instagram": "...", "twitter": "..."}
+    socials = models.JSONField(blank=True, null=True)  
     shipping_policy = models.TextField(blank=True, null=True)
     return_policy = models.TextField(blank=True, null=True)
     opening_hours = models.CharField(max_length=255, blank=True, null=True)
 
-    # Commerce
-    currency = models.CharField(max_length=10, default="USD")  # "NGN", "USD", etc.
+    
+    currency = models.CharField(max_length=10, default="USD")  
     country = models.CharField(max_length=60, default="NG")
     tax_id = models.CharField(max_length=60, blank=True, null=True)
     min_order_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_open = models.BooleanField(default=True)
 
-    # Payout (basic fields; swap to your payments provider later)
+    
     bank_name = models.CharField(max_length=120, blank=True, null=True)
     account_name = models.CharField(max_length=120, blank=True, null=True)
     account_number = models.CharField(max_length=60, blank=True, null=True)
@@ -98,8 +98,8 @@ class Address(models.Model):
 
     profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='addresses')
     address_type = models.CharField(max_length=10, choices=AddressType.choices)
-    full_name = models.CharField(max_length=150, blank=True)   # optional
-    phone = models.CharField(max_length=30, blank=True)        # optional
+    full_name = models.CharField(max_length=150, blank=True)   
+    phone = models.CharField(max_length=30, blank=True)        
     street_address = models.CharField(max_length=255)
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)
@@ -117,9 +117,9 @@ class Address(models.Model):
         return f"{self.profile.user.email} - {self.get_address_type_display()} Address"
 
     def save(self, *args, **kwargs):
-        # if marking this address default, clear other defaults for this profile+type
+        
         if self.is_default:
-            # NOTE: using update avoids signals and prevents recursion
+            
             Address.objects.filter(profile=self.profile, address_type=self.address_type).update(is_default=False)
         super().save(*args, **kwargs)
 

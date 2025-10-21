@@ -75,7 +75,7 @@ class UserProfileForm(forms.ModelForm):
         email = (self.cleaned_data.get("email") or "").strip()
         if not email:
             raise forms.ValidationError("Email is required.")
-        # Allow same email for this user; block others
+        
         qs = User.objects.filter(email__iexact=email)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
@@ -85,7 +85,7 @@ class UserProfileForm(forms.ModelForm):
 
 
 class VendorProfileForm(forms.ModelForm):
-    # Expose socials as separate optional fields; we’ll pack to JSON in clean()
+    
     socials_instagram = forms.CharField(required=False)
     socials_twitter   = forms.CharField(required=False)
     socials_facebook  = forms.CharField(required=False)
@@ -153,12 +153,12 @@ class VendorProfileForm(forms.ModelForm):
     def clean(self):
         data = super().clean()
 
-        # Slug default from business_name if blank
+        
         slug = (data.get("slug") or "").strip()
         if not slug and data.get("business_name"):
             data["slug"] = slugify(data["business_name"])
 
-        # Build socials JSON
+        
         socials = {}
         for key in ("socials_instagram", "socials_twitter", "socials_facebook", "socials_tiktok"):
             v = (self.cleaned_data.get(key) or "").strip()

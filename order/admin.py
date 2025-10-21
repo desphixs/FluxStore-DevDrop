@@ -83,23 +83,23 @@ class CouponForm(forms.ModelForm):
         starts = cleaned.get("starts_at")
         ends   = cleaned.get("ends_at")
 
-        # required value by type
+        
         if dtype == models.Coupon.DiscountType.PERCENT:
             if not pct or pct <= 0:
                 self.add_error("percent_off", "Percent off must be > 0 for percent coupons.")
-            # cap is optional but must be positive if provided
+            
             if cap is not None and cap < 0:
                 self.add_error("max_discount_amount", "Max discount cap must be ≥ 0.")
-            # amount_off must be empty for percent coupons
+            
             if amt:
                 self.add_error("amount_off", "For percent coupons, leave amount_off empty.")
         elif dtype == models.Coupon.DiscountType.FIXED:
             if not amt or amt <= 0:
                 self.add_error("amount_off", "Fixed amount must be > 0 for fixed coupons.")
-            # cap should not be used with fixed
+            
             if cap:
                 self.add_error("max_discount_amount", "Max discount cap is only for percent coupons.")
-            # percent_off must be empty for fixed coupons
+            
             if pct:
                 self.add_error("percent_off", "For fixed coupons, leave percent_off empty.")
         else:
@@ -146,14 +146,14 @@ class CouponRedemptionInline(admin.StackedInline):
     def user_link(self, obj):
         if not obj.user_id:
             return "-"
-        # Default Django user admin URL; adjust if you use a custom app label/model name
+        
         return format_html('<a href="/admin/auth/user/{}/change/">{}</a>', obj.user_id, obj.user)
 
     @admin.display(description="Vendor")
     def vendor_link(self, obj):
         if not obj.vendor_id:
             return "-"
-        # Adjust admin URL to your user model’s admin path if different
+        
         return format_html('<a href="/admin/auth/user/{}/change/">{}</a>', obj.vendor_id, obj.vendor)
 
 
@@ -246,7 +246,7 @@ class CouponAdmin(admin.ModelAdmin):
 
     actions = ["activate_coupons", "deactivate_coupons"]
 
-    # --- Vendor scoping: vendors see only their coupons, superusers see all ---
+    
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -260,7 +260,7 @@ class CouponAdmin(admin.ModelAdmin):
         )
         if request.user.is_superuser:
             return qs
-        # if your vendor users are staff=True but not superusers, scope to themselves
+        
         return qs.filter(vendor=request.user)
 
     def has_change_permission(self, request, obj=None):
@@ -277,12 +277,12 @@ class CouponAdmin(admin.ModelAdmin):
         return super().has_delete_permission(request, obj)
 
     def save_model(self, request, obj, form, change):
-        # If you want vendors to be auto-assigned to themselves:
+        
         if not request.user.is_superuser:
             obj.vendor = request.user
         super().save_model(request, obj, form, change)
 
-    # --- list displays / badges ---
+    
 
     @admin.display(description="Discount")
     def discount_display(self, obj: models.Coupon):
@@ -316,7 +316,7 @@ class CouponAdmin(admin.ModelAdmin):
     def is_live_badge(self, obj: models.Coupon):
         return obj.is_live()
 
-    # --- actions ---
+    
 
     @admin.action(description="Activate selected coupons")
     def activate_coupons(self, request, queryset):

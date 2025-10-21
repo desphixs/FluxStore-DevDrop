@@ -30,8 +30,6 @@ class Notification(models.Model):
     level = models.CharField(max_length=20, choices=Level.choices, default=Level.INFO)
     title = models.CharField(max_length=200)
     message = models.TextField(blank=True)
-
-    # Optional linking (order, product, etc.) via generic FK
     content_type = models.ForeignKey(ContentType, null=True, blank=True, on_delete=models.SET_NULL)
     object_id = models.CharField(max_length=64, null=True, blank=True)
     context_object = GenericForeignKey("content_type", "object_id")

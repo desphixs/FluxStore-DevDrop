@@ -39,7 +39,7 @@ class Cart(models.Model):
             cls._remember_in_session(request, cart, item_count=0 if created else None)
             return cart
 
-        # ensure session exists
+        
         if not request.session.session_key:
             request.session.create()
         session_key = request.session.session_key
@@ -100,11 +100,11 @@ class Cart(models.Model):
         if quantity < 1:
             raise ValidationError("Quantity must be >= 1")
 
-        # verify variation belongs to a published product and is active
+        
         if not product_variation.is_active:
             raise ValidationError("Variant is not active")
 
-        # check stock
+        
         if product_variation.stock_quantity < quantity:
             raise ValidationError("Insufficient stock for requested quantity")
 
@@ -129,7 +129,7 @@ class Cart(models.Model):
 
     
     def total_amount(self):
-        # returns Decimal
+        
         agg = self.items.aggregate(total=Sum(F('quantity') * F('price')))
         return agg['total'] or 0
 
@@ -139,23 +139,23 @@ class Cart(models.Model):
         Merge items from other_cart into this cart by "re-parenting" them.
         This is more efficient and robust than creating new items.
         """
-        # Loop through all items in the guest cart
+        
         for item_to_merge in other_cart.items.all():
-            # Check if the user's cart ALREADY has this specific product variation
+            
             existing_item, created = self.items.get_or_create(
                 product_variation=item_to_merge.product_variation,
                 defaults={'quantity': item_to_merge.quantity}
             )
 
             if not created:
-                # If the item already existed in the user's cart, just add the quantity
+                
                 existing_item.quantity += item_to_merge.quantity
                 existing_item.save()
-                # The original item from the guest cart is now redundant, so we can delete it
+                
                 item_to_merge.delete()
         
-        # After merging quantities and handling duplicates, delete the now-empty guest cart.
-        # This will also delete any remaining items in it due to the CASCADE relationship.
+        
+        
         other_cart.delete()
 
 
@@ -189,21 +189,21 @@ class Order(models.Model):
     buyer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='orders')
     address = models.ForeignKey("userauths.Address", on_delete=models.SET_NULL, null=True, blank=True)
 
-    order_id = models.CharField(max_length=120, unique=True, blank=True)  # public 8-digit for URLs
+    order_id = models.CharField(max_length=120, unique=True, blank=True)  
     currency = models.CharField(max_length=10, default="INR")
 
-    # Existing (gross items total)
+    
     item_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
-    # NEW: discount + net totals (don’t break item_total / total_amount usage)
+    
     item_discount_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     item_total_net      = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
     shipping_fee   = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    amount_payable = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)  # item_total_net + shipping
-    total_amount   = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)  # mirrors amount_payable
+    amount_payable = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)  
+    total_amount   = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)  
 
-    # Shipping selection (unchanged)
+    
     courier_code = models.CharField(max_length=120, blank=True)
     courier_name = models.CharField(max_length=200, blank=True)
     courier_service_name = models.CharField(max_length=200, blank=True)
@@ -216,7 +216,7 @@ class Order(models.Model):
     shipping_rate_raw = models.JSONField(null=True, blank=True)
     shipping_rate_fetched_at = models.DateTimeField(null=True, blank=True)
 
-    # Shiprocket integration bits (optional/back-compat)
+    
     selected_courier_code = models.CharField(max_length=120, blank=True)
     shiprocket_rate_id = models.CharField(max_length=120, blank=True)
     shiprocket_order_id = models.CharField(max_length=120, blank=True)
@@ -227,8 +227,8 @@ class Order(models.Model):
     shipping_address_snapshot = models.JSONField(null=True, blank=True)
 
     easebuzz_txnid = models.CharField(max_length=120, blank=True, null=True)
-    easebuzz_payment_id = models.CharField(max_length=120, blank=True, null=True)  # a.k.a. easebuzz_id in responses
-    payment_meta = models.JSONField(null=True, blank=True)  # stash raw gateway payloads
+    easebuzz_payment_id = models.CharField(max_length=120, blank=True, null=True)  
+    payment_meta = models.JSONField(null=True, blank=True)  
 
     status = models.CharField(max_length=20, choices=OrderStatus.choices, default=OrderStatus.PENDING)
     uuid = ShortUUIDField(length=12, max_length=50, alphabet="1234567890")
@@ -251,7 +251,7 @@ class Order(models.Model):
                 self.order_id = candidate
                 break
 
-    # --- totals helpers (do NOT rename existing fields) ---
+    
     def recompute_item_totals_from_items(self):
         """
         Recompute:
@@ -279,7 +279,7 @@ class Order(models.Model):
         self.total_amount   = self.amount_payable
 
     def apply_shipping_selection(self, rate_obj: dict, fallback_currency="INR", chargeable_weight=None, volumetric_weight=None):
-        # unchanged from your version (kept here)
+        
         if not isinstance(rate_obj, dict):
             return
         name = rate_obj.get('courier_name') or rate_obj.get('name') or rate_obj.get('courier') or ""
@@ -314,7 +314,7 @@ class Order(models.Model):
         self.shipping_rate_fetched_at = timezone.now()
         self.shipping_rate_raw = rate_obj
 
-    # order/models.py (inside Order)
+    
     def has_any_coupon_applied(self) -> bool:
         return self.coupon_redemptions.exists()
 
@@ -342,9 +342,9 @@ class OrderItem(models.Model):
     vendor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='order_items')
 
     quantity = models.PositiveIntegerField(default=1)
-    price    = models.DecimalField(max_digits=10, decimal_places=2)  # KEEPING your existing field
+    price    = models.DecimalField(max_digits=10, decimal_places=2)  
 
-    # NEW
+    
     line_discount_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     line_subtotal_net   = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
@@ -459,14 +459,14 @@ class Notification(models.Model):
         WARNING = "WARNING", "Warning"
         ERROR   = "ERROR", "Error"
 
-    # Works for both customers and vendors (no role restriction here)
+    
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="notifications_user",
     )
 
-    # Optional: who triggered it (system or another user)
+    
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -479,14 +479,14 @@ class Notification(models.Model):
     title  = models.CharField(max_length=200)
     message = models.TextField(blank=True)
 
-    # Optional linking via Generic FK (to orders, products, reviews, etc.)
+    
     content_type = models.ForeignKey(ContentType, null=True, blank=True, on_delete=models.SET_NULL, related_name="content_type")
-    # Use an integer field because your models use integer PKs.
-    # If you truly need UUID/string PKs, see note below.
+    
+    
     object_id = models.PositiveBigIntegerField(null=True, blank=True)
     context_object = GenericForeignKey("content_type", "object_id")
 
-    # Optional: CTA link for the notification
+    
     target_url = models.CharField(max_length=500, blank=True)
 
     is_read = models.BooleanField(default=False, db_index=True)

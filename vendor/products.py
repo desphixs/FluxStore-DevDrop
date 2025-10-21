@@ -50,8 +50,8 @@ def _parse_dt(val):
     if isinstance(val, datetime):
         return timezone.make_aware(val) if timezone.is_naive(val) else val
     s = str(val).strip()
-    # html datetime-local looks like "2025-09-24T22:33"
-    # Try Django's parser first
+    
+    
     dt = parse_datetime(s.replace('Z', '+00:00'))
     if dt is None:
         try:
@@ -93,18 +93,18 @@ def product_list(request):
     if view_mode not in {"grid", "list"}:
         view_mode = "grid"
 
-    # ----- Subqueries for sold qty & revenue (paid orders only) -----
+    
     oi_paid = order_models.OrderItem.objects.filter(
         product_variation__product=OuterRef("pk"),
         order__payment_status="PAID",
     )
 
-    # total quantity sold
+    
     sold_qty_sq = oi_paid.values("product_variation__product").annotate(
         total_qty=Coalesce(Sum("quantity"), 0)
     ).values("total_qty")[:1]
 
-    # revenue = Sum(quantity * sale_price) with proper Decimal output_field
+    
     line_total_expr = ExpressionWrapper(
         F("quantity") * F("sale_price"),
         output_field=DecimalField(max_digits=14, decimal_places=2),
@@ -113,12 +113,12 @@ def product_list(request):
         total_rev=Coalesce(Sum(line_total_expr), Value(Decimal("0.00")))
     ).values("total_rev")[:1]
 
-    # ----- Base queryset -----
+    
     qs = (
         store_models.Product.objects
         .filter(vendor=vendor)
         .select_related("category")
-        .prefetch_related("images")  # helps p.primary_image property
+        .prefetch_related("images")  
         .annotate(
             variant_count=Count("variations", distinct=True),
             stock_total=Coalesce(Sum("variations__stock_quantity"), 0),
@@ -143,7 +143,7 @@ def product_list(request):
 
     qs = qs.order_by("-created_at")
 
-    # ----- Pagination -----
+    
     per_page = int(request.GET.get("per_page") or 18)
     paginator = Paginator(qs, per_page)
     page = paginator.get_page(request.GET.get("page"))
@@ -156,7 +156,7 @@ def product_list(request):
             "q": q,
             "status": status,
             "status_choices": store_models.Product.ProductStatus.choices,
-            "view": view_mode,  # your template can show grid or list based on this
+            "view": view_mode,  
         },
     )
 
@@ -173,7 +173,7 @@ def product_create(request):
         if form.is_valid():
             p = form.save(commit=False)
             p.vendor = request.user
-            # keep status DRAFT on first create
+            
             p.status = store_models.Product.ProductStatus.DRAFT
             p.save()
             return redirect(reverse("vendor:product_edit", kwargs={"pk": p.pk}))
@@ -183,79 +183,6 @@ def product_create(request):
     return render(request, "vendor/products_create.html", {"form": form})
 
 
-# @login_required
-# @vendor_required
-# def product_edit(request, pk: int):
-#     """
-#     The full workspace with tabs:
-#       - Details (basic product fields)
-#       - Variations (list + create/edit modal + generator)
-#       - Images (upload multi, mark primary, delete)
-#     """
-#     product = get_object_or_404(store_models.Product, pk=pk, vendor=request.user)
-
-#     # Vendor's variation dictionary
-#     varcats = list(
-#         store_models.VariationCategory.objects
-#         .filter(vendor=request.user)
-#         .order_by("name")
-#         .values("id", "name")
-#     )
-#     varvals_by_cat = {}
-#     for vc in varcats:
-#         vals = list(store_models.VariationValue.objects
-#                     .filter(category_id=vc["id"])
-#                     .order_by("value")
-#                     .values("id", "value"))
-#         varvals_by_cat[vc["id"]] = vals
-
-#     # Existing variants
-#     variants = (
-#         store_models.ProductVariation.objects
-#         .filter(product=product)
-#         .prefetch_related("variations")
-#         .order_by("sale_price", "sku")
-#     )
-
-#     images = store_models.ProductImage.objects.filter(product=product).select_related("product_variation")
-
-#     ctx = {
-#         "product": product,
-#         "details_form": ProductDetailsForm(instance=product),
-#         "varcats": varcats,
-#         "varvals_by_cat_json": json.dumps(varvals_by_cat),
-#         "variants": variants,
-#         "images": images,
-
-#         # endpoints for JS
-#         "endpoints": {
-#             "update_details": reverse("vendor:product_update_details_ajax", kwargs={"pk": product.pk}),
-#             "toggle_publish": reverse("vendor:product_publish_toggle_ajax", kwargs={"pk": product.pk}),
-#             "toggle_feature": reverse("vendor:product_feature_toggle_ajax", kwargs={"pk": product.pk}),
-
-#             "variant_create": reverse("vendor:product_variation_create_ajax", kwargs={"pk": product.pk}),
-#             "variant_update": reverse("vendor:product_variation_update_ajax", kwargs={"vid": 0}).replace("/0/", "/{id}/"),
-#             "variant_delete": reverse("vendor:product_variation_delete_ajax", kwargs={"vid": 0}).replace("/0/", "/{id}/"),
-#             "variant_toggle_primary": reverse("vendor:product_variation_toggle_primary_ajax", kwargs={"vid": 0}).replace("/0/", "/{id}/"),
-#             "variant_toggle_active": reverse("vendor:product_variation_toggle_active_ajax", kwargs={"vid": 0}).replace("/0/", "/{id}/"),
-#             "variant_generate": reverse("vendor:product_variations_generate_ajax", kwargs={"pk": product.pk}),
-
-#             "varcat_create": reverse("vendor:varcat_create_ajax"),
-#             "varcat_update": reverse("vendor:varcat_update_ajax", kwargs={"cid": 0}).replace("/0/", "/{id}/"),
-#             "varcat_delete": reverse("vendor:varcat_delete_ajax", kwargs={"cid": 0}).replace("/0/", "/{id}/"),
-#             "varval_create": reverse("vendor:varval_create_ajax"),
-#             "varval_update": reverse("vendor:varval_update_ajax", kwargs={"vid": 0}).replace("/0/", "/{id}/"),
-#             "varval_delete": reverse("vendor:varval_delete_ajax", kwargs={"vid": 0}).replace("/0/", "/{id}/"),
-
-#             "image_upload": reverse("vendor:product_image_upload_ajax", kwargs={"pk": product.pk}),
-#             "image_delete": reverse("vendor:product_image_delete_ajax", kwargs={"iid": 0}).replace("/0/", "/{id}/"),
-#             "image_primary": reverse("vendor:product_image_mark_primary_ajax", kwargs={"iid": 0}).replace("/0/", "/{id}/"),
-#         }
-#     }
-#     return render(request, "vendor/products_edit.html", ctx)
-
-
-# ---------- Details (AJAX) ----------
 
 @login_required
 @vendor_required
@@ -297,7 +224,7 @@ def product_publish_toggle_ajax(request, pk: int):
     if not _is_ajax(request):
         return HttpResponseBadRequest("Invalid request")
     p = get_object_or_404(store_models.Product, pk=pk, vendor=request.user)
-    # Simple toggle between PUBLISHED and DRAFT
+    
     p.status = (
         store_models.Product.ProductStatus.DRAFT
         if p.status == store_models.Product.ProductStatus.PUBLISHED
@@ -443,7 +370,7 @@ def product_variation_create_ajax(request, pk: int):
         pv = form.save(commit=False)
         pv.product = product
         pv.save()
-        # M2M variation values
+        
         value_ids = _parse_ids(form.cleaned_data.get("variation_value_ids"))
         if value_ids:
             vqs = store_models.VariationValue.objects.filter(id__in=value_ids, category__vendor=request.user)
@@ -451,7 +378,7 @@ def product_variation_create_ajax(request, pk: int):
         else:
             pv.variations.clear()
 
-        # If marking primary, unset others
+        
         if pv.is_primary:
             store_models.ProductVariation.objects.filter(product=product).exclude(pk=pv.pk).update(is_primary=False)
 
@@ -556,7 +483,7 @@ def product_variations_generate_ajax(request, pk: int):
         payload = {}
 
     mapping = payload.get("value_ids_by_category") or {}
-    # Normalize & validate
+    
     cat_ids = [int(k) for k in mapping.keys() if str(k).isdigit()]
     value_lists = []
     for cid in cat_ids:
@@ -643,13 +570,13 @@ def product_image_upload_ajax(request, pk: int):
     for f in files:
         img = store_models.ProductImage.objects.create(product=product, image=f, is_primary=False)
         out.append({"id": img.id, "url": img.image.url, "is_primary": img.is_primary})
-    # If no primary image existed, set the first uploaded as primary
+    
     if not store_models.ProductImage.objects.filter(product=product, is_primary=True).exists():
         first = store_models.ProductImage.objects.filter(product=product).order_by("id").first()
         if first:
             first.is_primary = True
             first.save(update_fields=["is_primary"])
-            # also correct response item
+            
             for i in out:
                 if i["id"] == first.id:
                     i["is_primary"] = True
@@ -669,7 +596,7 @@ def product_image_delete_ajax(request, iid: int):
     was_primary = img.is_primary
     img.delete()
     if was_primary:
-        # fallback: mark another as primary
+        
         other = store_models.ProductImage.objects.filter(product_id=pid).order_by("id").first()
         if other:
             other.is_primary = True
@@ -736,44 +663,6 @@ def variant_to_dict(v: store_models.ProductVariation):
         "discount_pct": v.discount_percentage(),
     }
 
-# # ---------- EDIT PAGE ----------
-# @login_required
-# @vendor_required
-# def product_edit(request, pk: int):
-#     product = get_object_or_404(store_models.Product, pk=pk, vendor=request.user)
-
-#     # Vendor-wide dictionary shown on this page
-#     varcats = (
-#         store_models.VariationCategory.objects
-#         .filter(vendor=request.user)
-#         .prefetch_related("values")
-#         .order_by("name")
-#     )
-
-#     # Variants for this product
-#     variants = (
-#         product.variations
-#         .prefetch_related("variations")
-#         .order_by("-is_primary", "-is_active", "sale_price")
-#     )
-
-#     # Sold stats per variant (optional)
-#     sold_map = {
-#         it["product_variation"]: it["qty"]
-#         for it in order_models.OrderItem.objects
-#             .filter(order__payment_status="PAID", product_variation__product=product)
-#             .values("product_variation").annotate(qty=Sum("quantity"))
-#     }
-
-#     return render(request, "vendor/product_edit.html", {
-#         "product": product,
-#         "varcats": varcats,
-#         "variants": variants,
-#         "sold_map": sold_map,
-#         "show_discount_choices": dict(store_models.ProductVariation.SHOW_DISCOUNT_TYPE),
-#         "label_choices": dict(store_models.ProductVariation.LABEL_CHOICES),
-#     })
-
 @ensure_csrf_cookie
 @login_required
 @vendor_required
@@ -786,7 +675,7 @@ def product_edit(request, pk: int):
     """
     product = get_object_or_404(store_models.Product, pk=pk, vendor=request.user)
 
-    # Vendor dictionary (keep as QuerySet with values prefetched so the variants tab can use cat.values.all)
+    
     varcats = (
         store_models.VariationCategory.objects
         .filter(vendor=request.user)
@@ -794,14 +683,14 @@ def product_edit(request, pk: int):
         .order_by("name")
     )
 
-    # Variants for this product (unchanged from your working page)
+    
     variants = (
         product.variations
         .prefetch_related("variations")
         .order_by("-is_primary", "-is_active", "sale_price")
     )
 
-    # Optional sold stats (keep if you want; your template doesn’t require it)
+    
     sold_map = {
         it["product_variation"]: it["qty"]
         for it in order_models.OrderItem.objects
@@ -809,7 +698,7 @@ def product_edit(request, pk: int):
             .values("product_variation").annotate(qty=Sum("quantity"))
     }
 
-    # Images for images tab
+    
     images = (
         store_models.ProductImage.objects
         .filter(product=product)
@@ -819,10 +708,10 @@ def product_edit(request, pk: int):
 
     return render(request, "vendor/product_edit.html", {
         "product": product,
-        "details_form": ProductDetailsForm(instance=product),  # <-- fixes your error
+        "details_form": ProductDetailsForm(instance=product),  
         "varcats": varcats,
         "variants": variants,
-        "images": images,                                       # <-- needed by Images tab
+        "images": images,                                       
         "sold_map": sold_map,
         "label_choices": store_models.ProductVariation.LABEL_CHOICES,
         "show_discount_choices": store_models.ProductVariation.SHOW_DISCOUNT_TYPE,
@@ -838,7 +727,7 @@ def varcat_create_ajax(request):
     name = (request.POST.get("name") or "").strip()
     if not name:
         return _json_error("Name required.")
-    # unique per vendor
+    
     if store_models.VariationCategory.objects.filter(vendor=request.user, name__iexact=name).exists():
         return _json_error("A category with this name already exists.")
     cat = store_models.VariationCategory.objects.create(vendor=request.user, name=name)
@@ -906,27 +795,7 @@ def variant_create_ajax(request, product_id: int):
     data = request.POST
     try:
         with transaction.atomic():
-            # v = store_models.ProductVariation.objects.create(
-            #     product=product,
-            #     sale_price=Decimal(data.get("sale_price") or "0"),
-            #     regular_price=Decimal(data.get("regular_price") or "0"),
-            #     show_regular_price=bool(data.get("show_regular_price")),
-            #     show_discount_type=data.get("show_discount_type") or "none",
-            #     stock_quantity=int(data.get("stock_quantity") or 0),
-            #     sku=(data.get("sku") or "").strip(),
-            #     is_active=bool(data.get("is_active")),
-            #     is_primary=bool(data.get("is_primary")),
-            #     label=data.get("label") or "New",
-            #     deal_active=bool(data.get("deal_active")),
-            #     weight=Decimal(data.get("weight") or "0"),
-            #     length=Decimal(data.get("length") or "0"),
-            #     height=Decimal(data.get("height") or "0"),
-            #     width=Decimal(data.get("width") or "0"),
-            # )
-            # # optional datetimes
-            # v.deal_starts_at = data.get("deal_starts_at") or None
-            # v.deal_ends_at = data.get("deal_ends_at") or None
-            # v.save()
+           
 
             v = store_models.ProductVariation.objects.create(
                 product=product,
@@ -945,17 +814,17 @@ def variant_create_ajax(request, product_id: int):
                 height=Decimal(data.get("height") or "0"),
                 width=Decimal(data.get("width") or "0"),
             )
-            # optional datetimes (parse to aware datetimes)
+            
             v.deal_starts_at = _parse_dt(data.get("deal_starts_at"))
             v.deal_ends_at   = _parse_dt(data.get("deal_ends_at"))
             v.save()
 
-            # attach selected VariationValue ids
+            
             ids = [int(x) for x in (data.getlist("values[]") or data.getlist("values"))]
             if ids:
                 v.variations.set(store_models.VariationValue.objects.filter(id__in=ids, category__vendor=request.user))
 
-            # if set primary, demote others
+            
             if v.is_primary:
                 product.variations.exclude(pk=v.pk).update(is_primary=False)
 
@@ -1004,7 +873,7 @@ def variant_update_ajax(request, pk: int):
                 v.save(update_fields=["is_primary"])
                 v.product.variations.exclude(pk=v.pk).update(is_primary=False)
             elif not make_primary and v.is_primary:
-                # keep at least one primary; if user unchecks, we allow none-primary state
+                
                 v.is_primary = False
                 v.save(update_fields=["is_primary"])
 

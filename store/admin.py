@@ -34,11 +34,11 @@ class CategoryAdmin(admin.ModelAdmin):
 class ProductImageInline(admin.StackedInline):
     model = models.ProductImage
     extra = 1
-    fields = ("image", "image_preview", "is_primary")  # show both file input + preview
+    fields = ("image", "image_preview", "is_primary")  
     readonly_fields = ("image_preview",)
 
     def image_preview(self, obj):
-        if obj and obj.image:  # check if there's an image
+        if obj and obj.image:  
             return format_html('<img src="{}" width="100" style="border-radius: 8px;" />', obj.image.url)
         return "No image"
 
@@ -91,7 +91,7 @@ class ProductVariationAdmin(admin.ModelAdmin):
     list_filter = ("is_active", "product")
     search_fields = ("product__name", "sku")
     ordering = ("sale_price",)
-    filter_horizontal = ("variations",)  # nice multi-select UI
+    filter_horizontal = ("variations",)  
     inlines = [ProductImageInlineForVariation]
     readonly_fields = ("uuid",)
 

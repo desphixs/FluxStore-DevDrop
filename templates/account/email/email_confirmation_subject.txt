@@ -1,0 +1,1 @@
+Confirm your {{ current_site.name }} account

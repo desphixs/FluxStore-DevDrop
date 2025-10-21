@@ -67,14 +67,14 @@ def similarity_cutoffs(q: str) -> Tuple[float, float]:
 
 # ---------- Serializers ----------
 def _serialize_product(p: Product):
-    # Primary variation & image
-    primary = p.primary_item()  # your helper
+    
+    primary = p.primary_item()  
     img = p.primary_image
-    avg_int = p.average_rating_int()  # your helper
+    avg_int = p.average_rating_int()  
     avg = p.average_rating()
     total_reviews = p.total_reviews()
 
-    # Fallbacks
+    
     sale_price = float(primary.sale_price) if primary else 0.0
     regular_price = float(primary.regular_price) if (primary and primary.show_regular_price) else float(primary.sale_price) if primary else 0.0
     show_regular = bool(primary.show_regular_price) if primary else False
@@ -143,12 +143,12 @@ def product_list_api(request):
         reviews_count=Count("reviews"),
     )
 
-    # ---- Filters ----
+    
     q = (request.GET.get("q") or "").strip()
-    cat = request.GET.get("category")  # slug
+    cat = request.GET.get("category")  
     label = request.GET.get("label")
-    deal = request.GET.get("deal")     # "1" or "0"
-    stock = request.GET.get("stock")   # "1" or "0"
+    deal = request.GET.get("deal")     
+    stock = request.GET.get("stock")   
     min_price = request.GET.get("min_price")
     max_price = request.GET.get("max_price")
     rating_min = request.GET.get("rating_min")
@@ -186,7 +186,7 @@ def product_list_api(request):
         except Exception:
             pass
 
-    # ---- Search (q) ----
+    
     if q:
         norm_q = normalize_query(q)
         loose_q = spaced_guess(q)
@@ -213,7 +213,7 @@ def product_list_api(request):
                 token_or |= Q(name__icontains=t) | Q(description__icontains=t)
             qs = qs.filter(loose | token_or | Q(name__icontains=q) | Q(description__icontains=q))
 
-    # ---- Sorting ----
+    
     if sort == "price_low":
         qs = qs.order_by("variations__sale_price")
     elif sort == "price_high":
@@ -222,7 +222,7 @@ def product_list_api(request):
         qs = qs.order_by("-avg_rating", "-reviews_count")
     elif sort == "popular":
         qs = qs.order_by("-reviews_count", "-avg_rating")
-    else:  # newest
+    else:  
         qs = qs.order_by("-created_at")
 
     qs = qs.distinct()

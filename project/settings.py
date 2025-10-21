@@ -72,6 +72,15 @@ INSTALLED_APPS = [
     # Third party apps
     'django_ckeditor_5',
     "django_summernote",
+    "anymail",
+
+    # allauth core
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+
+    # providers
+    'allauth.socialaccount.providers.google',
 ]
 
 
@@ -82,6 +91,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    "allauth.account.middleware.AccountMiddleware",
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -168,8 +178,8 @@ STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
         "OPTIONS": {
-            "location": MEDIA_ROOT,   # uses your MEDIA_ROOT below
-            "base_url": MEDIA_URL,    # uses your MEDIA_URL below
+            "location": MEDIA_ROOT,   
+            "base_url": MEDIA_URL,    
         },
     },
     "staticfiles": {
@@ -183,7 +193,6 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Custom User
 AUTH_USER_MODEL = "userauths.User"
 
 SHIPROCKET_API_BASE = "https://apiv2.shiprocket.in/v1/external"
@@ -199,8 +208,62 @@ EASEBUZZ_ENV = env("EASEBUZZ_ENV").lower().strip()
 def EASEBUZZ_BASE():
     return "https://pay.easebuzz.in" if EASEBUZZ_ENV == "prod" else "https://testpay.easebuzz.in"
 
+
+SEND_AUTH_EMAIL = env.bool("SEND_AUTH_EMAIL", default=True)
+
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
+ACCOUNT_PRESERVE_USERNAME_CASING = False
+
+ACCOUNT_EMAIL_VERIFICATION = "mandatory" if SEND_AUTH_EMAIL else "none"
+
+ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = "userauths:login"
+ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = "userauths:login"
+
 LOGIN_URL = "userauths:login"
 LOGIN_REDIRECT_URL = "store:index"
+LOGOUT_REDIRECT_URL = "userauths:login"
+
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',              
+    'allauth.account.auth_backends.AuthenticationBackend',          
+]
+
+ACCOUNT_ADAPTER = "userauths.adapters.AccountAdapter"
+SOCIALACCOUNT_ADAPTER = "userauths.adapters.SocialAdapter"
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+TRUST_GOOGLE_EMAIL = True
+
+EMAIL_BACKEND = "anymail.backends.mailersend.EmailBackend"
+
+ANYMAIL = {
+    "MAILERSEND_API_TOKEN": os.getenv("MAILERSEND_API_TOKEN", ""),
+    "SEND_DEFAULTS": {
+        "from_email": os.getenv("DEFAULT_FROM_EMAIL", ""),
+    },
+}
+
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "")
+SERVER_EMAIL = os.getenv("SERVER_EMAIL", "")
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": ["profile", "email", "openid"],
+        "AUTH_PARAMS": {"access_type": "online"},
+        "APP": {
+            "client_id": env.str("GOOGLE_CLIENT_ID", default=""),
+            "secret": env.str("GOOGLE_CLIENT_SECRET", default=""),
+            "key": "",
+        },
+    }
+}
+
+
 # settings.py
 SINGLE_COUPON_PER_ORDER = True 
 SINGLE_COUPON_PER_VENDOR = True 
@@ -213,11 +276,11 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Welcome to FluxStore",
 
     # Favicon
-    "site_icon": "assets/img/favicon.png",        # path relative to static/
+    "site_icon": "assets/img/favicon.png",       
 
     # Logos
-    "site_logo": "assets/img/favicon.png",           # login screen + navbar logo
-    "login_logo": "assets/img/favicon.png",          # login page logo (optional override)
+    "site_logo": "assets/img/favicon.png",         
+    "login_logo": "assets/img/favicon.png",         
 
     "custom_css": "assets/css/jazzmin-custom-admin.css",
 }
@@ -238,5 +301,4 @@ DJANGO_CKEDITOR_5_CONFIGS = {
         "language": "en",
     },
 }
-
 

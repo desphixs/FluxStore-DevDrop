@@ -1,0 +1,9 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+  <div class="min-h-[60vh] flex items-center justify-center px-4 py-16">
+    <div class="w-full max-w-md bg-white  border border-gray-100  rounded-2xl shadow-sm p-6">
+      {% block account_content %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}
